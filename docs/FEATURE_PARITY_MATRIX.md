@@ -1,0 +1,57 @@
+# Feature parity matrix
+
+Classes: **MVP** = required for MVP · **Pro** = required for initial professional release ·
+**Plan** = planned enhancement · **Diff** = intentionally different · **Out** = out of scope ·
+**Inv** = needs additional investigation. Status: ✅ done · 🟡 partial · ⬜ not started.
+
+| Feature | Flow Calc (source) | Class | MasterFlow status | Notes |
+|---|---|---|---|---|
+| Rectangular channel | Wizard → points (obs.) | MVP / Diff | ✅ | Parametric section |
+| Trapezoidal (asymmetric) | Wizard → points (obs.) | MVP / Diff | ✅ | |
+| Triangular (asymmetric) | Wizard → points (obs.) | MVP / Diff | ✅ | |
+| Parabolic | Not seen | Plan | ⬜ | Justify with demand |
+| Irregular station/elevation | Yes (obs., site) | MVP | ⬜ | Phase D |
+| Per-point n / composite n | Yes; Constant or Flow Conveyance methods (obs.) | Pro | ⬜ | Phase D; document method (Horton/Einstein, conveyance subdivision) |
+| Circular pipe partial flow | Yes (obs., site) | MVP | ⬜ | Phase C |
+| Dual normal depth / max discharge in pipes | Yes (obs.) | MVP | ⬜ | Phase C |
+| Elliptical pipes (horizontal/vertical) | Yes (span/rise) | Pro | ⬜ | Phase C; standard shapes from ASTM C507 |
+| Solve for Q / yn / S / n | Yes (obs.) | MVP | ✅ | |
+| Critical depth, velocity, slope | Depth and slope (obs.) | MVP | ✅ | Also Vc, Ec, Z |
+| Froude, regime | Fr (obs.) | MVP | ✅ | Regime + near-critical warning |
+| Specific energy, velocity head | Yes (obs.) | MVP | ✅ | |
+| Conveyance, section factor | Not seen | MVP | ✅ | |
+| Velocity-depth product | Yes (obs.) | Pro | ⬜ | Trivial; add with roadside-safety context |
+| Water elevation / HGL | Yes (obs.) | Pro | ⬜ | Needs invert elevation input |
+| Imperial / Metric | Yes (obs.) | MVP | ✅ | |
+| Units precision settings | Not seen | Pro | 🟡 | Fixed precision per value; user settings later |
+| Input validation / errors | Yes (obs.) | MVP | ✅ | Structured codes |
+| n reference picker | Handbook table (obs.) | Pro | ⬜ | Original table built from Chow 1959 ranges |
+| Rating table depth → Q | Yes | MVP | ✅ | |
+| Rating table Q → depth | Inv | MVP | ✅ | |
+| Rating chart | Inv | Pro | ⬜ | Phase E |
+| CSV / clipboard export | "Export calculations" | MVP | ✅ | Rating table and results |
+| Excel (.xlsx) export | Inv | Plan | ⬜ | Tab-separated clipboard already pastes into Excel |
+| Quick calculator | Not found | Plan / Diff | ⬜ | Phase E differentiator |
+| Alternative comparison | Not found | Pro / Diff | ⬜ | Phase E differentiator |
+| Project tree, folders | Yes (obs.) | Pro | 🟡 | Flat list now; folders Phase F |
+| Duplicate / delete / recycle bin | Yes (obs.) | MVP | 🟡 | Duplicate + delete; no recycle bin (undo instead, Phase F) |
+| Sort names / re-sort | Yes (obs.) | Plan | ⬜ | |
+| Title expressions | Yes (obs.) | Pro | ⬜ | Builder with preview |
+| Templates (factory street sections) | Yes (obs.) | Pro | ⬜ | Original templates; user templates |
+| Save / open / versioned file | Yes | MVP | ✅ | `.mfproj` schema 1 |
+| Recent files | Yes (obs.) | Pro | ⬜ | |
+| Backup settings | Yes (obs.) | Plan | ⬜ | |
+| Autosave / recovery | Not seen | Pro | ⬜ | Phase F |
+| Undo / redo | Not seen | MVP | ✅ | Per calculation |
+| Report | Yes | MVP | ✅ | Original HTML layout |
+| PDF | Yes | MVP | 🟡 | Via browser print; native Phase F |
+| Watermark | Yes | Pro | ✅ | |
+| Logo, footer | Inv | Pro | 🟡 | Footer done; logo supported in engine, no picker |
+| Batch printing | Yes | Pro | 🟡 | Batch HTML report done; selection toggle later |
+| Calculation trace on report | No | Diff | ✅ | Auditability |
+| Civil 3D integration | Video title only | Inv | ⬜ | Investigate data exchange format |
+| Licence activation | Yes | Out | — | Not needed |
+| Telemetry | Licence checks only | Out | — | None |
+| Light / dark theme | Dark-only (obs.) | Plan | ✅ | Follows Windows setting |
+| Keyboard shortcuts | Inv | Pro | 🟡 | Main shortcuts done |
+| Gradually varied / unsteady flow | No | Out | — | Clearly stated |
