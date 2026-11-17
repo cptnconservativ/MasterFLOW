@@ -44,7 +44,7 @@
       <TextBlock Text="{Binding StatusMessage}" Opacity="0.8"/>
     </Border>
 
-    <Grid ColumnDefinitions="260,4,*,4,340">
+    <Grid ColumnDefinitions="260,4,*,4,370">
       <!-- Project navigator -->
       <DockPanel Grid.Column="0" Margin="8">
         <Expander DockPanel.Dock="Top" Header="Project information" Margin="0,0,0,8" HorizontalAlignment="Stretch">
@@ -94,7 +94,7 @@
                 <TextBlock Classes="h2" Text="Section" Margin="0,0,0,4"/>
                 <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                   <TextBlock Classes="label" Text="Shape"/>
-                  <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.Shapes}" SelectedItem="{Binding Shape}" HorizontalAlignment="Stretch"/>
+                  <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.Shapes}" SelectedItem="{Binding Shape}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
                   <TextBlock Grid.Row="1" Classes="label" Text="Units"/>
                   <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.UnitSystems}" SelectedItem="{Binding Units}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
                   <TextBlock Grid.Row="2" Classes="label" Text="Bottom width b" IsVisible="{Binding ShowBottomWidth}"/>
@@ -109,8 +109,12 @@
                   <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowSideSlopes}">
                     <TextBox Classes="num" Text="{Binding RightSlope}"/><TextBlock Classes="unit" Text="H : 1 V"/>
                   </StackPanel>
-                  <TextBlock Grid.Row="5" Classes="label" Text="Channel depth"/>
-                  <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
+                  <TextBlock Grid.Row="2" Classes="label" Text="Diameter D" IsVisible="{Binding IsPipe}"/>
+                  <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding IsPipe}">
+                    <TextBox Classes="num" Text="{Binding Diameter}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
+                  </StackPanel>
+                  <TextBlock Grid.Row="5" Classes="label" Text="Channel depth" IsVisible="{Binding ShowChannelDepth}"/>
+                  <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowChannelDepth}">
                     <TextBox Classes="num" Text="{Binding ChannelDepth}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
                   </StackPanel>
                 </Grid>

@@ -20,6 +20,7 @@ public sealed class EnumDisplayConverter : IValueConverter
         SolveFor.Roughness => "Manning's n",
         RatingTableMode.DischargeFromDepth => "Depth → discharge",
         RatingTableMode.DepthFromDischarge => "Discharge → normal depth",
+        SectionShape.Circular => "Circular pipe",
         SectionShape s => s.ToString(),
         _ => value?.ToString(),
     };

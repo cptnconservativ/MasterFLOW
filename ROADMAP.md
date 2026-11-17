@@ -22,14 +22,14 @@ Status as of 2026-11-17. Effort is engineering days (one developer). Risk: L/M/H
 | B5 Desktop slice | Inputs, results, plot, undo, save/load, report, rating table | B1–B4 | M | L | Manual inspection | VM tests | 3 | ✅ (Linux); Windows check ⬜ |
 | B6 n picker | Original n table with sources | B5 | L | M | Cancel never clears | UI | 1 | ⬜ |
 
-## Phase C — Pipes and additional shapes  (next)
+## Phase C — Pipes and additional shapes  (in progress)
 | Item | Scope | Deps | Tech | Eng | Acceptance | Tests | Effort | Status |
 |---|---|---|---|---|---|---|---|---|
-| C1 Circular partial flow | θ-based geometry, both normal-depth roots, Qmax at 0.938D, full-flow Q and slope, % full, d/D | B | M | M (non-unique roots) | Matches closed forms and FHWA charts | 5 categories | 3 | ⬜ |
-| C2 Capacity logic | Q > Qmax → "surcharged / pressurised – not modelled" error; Q between Qfull and Qmax → both depths | C1 | M | H | No silent pick of one root | tests | 1 | ⬜ |
+| C1 Circular partial flow | θ-based geometry, both normal-depth roots, Qmax at 0.938D, full-flow Q and slope, % full, d/D | B | M | M (non-unique roots) | Matches closed forms and FHWA charts | 5 categories | 3 | ✅ |
+| C2 Capacity logic | Q > Qmax → "surcharged / pressurised – not modelled" error; Q between Qfull and Qmax → both depths | C1 | M | H | No silent pick of one root | tests | 1 | ✅ |
 | C3 Elliptical HE/VE | ASTM C507 standard sizes; numerical geometry | C1 | M | M | Area/perimeter vs published tables | tests | 3 | ⬜ |
-| C4 Pipe UI & report | Diameter in inches with explicit unit | C1 | L | L | Manual | VM | 2 | ⬜ |
-| C5 Froude near crown | Flag D = A/T unreliable above ~0.9D | C1 | L | M | Warning present | test | 0.5 | ⬜ |
+| C4 Pipe UI & report | Diameter in inches with explicit unit | C1 | L | L | Manual | VM | 2 | ✅ |
+| C5 Froude near crown | Flag D = A/T unreliable above ~0.9D | C1 | L | M | Warning present | test | 0.5 | ✅ |
 
 ## Phase D — Irregular sections
 Dependencies: B, C1 (shared non-monotonic solver handling). Tech risk M, engineering risk H.

@@ -14,3 +14,6 @@
 | D-010 | 2026-11-17 | Near-critical band 0.86 ≤ Fr ≤ 1.13 (warning) | Fr = 1 ± 0.1 | USACE EM 1110-2-1601 guidance |
 | D-011 | 2026-11-17 | Slope entered in percent in the UI, labelled "%" | ft/ft | Practitioner convention (Flow Calc does the same); conversion is in one place in the view model |
 | D-012 | 2026-11-17 | No telemetry, no licence activation | — | Local-first engineering tool |
+| D-013 | 2026-11-17 | Pipe diameter entered in inches (US) / mm (SI); depth stays ft/m | All in ft | Practitioner convention; single labelled conversion in the view model |
+| D-014 | 2026-11-17 | For two normal depths, report the lower as primary and the upper as "alternate"; error above Qmax | Pick upper; clamp | The lower root is the stable design depth; never silently choose; never return a number for impossible free-surface flow |
+| D-015 | 2026-11-17 | Pipe plots are always drawn to true scale | Distorted | A distorted circle misleads |

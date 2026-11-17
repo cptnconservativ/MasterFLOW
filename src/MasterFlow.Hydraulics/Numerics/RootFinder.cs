@@ -100,6 +100,25 @@ public static class RootFinder
     }
 
     /// <summary>
+    /// Golden-section search for the maximum of a unimodal function on [a, b]. Returns the location and
+    /// value of the maximum. Used for the peak of Q(y) in closed conduits.
+    /// </summary>
+    public static (double X, double Value, int Iterations) GoldenMaximum(Func<double, double> f, double a, double b, double xTolerance, int maxIterations = 300)
+    {
+        double gr = (Math.Sqrt(5) - 1) / 2;
+        double c = b - gr * (b - a), d = a + gr * (b - a);
+        double fc = f(c), fd = f(d);
+        int i = 0;
+        for (; i < maxIterations && Math.Abs(b - a) > xTolerance; i++)
+        {
+            if (fc > fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = f(c); }
+            else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = f(d); }
+        }
+        double x = 0.5 * (a + b);
+        return (x, f(x), i);
+    }
+
+    /// <summary>
     /// For a function that is negative at <paramref name="low"/> and increases monotonically,
     /// expands the upper bound geometrically from <paramref name="initialHigh"/> until f changes sign,
     /// then applies Brent's method.
@@ -114,7 +133,7 @@ public static class RootFinder
         int maxIterations = DefaultMaxIterations)
     {
         double fl = f(low);
-        double hi = Math.Max(initialHigh, low + 1e-9);
+        double hi = Math.Min(Math.Max(initialHigh, low + 1e-9), maxHigh);
         double fh = f(hi);
         int expansions = 0;
         while (double.IsFinite(fh) && Math.Sign(fh) == Math.Sign(fl) && fl != 0 && hi < maxHigh && expansions < 200)

@@ -11,6 +11,7 @@ namespace MasterFlow.Domain;
 [JsonDerivedType(typeof(RectangularSection), "rectangular")]
 [JsonDerivedType(typeof(TrapezoidalSection), "trapezoidal")]
 [JsonDerivedType(typeof(TriangularSection), "triangular")]
+[JsonDerivedType(typeof(CircularSection), "circular")]
 public abstract record ChannelSection
 {
     /// <summary>
@@ -27,6 +28,7 @@ public abstract record ChannelSection
         SectionShape.Rectangular => "Rectangular",
         SectionShape.Trapezoidal => "Trapezoidal",
         SectionShape.Triangular => "Triangular",
+        SectionShape.Circular => "Circular pipe",
         _ => Shape.ToString(),
     };
 }
@@ -36,6 +38,7 @@ public enum SectionShape
     Rectangular,
     Trapezoidal,
     Triangular,
+    Circular,
 }
 
 /// <summary>Rectangular open channel of bottom width b.</summary>
@@ -54,4 +57,14 @@ public sealed record TrapezoidalSection(double BottomWidth, double LeftSideSlope
 public sealed record TriangularSection(double LeftSideSlope, double RightSideSlope) : ChannelSection
 {
     [JsonIgnore] public override SectionShape Shape => SectionShape.Triangular;
+}
+
+/// <summary>
+/// Circular conduit of inside diameter D (base length unit), flowing as an open channel (free surface,
+/// atmospheric pressure at the crown). Pressurised (surcharged) flow is not modelled.
+/// <see cref="ChannelSection.ChannelDepth"/> is not used for conduits.
+/// </summary>
+public sealed record CircularSection(double Diameter) : ChannelSection
+{
+    [JsonIgnore] public override SectionShape Shape => SectionShape.Circular;
 }

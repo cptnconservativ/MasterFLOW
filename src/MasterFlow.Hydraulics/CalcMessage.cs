@@ -28,6 +28,11 @@ public static class MessageCodes
     public const string GeometryInvalid = "E-G-001";
     public const string NonFinite = "E-X-001";
     public const string NoConvergence = "E-X-002";
+    public const string ExceedsConduitCapacity = "E-P-001";
+    public const string DepthExceedsRise = "E-P-002";
+    public const string TwoNormalDepths = "W-P-001";
+    public const string NearCrown = "W-P-002";
+    public const string FlowingFull = "I-P-001";
 
     public const string RoughnessUnusual = "W-N-001";
     public const string SlopeSteep = "W-S-001";

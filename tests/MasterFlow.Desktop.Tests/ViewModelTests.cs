@@ -109,7 +109,7 @@ public class ViewModelTests
             var vm2 = new MainViewModel();
             vm2.LoadFrom(path);
             Assert.Equal("VM test", vm2.ProjectName);
-            Assert.Equal(3, vm2.Calculations.Count);
+            Assert.Equal(4, vm2.Calculations.Count);
             Assert.Equal(vm.Calculations[0].Result!.Normal.Depth, vm2.Calculations[0].Result!.Normal.Depth, 12);
             Assert.Equal(vm.Calculations.Select(c => c.Id), vm2.Calculations.Select(c => c.Id));
         }
@@ -144,10 +144,54 @@ public class ViewModelTests
     {
         var vm = MainViewModel.CreateWithSample();
         vm.DuplicateCommand.Execute(null);
-        Assert.Equal(4, vm.Calculations.Count);
+        Assert.Equal(5, vm.Calculations.Count);
         Assert.EndsWith("(copy)", vm.Selected!.Title);
         Assert.NotEqual(vm.Calculations[0].Id, vm.Selected.Id);
         vm.DeleteCommand.Execute(null); // no dialog service attached → deletes without prompt
-        Assert.Equal(3, vm.Calculations.Count);
+        Assert.Equal(4, vm.Calculations.Count);
+    }
+}
+
+public class PipeViewModelTests
+{
+    [Fact]
+    public void Pipe_DiameterInInches_ConvertedOnce()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Calculations.Single(x => x.Shape == SectionShape.Circular);
+        Assert.True(c.IsPipe);
+        Assert.Equal("36", c.Diameter);
+        Assert.Equal(3.0, ((CircularSection)c.Result!.Input.Section).Diameter, 12);
+        Assert.Contains(c.ResultLines, l => l.Symbol == "yn₂");
+        c.Units = UnitSystem.SI;
+        c.Diameter = "900";
+        Assert.Equal(0.9, ((CircularSection)c.Result!.Input.Section).Diameter, 12);
+        Assert.Equal("mm", c.DiameterUnit);
+    }
+
+    [Fact]
+    public void Pipe_OverCapacity_ShowsError()
+    {
+        var c = MainViewModel.CreateWithSample().Calculations.Single(x => x.Shape == SectionShape.Circular);
+        c.Discharge = "100";
+        Assert.False(c.HasResult);
+        Assert.Contains(c.Messages, m => m.Code == MessageCodes.ExceedsConduitCapacity);
+    }
+
+    [Fact]
+    public void Pipe_SaveLoad_RoundTrip()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        string path = Path.Combine(Path.GetTempPath(), $"pipe-{Guid.NewGuid():N}.mfproj");
+        try
+        {
+            vm.SaveTo(path);
+            var vm2 = new MainViewModel();
+            vm2.LoadFrom(path);
+            var c = vm2.Calculations.Single(x => x.Shape == SectionShape.Circular);
+            Assert.Equal("36", c.Diameter);
+            Assert.True(c.HasResult);
+        }
+        finally { File.Delete(path); }
     }
 }

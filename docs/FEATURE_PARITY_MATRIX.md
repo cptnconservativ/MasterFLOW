@@ -6,14 +6,15 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 
 | Feature | Flow Calc (source) | Class | MasterFlow status | Notes |
 |---|---|---|---|---|
+| Percent full, d/D, full-flow Q/V/slope | Yes (obs.) | MVP | ✅ | |
 | Rectangular channel | Wizard → points (obs.) | MVP / Diff | ✅ | Parametric section |
 | Trapezoidal (asymmetric) | Wizard → points (obs.) | MVP / Diff | ✅ | |
 | Triangular (asymmetric) | Wizard → points (obs.) | MVP / Diff | ✅ | |
 | Parabolic | Not seen | Plan | ⬜ | Justify with demand |
 | Irregular station/elevation | Yes (obs., site) | MVP | ⬜ | Phase D |
 | Per-point n / composite n | Yes; Constant or Flow Conveyance methods (obs.) | Pro | ⬜ | Phase D; document method (Horton/Einstein, conveyance subdivision) |
-| Circular pipe partial flow | Yes (obs., site) | MVP | ⬜ | Phase C |
-| Dual normal depth / max discharge in pipes | Yes (obs.) | MVP | ⬜ | Phase C |
+| Circular pipe partial flow | Yes (obs., site) | MVP | ✅ | Diameter in in/mm; true-scale plot |
+| Dual normal depth / max discharge in pipes | Yes (obs.) | MVP | ✅ | Plus error when Q > Qmax and near-crown warning |
 | Elliptical pipes (horizontal/vertical) | Yes (span/rise) | Pro | ⬜ | Phase C; standard shapes from ASTM C507 |
 | Solve for Q / yn / S / n | Yes (obs.) | MVP | ✅ | |
 | Critical depth, velocity, slope | Depth and slope (obs.) | MVP | ✅ | Also Vc, Ec, Z |

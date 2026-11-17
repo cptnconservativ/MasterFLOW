@@ -20,9 +20,9 @@ public static class ResultSummary
         if (!r.Succeeded) return [];
         var c = r.Constants;
         var solved = r.Input.SolveFor;
-        const string G = "Governing", N = "Normal flow", C = "Critical flow";
-        return
-        [
+        const string G = "Governing", N = "Normal flow", C = "Critical flow", P = "Conduit";
+        var lines = new List<ResultLine>
+        {
             new(G, "Discharge", "Q", r.Discharge, c.Discharge, 3, solved == SolveFor.Discharge),
             new(G, "Normal depth", "yn", r.Normal.Depth, c.Length, 3, solved == SolveFor.NormalDepth),
             new(G, "Channel slope", "S", r.Slope * 100, "%", 4, solved == SolveFor.Slope),
@@ -44,16 +44,34 @@ public static class ResultSummary
             new(C, "Critical velocity", "Vc", r.Critical.Velocity, c.Velocity, 3),
             new(C, "Critical area", "Ac", r.Critical.Area, c.Area, 3),
             new(C, "Critical top width", "Tc", r.Critical.TopWidth, c.Length, 3),
-            new(C, "Critical specific energy", "Ec", r.Critical.SpecificEnergy, c.Length, 4),
+            new(C, "Critical energy", "Ec", r.Critical.SpecificEnergy, c.Length, 4),
             new(C, "Critical slope", "Sc", r.CriticalSlope * 100, "%", 4),
-            new(C, "Critical section factor", "Z", r.CriticalSectionFactor, c.Length + "⁵ᐟ²", 4),
-        ];
+            new(C, "Critical sect. factor", "Z", r.CriticalSectionFactor, c.Length + "⁵ᐟ²", 4),
+        };
+        if (r.Conduit is { } p)
+        {
+            if (double.IsFinite(p.AlternateNormalDepth))
+                lines.Insert(2, new(G, "Alt. normal depth", "yn₂", p.AlternateNormalDepth, c.Length, 3));
+            lines.AddRange(
+            [
+                new(P, "Depth / diameter", "y/D", p.PercentFull / 100, "", 4),
+                new(P, "Percent full", "", p.PercentFull, "%", 2),
+                new(P, "Full-flow Q", "Qfull", p.FullFlowDischarge, c.Discharge, 3),
+                new(P, "Full-flow V", "Vfull", p.FullFlowVelocity, c.Velocity, 3),
+                new(P, "Slope for Q just full", "Sfull", p.FullFlowSlope * 100, "%", 4),
+                new(P, "Max. free-surface Q", "Qmax", p.MaxDischarge, c.Discharge, 3),
+                new(P, "Depth at max. Q", "y(Qmax)", p.DepthAtMaxDischarge, c.Length, 3),
+                new(P, "Q / Qfull", "", r.Discharge / p.FullFlowDischarge, "", 4),
+            ]);
+        }
+        return lines;
     }
 
     public static string RegimeText(UniformFlowResult r) => r.Regime switch
     {
         FlowRegime.Subcritical => "Subcritical (Fr < 0.86)",
         FlowRegime.Supercritical => "Supercritical (Fr > 1.13)",
+        FlowRegime.Undefined => "Conduit flowing full — Froude number undefined",
         _ => "Near-critical (0.86 ≤ Fr ≤ 1.13) — unstable",
     };
 
@@ -79,6 +97,11 @@ public static class ResultSummary
             case TriangularSection v:
                 list.Add(("Left side slope zL", $"{Num(v.LeftSideSlope)} H : 1 V"));
                 list.Add(("Right side slope zR", $"{Num(v.RightSideSlope)} H : 1 V"));
+                break;
+            case CircularSection p:
+                list.Add(("Diameter D", i.Units == UnitSystem.USCustomary
+                    ? $"{Num(p.Diameter * 12, 2)} in ({Num(p.Diameter, 4)} ft)"
+                    : $"{Num(p.Diameter * 1000, 0)} mm ({Num(p.Diameter, 4)} m)"));
                 break;
         }
         if (i.Section.ChannelDepth is { } cd) list.Add(("Channel depth", $"{Num(cd)} {c.Length}"));

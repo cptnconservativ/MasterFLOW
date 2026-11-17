@@ -47,7 +47,8 @@ public sealed class CrossSectionView : Control
         const double padL = 52, padR = 120, padT = 34, padB = 40;
         double w = Math.Max(10, bounds.Width - padL - padR), h = Math.Max(10, bounds.Height - padT - padB);
         double sx = w / d.Width, sy = h / d.Height;
-        if (TrueScale) { double s = Math.Min(sx, sy); sx = sy = s; }
+        bool trueScale = TrueScale || Section is CircularSection; // never distort a conduit
+        if (trueScale) { double s = Math.Min(sx, sy); sx = sy = s; }
         double x0 = padL + (w - d.Width * sx) / 2, y0 = padT + h;
         Point P(double x, double y) => new(x0 + x * sx, y0 - y * sy);
 
@@ -88,18 +89,22 @@ public sealed class CrossSectionView : Control
         }
         ctx.DrawGeometry(null, new Pen(new SolidColorBrush(ink), 2.5), outline);
 
+        double? lastLabelY = null;
         void Level(double? y, Color color, string label, bool dashed)
         {
             if (y is not > 0) return;
             var (l, r) = d.ExtentAt(Section!, y.Value);
             var pen = new Pen(new SolidColorBrush(color), 1.6, dashed ? new DashStyle([5, 3], 0) : null);
             ctx.DrawLine(pen, P(l, y.Value), P(r, y.Value));
-            Text(ctx, $"{label} = {y.Value.ToString("F3", CultureInfo.CurrentCulture)} {LengthUnit}", new Point(P(r, y.Value).X + 6, P(r, y.Value).Y - 8), color, 12);
+            double ty = P(r, y.Value).Y - 8;
+            if (lastLabelY is { } prev && Math.Abs(ty - prev) < 15) ty = prev + 15; // keep labels from overlapping
+            lastLabelY = ty;
+            Text(ctx, $"{label} = {y.Value.ToString("F3", CultureInfo.CurrentCulture)} {LengthUnit}", new Point(P(r, y.Value).X + 6, ty), color, 12);
         }
         Level(d.ChannelDepth, muted, "Top", true);
         Level(d.WaterDepth, accent, "yn", false);
         Level(d.CriticalDepth, crit, "yc", true);
-        if (!TrueScale)
+        if (!trueScale)
             Text(ctx, "Vertical exaggeration — not to scale", new Point(bounds.Width - padR - 190, 4), muted, 10);
     }
 

@@ -37,8 +37,13 @@ public static class UniformFlowCalculator
         if (messages.Any(m => m.Severity == MessageSeverity.Error))
             return Failed(input, c, messages, trace);
 
-        var geometry = TrapezoidGeometry.From(input.Section);
-        trace.Add(F($"Section: {input.Section.ShapeName}; b = {geometry.BottomWidth:G6} {c.Length}, zL = {geometry.LeftSideSlope:G6}, zR = {geometry.RightSideSlope:G6} (H:V)."));
+        var geometry = SectionGeometry.From(input.Section);
+        trace.Add(geometry switch
+        {
+            TrapezoidGeometry t => F($"Section: {input.Section.ShapeName}; b = {t.BottomWidth:G6} {c.Length}, zL = {t.LeftSideSlope:G6}, zR = {t.RightSideSlope:G6} (H:V)."),
+            CircularGeometry p => F($"Section: circular conduit, D = {p.Diameter:G8} {c.Length}; A = D²/8 (θ − sin θ), P = Dθ/2, θ = 2 acos(1 − 2y/D)."),
+            _ => $"Section: {input.Section.ShapeName}.",
+        });
         trace.Add(F($"Manning's equation Q = (k/n) A R^(2/3) S^(1/2) with k = {c.ManningK} ({c.System}); g = {c.Gravity} {c.Length}/s²."));
 
         double n = input.ManningN, s = input.Slope, q = input.Discharge, y = input.Depth;
@@ -48,6 +53,25 @@ public static class UniformFlowCalculator
                 q = ManningDischarge(geometry, y, n, s, c.ManningK);
                 trace.Add(F($"Discharge computed directly at y = {y:G10} {c.Length}: Q = {q:G10} {c.Discharge}."));
                 break;
+
+            case SolveFor.NormalDepth when !geometry.DischargeIsMonotonic:
+            {
+                var peak = MaxDischarge(geometry, n, s, c.ManningK);
+                trace.Add(F($"Closed conduit: Q(y) peaks at y = {peak.Depth:G10} {c.Length} (golden-section search, {peak.Iterations} iterations), Qmax = {peak.Discharge:G10} {c.Discharge}."));
+                if (q > peak.Discharge * (1 + 1e-10))
+                {
+                    double qFull = ManningDischarge(geometry, geometry.MaxDepth, n, s, c.ManningK);
+                    messages.Add(CalcMessage.Error(MessageCodes.ExceedsConduitCapacity,
+                        F($"Discharge {q:F3} {c.Discharge} exceeds the maximum free-surface capacity {peak.Discharge:F3} {c.Discharge} (full-flow capacity {qFull:F3} {c.Discharge}). The conduit would surcharge; pressurised flow is not modelled. Increase size or slope."), nameof(input.Discharge)));
+                    return Failed(input, c, messages, trace);
+                }
+                var root = RootFinder.Brent(y2 => ManningDischarge(geometry, y2, n, s, c.ManningK) - q, 0.0, peak.Depth, DepthTolerance);
+                trace.Add(DescribeRoot("Normal depth (lower root)", "f(y) = (k/n) A R^(2/3) S^(1/2) − Q on [0, y_Qmax]", root, c.Length));
+                if (!AcceptRoot(root, y2 => ManningDischarge(geometry, y2, n, s, c.ManningK), q, "normal depth", messages))
+                    return Failed(input, c, messages, trace);
+                y = root.Root;
+                break;
+            }
 
             case SolveFor.NormalDepth:
             {
@@ -85,10 +109,13 @@ public static class UniformFlowCalculator
         }
 
         var normal = State(geometry, y, q, c.Gravity);
+        ConduitResult? conduit = geometry.DischargeIsMonotonic ? null : ConduitValues(geometry, y, q, n, s, c, trace);
         double conveyance = c.ManningK / n * normal.Area * Math.Pow(normal.HydraulicRadius, 2.0 / 3.0);
 
         // Critical flow for the same discharge.
         var critRoot = SolveCriticalDepth(geometry, q, c.Gravity);
+        if (!critRoot.Converged && !geometry.DischargeIsMonotonic)
+            trace.Add("Critical depth could not be bracketed below the crown.");
         trace.Add(DescribeRoot("Critical depth", "f(y) = A √(A/T) − Q/√g", critRoot, c.Length));
         if (!AcceptRoot(critRoot, yc => CriticalSectionFactor(geometry, yc), q / Math.Sqrt(c.Gravity), "critical depth", messages))
             return Failed(input, c, messages, trace);
@@ -96,10 +123,12 @@ public static class UniformFlowCalculator
         double criticalSlope = Math.Pow(q * n / (c.ManningK * critical.Area * Math.Pow(critical.HydraulicRadius, 2.0 / 3.0)), 2);
         trace.Add(F($"Critical slope Sc = [Q n / (k Ac Rc^(2/3))]² = {criticalSlope:G8}."));
 
-        var regime = normal.Froude < NearCriticalLow ? FlowRegime.Subcritical
+        var regime = double.IsNaN(normal.Froude) ? FlowRegime.Undefined
+            : normal.Froude < NearCriticalLow ? FlowRegime.Subcritical
             : normal.Froude > NearCriticalHigh ? FlowRegime.Supercritical
             : FlowRegime.NearCritical;
         AddPostSolveMessages(input, y, s, normal.Froude, regime, c, messages);
+        if (conduit is not null) AddConduitMessages(conduit, y, q, c, messages);
 
         return new UniformFlowResult
         {
@@ -118,7 +147,64 @@ public static class UniformFlowCalculator
             CriticalSectionFactor = CriticalSectionFactor(geometry, critical.Depth),
             CriticalSlope = criticalSlope,
             Regime = regime,
+            Conduit = conduit,
         };
+    }
+
+    // ---------------------------------------------------------------- closed conduits
+
+    public readonly record struct Peak(double Depth, double Discharge, int Iterations);
+
+    /// <summary>Maximum free-surface discharge of a conduit and the depth where it occurs (golden-section search on [0.5 D, D]).</summary>
+    public static Peak MaxDischarge(ISectionGeometry g, double n, double s, double k)
+    {
+        double d = g.MaxDepth;
+        var (x, v, it) = RootFinder.GoldenMaximum(y => ManningDischarge(g, y, n, s, k), 0.5 * d, d, 1e-12 * d);
+        return new Peak(x, v, it);
+    }
+
+    private static ConduitResult ConduitValues(ISectionGeometry g, double y, double q, double n, double s, UnitConstants c, List<string> trace)
+    {
+        double d = g.MaxDepth;
+        double aFull = g.Area(d), rFull = aFull / g.WettedPerimeter(d);
+        double qFull = c.ManningK / n * aFull * Math.Pow(rFull, 2.0 / 3.0) * Math.Sqrt(s);
+        double sFull = Math.Pow(q * n / (c.ManningK * aFull * Math.Pow(rFull, 2.0 / 3.0)), 2);
+        var peak = MaxDischarge(g, n, s, c.ManningK);
+        double alt = double.NaN;
+        if (q > qFull && q <= peak.Discharge * (1 + 1e-10))
+        {
+            bool lower = y <= peak.Depth;
+            var r = lower
+                ? RootFinder.Brent(z => ManningDischarge(g, z, n, s, c.ManningK) - q, peak.Depth, d, DepthTolerance)
+                : RootFinder.Brent(z => ManningDischarge(g, z, n, s, c.ManningK) - q, 0, peak.Depth, DepthTolerance);
+            if (r.Converged) alt = r.Root;
+            trace.Add(DescribeRoot("Alternate normal depth", $"f(y) = Q(y) − Q on the {(lower ? "upper" : "lower")} branch", r, c.Length));
+        }
+        trace.Add(F($"Full flow: Qfull = (k/n) Af Rf^(2/3) S^(1/2) = {qFull:G10} {c.Discharge}; slope to carry Q just full = {sFull:G8}."));
+        return new ConduitResult
+        {
+            Rise = d,
+            PercentFull = 100.0 * Math.Min(y, d) / d,
+            FullArea = aFull,
+            FullFlowDischarge = qFull,
+            FullFlowVelocity = qFull / aFull,
+            FullFlowSlope = sFull,
+            MaxDischarge = peak.Discharge,
+            DepthAtMaxDischarge = peak.Depth,
+            AlternateNormalDepth = alt,
+        };
+    }
+
+    private static void AddConduitMessages(ConduitResult cr, double y, double q, UnitConstants c, List<CalcMessage> messages)
+    {
+        if (double.IsFinite(cr.AlternateNormalDepth))
+            messages.Add(CalcMessage.Warning(MessageCodes.TwoNormalDepths,
+                F($"Two depths carry {q:F3} {c.Discharge}: {Math.Min(y, cr.AlternateNormalDepth):F4} and {Math.Max(y, cr.AlternateNormalDepth):F4} {c.Length}, because Q exceeds the full-flow capacity {cr.FullFlowDischarge:F3} {c.Discharge}. Flow this close to the crown is unstable and may seal the conduit; design with freeboard.")));
+        if (y >= cr.Rise)
+            messages.Add(CalcMessage.Info(MessageCodes.FlowingFull, "The conduit is flowing just full (gravity flow at the crown). Top width is zero, so hydraulic depth and Froude number are undefined."));
+        else if (y > 0.9 * cr.Rise)
+            messages.Add(CalcMessage.Warning(MessageCodes.NearCrown,
+                F($"Depth is {cr.PercentFull:F1} % of the rise. Above about 90 % full the free surface is narrow: hydraulic depth A/T and the Froude number lose physical meaning, and small disturbances can seal the conduit.")));
     }
 
     // ---------------------------------------------------------------- core relations
@@ -136,8 +222,8 @@ public static class UniformFlowCalculator
     public static double CriticalSectionFactor(ISectionGeometry g, double y)
     {
         if (y <= 0) return 0;
-        double a = g.Area(y);
-        return a * Math.Sqrt(a / g.TopWidth(y));
+        double a = g.Area(y), t = g.TopWidth(y);
+        return t > 0 ? a * Math.Sqrt(a / t) : double.PositiveInfinity;
     }
 
     public static RootResult SolveNormalDepth(ISectionGeometry g, double q, double n, double s, double k) =>
@@ -148,12 +234,13 @@ public static class UniformFlowCalculator
     public static RootResult SolveCriticalDepth(ISectionGeometry g, double q, double gravity) =>
         RootFinder.BrentWithUpwardExpansion(
             y => CriticalSectionFactor(g, y) - q / Math.Sqrt(gravity),
-            low: 0.0, initialHigh: 1.0, maxHigh: MaxSearchDepth, xTolerance: DepthTolerance);
+            low: 0.0, initialHigh: Math.Min(1.0, 0.5 * g.MaxDepth),
+            maxHigh: double.IsFinite(g.MaxDepth) ? g.MaxDepth * (1 - 1e-12) : MaxSearchDepth, xTolerance: DepthTolerance);
 
     public static SectionState State(ISectionGeometry g, double y, double q, double gravity)
     {
         double a = g.Area(y), p = g.WettedPerimeter(y), t = g.TopWidth(y);
-        double v = q / a, d = a / t, hv = v * v / (2 * gravity);
+        double v = q / a, d = t > 0 ? a / t : double.NaN, hv = v * v / (2 * gravity);
         return new SectionState
         {
             Depth = y,
@@ -194,6 +281,9 @@ public static class UniformFlowCalculator
             messages.Add(CalcMessage.Error(MessageCodes.DischargeNotPositive, "Discharge must be greater than zero.", nameof(input.Discharge)));
         if (need(SolveFor.NormalDepth) && (!(input.Depth > 0) || !double.IsFinite(input.Depth)))
             messages.Add(CalcMessage.Error(MessageCodes.DepthNotPositive, "Flow depth must be greater than zero.", nameof(input.Depth)));
+        else if (need(SolveFor.NormalDepth) && input.Section is CircularSection { Diameter: > 0 } cs && input.Depth > cs.Diameter * (1 + 1e-12))
+            messages.Add(CalcMessage.Error(MessageCodes.DepthExceedsRise,
+                F($"Flow depth {input.Depth:G6} exceeds the pipe diameter {cs.Diameter:G6}. Pressurised flow is not modelled."), nameof(input.Depth)));
     }
 
     public static void ValidateSection(ChannelSection section, List<CalcMessage> messages)
@@ -223,6 +313,10 @@ public static class UniformFlowCalculator
                 if (ok(v.LeftSideSlope) && ok(v.RightSideSlope) && v.LeftSideSlope + v.RightSideSlope == 0)
                     messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "At least one side slope must be greater than zero for a triangular section.", "LeftSideSlope"));
                 break;
+            case CircularSection p:
+                if (!(p.Diameter > 0) || !double.IsFinite(p.Diameter))
+                    messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "Pipe diameter must be greater than zero.", "Diameter"));
+                break;
             default:
                 messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, $"Section type {section.GetType().Name} is not supported."));
                 break;
@@ -250,6 +344,8 @@ public static class UniformFlowCalculator
                 break;
             case FlowRegime.Supercritical:
                 messages.Add(CalcMessage.Info(MessageCodes.Supercritical, F($"Supercritical flow (Fr = {froude:F3}): normal depth is below critical depth.")));
+                break;
+            case FlowRegime.Undefined:
                 break;
             default:
                 messages.Add(CalcMessage.Info(MessageCodes.Subcritical, F($"Subcritical flow (Fr = {froude:F3}): normal depth is above critical depth.")));

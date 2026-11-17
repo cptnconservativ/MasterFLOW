@@ -21,7 +21,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.1.0";
+    public const string AppVersion = "0.2.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
 
@@ -107,6 +107,12 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 Title = "Concrete flume — capacity",
                 Input = new UniformFlowInput { Section = new RectangularSection(10) { ChannelDepth = 3 }, SolveFor = SolveFor.Discharge, ManningN = 0.013, Slope = 0.001, Depth = 2 },
+            },
+            new ChannelCalculation
+            {
+                Title = "36-in RCP — near-full check",
+                Description = "Discharge close to the maximum free-surface capacity: two normal depths exist.",
+                Input = new UniformFlowInput { Section = new CircularSection(3.0), SolveFor = SolveFor.NormalDepth, ManningN = 0.013, Slope = 0.01, Discharge = 71.37, Depth = 2 },
             },
             new ChannelCalculation
             {

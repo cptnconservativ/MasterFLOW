@@ -1,7 +1,7 @@
 # Hydraulic methods
 
-Scope of v0.1: **steady, uniform flow in prismatic open channels** of rectangular, trapezoidal and
-triangular section. Normal depth (uniform flow) and critical depth (minimum specific energy for the
+Scope of v0.2: **steady, uniform flow in prismatic open channels** of rectangular, trapezoidal and
+triangular section, and **circular conduits flowing partly full** (free surface). Normal depth (uniform flow) and critical depth (minimum specific energy for the
 discharge) are always reported separately. Gradually varied, rapidly varied, unsteady and pressurised
 flow are **not** modelled.
 
@@ -95,8 +95,40 @@ Every solve writes a trace line: method, function, final bracket, iterations, ro
 | W-G-001 | Warning | Depth exceeds channel depth |
 | W-F-001 | Warning | Near-critical flow |
 | I-F-001/002 | Info | Regime statement |
+| E-P-001 | Error | Q above maximum free-surface conduit capacity |
+| E-P-002 | Error | Depth above the conduit crown |
+| W-P-001 | Warning | Two normal depths (Qfull < Q ≤ Qmax) |
+| W-P-002 | Warning | Depth above 90 % of the rise |
+| I-P-001 | Info | Conduit just full; Froude undefined |
 
-## 8. Rating tables
+## 8. Circular conduits (partly full)
+Geometry (Chow Table 2-1): θ = 2 arccos(1 − 2y/D); A = D²/8 (θ − sin θ); P = Dθ/2; T = 2√(y(D − y)).
+Full: A = πD²/4, P = πD, R = D/4, T = 0. Diameter is entered in inches (U.S.) or millimetres (SI) and
+divided by 12 or 1000 once, in the view model; the engine receives feet or metres. Depth stays in ft/m.
+
+Because the wetted perimeter grows quickly near the crown, Q(y) **peaks below the crown** at
+y ≈ 0.938D with Qmax ≈ 1.0757 Qfull (verified: 0.93818, 1.07571). Consequences:
+
+| Discharge | Normal depth result |
+|---|---|
+| Q ≤ Qfull | One root on (0, y_Qmax] |
+| Qfull < Q ≤ Qmax | Two roots: reported normal depth = lower root; "alternate normal depth" = upper root; warning W-P-001 |
+| Q > Qmax | **Error E-P-001**: free-surface flow impossible; conduit would surcharge (pressurised flow not modelled) |
+
+Method: golden-section search for the peak on [0.5D, D] (tolerance 1×10⁻¹² D), then Brent on each
+branch. When solving Q, S or n from a given depth, the alternate depth for the resulting Q is also
+reported if it exists. Depth > D is error E-P-002. At y = D the pipe is "just full": T = 0, so D = A/T and
+Fr are undefined (NaN, info I-P-001, regime "Undefined"). Above 90 % full warning W-P-002 notes that
+A/T and Fr lose meaning. Critical depth uses the same Z(y) root with the upper bracket just below the
+crown (Z → ∞ as T → 0, so a root always exists).
+
+Additional outputs: y/D, percent full, Qfull, Vfull, slope to carry Q just full = [Qn/(kAfRf^(2/3))]²,
+Qmax, depth at Qmax, Q/Qfull.
+
+Assumption: the conduit is a true circle with smooth uniform n; joints, deflection, debris and
+sediment are not represented. The "just full" values describe gravity flow, not pressure flow.
+
+## 9. Rating tables
 Each row is a full call to the same calculator (same validation, convergence and acceptance checks).
 Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
 
