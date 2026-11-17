@@ -27,7 +27,7 @@ Status as of 2026-11-17. Effort is engineering days (one developer). Risk: L/M/H
 |---|---|---|---|---|---|---|---|---|
 | C1 Circular partial flow | θ-based geometry, both normal-depth roots, Qmax at 0.938D, full-flow Q and slope, % full, d/D | B | M | M (non-unique roots) | Matches closed forms and FHWA charts | 5 categories | 3 | ✅ |
 | C2 Capacity logic | Q > Qmax → "surcharged / pressurised – not modelled" error; Q between Qfull and Qmax → both depths | C1 | M | H | No silent pick of one root | tests | 1 | ✅ |
-| C3 Elliptical HE/VE | ASTM C507 standard sizes; numerical geometry | C1 | M | M | Area/perimeter vs published tables | tests | 3 | ⬜ |
+| C3 Elliptical HE/VE | ASTM C507 standard sizes (four-centred, R2 from tangency) + true ellipse for custom rise/span | C1 | M | M | All 24 C507 areas within 0.6 %; HE36 Q and yn match independent script to 1e-8 | tests | 3 | ✅ |
 | C4 Pipe UI & report | Diameter in inches with explicit unit | C1 | L | L | Manual | VM | 2 | ✅ |
 | C5 Froude near crown | Flag D = A/T unreliable above ~0.9D | C1 | L | M | Warning present | test | 0.5 | ✅ |
 

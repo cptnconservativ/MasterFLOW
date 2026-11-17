@@ -128,6 +128,38 @@ Qmax, depth at Qmax, Q/Qfull.
 Assumption: the conduit is a true circle with smooth uniform n; joints, deflection, debris and
 sediment are not represented. The "just full" values describe gravity flow, not pressure flow.
 
+## 8a. Elliptical conduits (v0.3.0)
+Two definitions, chosen in the editor (D-016, D-017):
+
+**ASTM C507 standard sizes (HE and VE).** The 24 horizontal-elliptical sizes of ASTM C507-22 Fig. 5
+(15 to 144 in equivalent round) are stored with their published rise, span, R1 (end/invert radius
+pair) and tabulated waterway area. The shape is the four-centred construction: two arcs of radius R1
+and two of radius R2, tangent where they meet. The printed R2 is rounded and does not close the shape
+exactly, so MasterFlow **derives R2 from tangency** with the published rise, span and R1:
+R2 = ((M − R1)² + m² − R1²) / (2(m − R1)), with M and m the semi-major and semi-minor axes. The derived
+R2 differs from the printed value by at most about 1.5 in, and the resulting full areas agree with
+every tabulated area within 0.6 % (validation/astm_c507_check.py; largest difference 0.54 %).
+VE pipes are the same shape rotated 90°: rise and span are swapped and the small arcs sit at the sides
+of the invert and crown. VE is offered only where C507 lists it. In SI the inch dimensions are
+converted at exactly 0.0254 m/in (D-018).
+
+**Custom size.** A true ellipse with the entered rise and span (x²/a² + y²/b² = 1). No end radius is
+needed.
+
+Geometry: each shape is a stack of circular or elliptical arc pieces, half-width
+w(y) = cx + k√(ρ² − (y − cy)²). Area is integrated in closed form per piece; wetted perimeter is the
+closed-form arc length for circular pieces and 16-point Gauss–Legendre on 8 panels for the true
+ellipse (agrees with Ramanujan's second approximation to 1×10⁻¹⁰). T = 2w(y); the tests check
+T = dA/dy numerically.
+
+Hydraulics: identical to circular conduits (§8). Q(y) peaks below the crown, so the same golden-section
+peak search, two-root reporting (W-P-001), capacity error above Qmax (E-P-001), depth-above-rise error
+(E-P-002), just-full handling and near-crown warning apply, with "rise" in place of D. Outputs use
+"Depth / rise" instead of y/D.
+
+Assumption: the pipe matches the nominal C507 shape; manufacturing tolerances, joint gaps and
+deformation are not represented.
+
 ## 9. Rating tables
 Each row is a full call to the same calculator (same validation, convergence and acceptance checks).
 Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
@@ -135,4 +167,5 @@ Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
 ## References
 Chow, V. T. (1959) *Open-Channel Hydraulics*. McGraw-Hill. · Brent, R. P. (1973) *Algorithms for
 Minimization without Derivatives*. · USACE EM 1110-2-1601 (1994) *Hydraulic Design of Flood Control
-Channels*. · FHWA HDS-4 *Introduction to Highway Hydraulics*.
+Channels*. · FHWA HDS-4 *Introduction to Highway Hydraulics*. · ASTM C507-22 *Reinforced Concrete
+Elliptical Culvert, Storm Drain, and Sewer Pipe*, Fig. 5.

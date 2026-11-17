@@ -17,3 +17,6 @@
 | D-013 | 2026-11-17 | Pipe diameter entered in inches (US) / mm (SI); depth stays ft/m | All in ft | Practitioner convention; single labelled conversion in the view model |
 | D-014 | 2026-11-17 | For two normal depths, report the lower as primary and the upper as "alternate"; error above Qmax | Pick upper; clamp | The lower root is the stable design depth; never silently choose; never return a number for impossible free-surface flow |
 | D-015 | 2026-11-17 | Pipe plots are always drawn to true scale | Distorted | A distorted circle misleads |
+| D-016 | 2026-11-17 | Standard elliptical pipes use the ASTM C507-22 Fig. 5 four-centred shape: published rise, span and R1; R2 derived from tangency | Use tabulated R2 as printed; fit a true ellipse to the tabulated area | Tabulated R2 is rounded and does not close the shape exactly; the derived R2 reproduces all 24 tabulated areas within 0.6 % (Kyle chose "standard sizes first") |
+| D-017 | 2026-11-17 | Custom elliptical pipes are a true ellipse (x²/a² + y²/b² = 1) | Four-centred with user R1 | Users with non-standard sizes rarely know R1; a true ellipse needs only rise and span |
+| D-018 | 2026-11-17 | SI elliptical sizes are the US inch sizes converted at 0.0254 m/in, not ASTM C507M sizes | Separate C507M table | One geometry source; C507M sizes are soft conversions of the same pipes |

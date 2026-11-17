@@ -113,6 +113,23 @@
                   <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding IsPipe}">
                     <TextBox Classes="num" Text="{Binding Diameter}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
                   </StackPanel>
+                  <TextBlock Grid.Row="2" Classes="label" Text="Definition" IsVisible="{Binding IsEllipse}"/>
+                  <CheckBox Grid.Row="2" Grid.Column="1" Content="ASTM C507 standard size" IsChecked="{Binding EllipseStandard}" IsVisible="{Binding IsEllipse}"/>
+                  <TextBlock Grid.Row="4" Classes="label" Text="Orientation" IsVisible="{Binding ShowEllipseStandard}"/>
+                  <CheckBox Grid.Row="4" Grid.Column="1" Content="Vertical (VE)" IsChecked="{Binding EllipseVertical}" IsVisible="{Binding ShowEllipseStandard}"/>
+                  <TextBlock Grid.Row="3" Classes="label" Text="Standard size" IsVisible="{Binding ShowEllipseStandard}"/>
+                  <ComboBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding ShowEllipseStandard}"
+                            ItemsSource="{x:Static vm:CalculationViewModel.EllipseSizes}" SelectedItem="{Binding EllipseSize}">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Grid.Row="3" Classes="label" Text="Rise" IsVisible="{Binding ShowEllipseCustom}"/>
+                  <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowEllipseCustom}">
+                    <TextBox Classes="num" Text="{Binding EllipseRise}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
+                  </StackPanel>
+                  <TextBlock Grid.Row="4" Classes="label" Text="Span" IsVisible="{Binding ShowEllipseCustom}"/>
+                  <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowEllipseCustom}">
+                    <TextBox Classes="num" Text="{Binding EllipseSpan}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
+                  </StackPanel>
                   <TextBlock Grid.Row="5" Classes="label" Text="Channel depth" IsVisible="{Binding ShowChannelDepth}"/>
                   <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowChannelDepth}">
                     <TextBox Classes="num" Text="{Binding ChannelDepth}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>

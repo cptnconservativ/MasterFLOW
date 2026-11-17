@@ -1,0 +1,5 @@
+HE36 derived R2 = 39.253676 in; Afull = 7.36010652 ft2; Pfull = 10.00888436 ft
+HE36 Q at y = 1.2 ft (n=0.013, S=0.005): 24.30662119 cfs
+HE36 yn for Q = 20 cfs (n=0.013, S=0.005): 1.07482756 ft
+Ellipse 2x3 ft: A = 4.71238898 (exact 4.71238898); P = 7.93271979 (Ramanujan II 7.9327197946)
+Ellipse 2x3 ft Q at y = 0.8 (n=0.013, S=0.005): 8.89571643 cfs

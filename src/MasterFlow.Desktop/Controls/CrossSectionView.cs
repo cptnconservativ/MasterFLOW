@@ -47,7 +47,7 @@ public sealed class CrossSectionView : Control
         const double padL = 52, padR = 120, padT = 34, padB = 40;
         double w = Math.Max(10, bounds.Width - padL - padR), h = Math.Max(10, bounds.Height - padT - padB);
         double sx = w / d.Width, sy = h / d.Height;
-        bool trueScale = TrueScale || Section is CircularSection; // never distort a conduit
+        bool trueScale = TrueScale || Section is CircularSection or EllipticalSection; // never distort a conduit
         if (trueScale) { double s = Math.Min(sx, sy); sx = sy = s; }
         double x0 = padL + (w - d.Width * sx) / 2, y0 = padT + h;
         Point P(double x, double y) => new(x0 + x * sx, y0 - y * sy);

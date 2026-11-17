@@ -54,12 +54,14 @@ public static class ResultSummary
                 lines.Insert(2, new(G, "Alt. normal depth", "yn₂", p.AlternateNormalDepth, c.Length, 3));
             lines.AddRange(
             [
-                new(P, "Depth / diameter", "y/D", p.PercentFull / 100, "", 4),
+                r.Input.Section is CircularSection
+                    ? new(P, "Depth / diameter", "y/D", p.PercentFull / 100, "", 4)
+                    : new(P, "Depth / rise", "y/rise", p.PercentFull / 100, "", 4),
                 new(P, "Percent full", "", p.PercentFull, "%", 2),
                 new(P, "Full-flow Q", "Qfull", p.FullFlowDischarge, c.Discharge, 3),
                 new(P, "Full-flow V", "Vfull", p.FullFlowVelocity, c.Velocity, 3),
                 new(P, "Slope for Q just full", "Sfull", p.FullFlowSlope * 100, "%", 4),
-                new(P, "Max. free-surface Q", "Qmax", p.MaxDischarge, c.Discharge, 3),
+                new(P, "Peak part-full Q", "Qmax", p.MaxDischarge, c.Discharge, 3),
                 new(P, "Depth at max. Q", "y(Qmax)", p.DepthAtMaxDischarge, c.Length, 3),
                 new(P, "Q / Qfull", "", r.Discharge / p.FullFlowDischarge, "", 4),
             ]);
@@ -98,6 +100,16 @@ public static class ResultSummary
                 list.Add(("Left side slope zL", $"{Num(v.LeftSideSlope)} H : 1 V"));
                 list.Add(("Right side slope zR", $"{Num(v.RightSideSlope)} H : 1 V"));
                 break;
+            case EllipticalSection e:
+            {
+                double f = i.Units == UnitSystem.USCustomary ? 12 : 1000;
+                string u = i.Units == UnitSystem.USCustomary ? "in" : "mm";
+                list.Add(("Shape", e.Designation ?? (e.IsStandardShape ? "Four-centred elliptical" : "True ellipse (custom)")));
+                list.Add(("Orientation", e.IsHorizontal ? "Horizontal (span ≥ rise)" : "Vertical (rise > span)"));
+                list.Add(("Rise × span", $"{Num(e.Rise * f, 2)} × {Num(e.Span * f, 2)} {u}"));
+                if (e.EndRadius is { } r) list.Add(("End radius R1", $"{Num(r * f, 2)} {u} (R2 from tangency)"));
+                break;
+            }
             case CircularSection p:
                 list.Add(("Diameter D", i.Units == UnitSystem.USCustomary
                     ? $"{Num(p.Diameter * 12, 2)} in ({Num(p.Diameter, 4)} ft)"

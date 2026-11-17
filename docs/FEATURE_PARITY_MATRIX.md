@@ -15,7 +15,7 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Per-point n / composite n | Yes; Constant or Flow Conveyance methods (obs.) | Pro | ⬜ | Phase D; document method (Horton/Einstein, conveyance subdivision) |
 | Circular pipe partial flow | Yes (obs., site) | MVP | ✅ | Diameter in in/mm; true-scale plot |
 | Dual normal depth / max discharge in pipes | Yes (obs.) | MVP | ✅ | Plus error when Q > Qmax and near-crown warning |
-| Elliptical pipes (horizontal/vertical) | Yes (span/rise) | Pro | ⬜ | Phase C; standard shapes from ASTM C507 |
+| Elliptical pipes (horizontal/vertical) | Yes (span/rise) | Pro | ✅ | v0.3.0: 24 ASTM C507 HE/VE standard sizes plus a true ellipse for custom rise/span; capacity, both normal depths and full-flow values as for circular pipes |
 | Solve for Q / yn / S / n | Yes (obs.) | MVP | ✅ | |
 | Critical depth, velocity, slope | Depth and slope (obs.) | MVP | ✅ | Also Vc, Ec, Z |
 | Froude, regime | Fr (obs.) | MVP | ✅ | Regime + near-critical warning |

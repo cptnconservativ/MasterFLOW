@@ -109,7 +109,7 @@ public class ViewModelTests
             var vm2 = new MainViewModel();
             vm2.LoadFrom(path);
             Assert.Equal("VM test", vm2.ProjectName);
-            Assert.Equal(4, vm2.Calculations.Count);
+            Assert.Equal(5, vm2.Calculations.Count);
             Assert.Equal(vm.Calculations[0].Result!.Normal.Depth, vm2.Calculations[0].Result!.Normal.Depth, 12);
             Assert.Equal(vm.Calculations.Select(c => c.Id), vm2.Calculations.Select(c => c.Id));
         }
@@ -144,11 +144,11 @@ public class ViewModelTests
     {
         var vm = MainViewModel.CreateWithSample();
         vm.DuplicateCommand.Execute(null);
-        Assert.Equal(5, vm.Calculations.Count);
+        Assert.Equal(6, vm.Calculations.Count);
         Assert.EndsWith("(copy)", vm.Selected!.Title);
         Assert.NotEqual(vm.Calculations[0].Id, vm.Selected.Id);
         vm.DeleteCommand.Execute(null); // no dialog service attached → deletes without prompt
-        Assert.Equal(4, vm.Calculations.Count);
+        Assert.Equal(5, vm.Calculations.Count);
     }
 }
 
@@ -191,6 +191,57 @@ public class PipeViewModelTests
             var c = vm2.Calculations.Single(x => x.Shape == SectionShape.Circular);
             Assert.Equal("36", c.Diameter);
             Assert.True(c.HasResult);
+        }
+        finally { File.Delete(path); }
+    }
+}
+
+public class EllipseViewModelTests
+{
+    private static CalculationViewModel Ellipse(MainViewModel vm) => vm.Calculations.Single(x => x.Shape == SectionShape.Elliptical);
+
+    [Fact]
+    public void Standard_HE36_Solves_AndMatchesIndependentCalc()
+    {
+        var c = Ellipse(MainViewModel.CreateWithSample());
+        Assert.True(c.EllipseStandard);
+        Assert.Equal(36, c.EllipseSize.EquivalentRound);
+        Assert.Equal(1.07482756, c.Result!.Normal.Depth, 6);
+    }
+
+    [Fact]
+    public void SwitchToVertical_And_Custom()
+    {
+        var c = Ellipse(MainViewModel.CreateWithSample());
+        c.EllipseVertical = true;
+        var ve = (EllipticalSection)c.Result!.Input.Section;
+        Assert.False(ve.IsHorizontal);
+        Assert.Equal(45.5 / 12, ve.Rise, 12);
+        c.EllipseStandard = false;
+        c.EllipseRise = "24"; c.EllipseSpan = "36";
+        var custom = (EllipticalSection)c.Result!.Input.Section;
+        Assert.Null(custom.EndRadius);
+        Assert.Equal(2.0, custom.Rise, 12);
+        Assert.True(c.HasResult);
+    }
+
+    [Fact]
+    public void SaveLoad_RestoresStandardSizeAndOrientation()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        Ellipse(vm).EllipseVertical = true;
+        Ellipse(vm).EllipseSize = EllipticalPipeCatalog.Sizes.Single(s => s.EquivalentRound == 60);
+        string path = Path.Combine(Path.GetTempPath(), $"ell-{Guid.NewGuid():N}.mfproj");
+        try
+        {
+            vm.SaveTo(path);
+            var vm2 = new MainViewModel();
+            vm2.LoadFrom(path);
+            var c = Ellipse(vm2);
+            Assert.True(c.EllipseStandard);
+            Assert.True(c.EllipseVertical);
+            Assert.Equal(60, c.EllipseSize.EquivalentRound);
+            Assert.Equal(Ellipse(vm).Result!.Normal.Depth, c.Result!.Normal.Depth, 12);
         }
         finally { File.Delete(path); }
     }

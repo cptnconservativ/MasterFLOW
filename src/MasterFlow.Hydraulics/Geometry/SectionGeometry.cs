@@ -42,6 +42,7 @@ public static class SectionGeometry
     public static ISectionGeometry From(ChannelSection section) => section switch
     {
         CircularSection c => new CircularGeometry(c.Diameter),
+        EllipticalSection e => SymmetricArcGeometry.From(e),
         _ => TrapezoidGeometry.From(section),
     };
 }

@@ -21,6 +21,8 @@ public sealed class EnumDisplayConverter : IValueConverter
         RatingTableMode.DischargeFromDepth => "Depth → discharge",
         RatingTableMode.DepthFromDischarge => "Discharge → normal depth",
         SectionShape.Circular => "Circular pipe",
+        SectionShape.Elliptical => "Elliptical pipe",
+        EllipticalPipeSize e => $"{e.EquivalentRound} in equiv. ({e.RiseIn:0.##} × {e.SpanIn:0.##} in)",
         SectionShape s => s.ToString(),
         _ => value?.ToString(),
     };

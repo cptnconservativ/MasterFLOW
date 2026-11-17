@@ -18,6 +18,7 @@ public sealed record MessageItem(string Severity, string Code, string Text)
 public sealed record FieldState(
     string Title, string Description, SectionShape Shape, UnitSystem Units, SolveFor SolveFor,
     string BottomWidth, string LeftSlope, string RightSlope, string ChannelDepth, string Diameter,
+    bool EllipseStandard, EllipticalPipeSize EllipseSize, bool EllipseVertical, string EllipseRise, string EllipseSpan,
     string ManningN, string SlopePercent, string Discharge, string Depth);
 
 /// <summary>
@@ -30,7 +31,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     private static readonly string[] InputProps =
     [
         nameof(Title), nameof(Description), nameof(Shape), nameof(Units), nameof(SolveFor), nameof(BottomWidth), nameof(LeftSlope),
-        nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
+        nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(EllipseStandard), nameof(EllipseSize), nameof(EllipseVertical), nameof(EllipseRise), nameof(EllipseSpan), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
     ];
 
     private readonly Stack<FieldState> _undo = new();
@@ -53,6 +54,11 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private string _rightSlope = "2";
     [ObservableProperty] private string _channelDepth = "";
     [ObservableProperty] private string _diameter = "24";
+    [ObservableProperty] private bool _ellipseStandard = true;
+    [ObservableProperty] private EllipticalPipeSize _ellipseSize = EllipticalPipeCatalog.Sizes.Single(s => s.EquivalentRound == 36);
+    [ObservableProperty] private bool _ellipseVertical;
+    [ObservableProperty] private string _ellipseRise = "29";
+    [ObservableProperty] private string _ellipseSpan = "45";
     [ObservableProperty] private string _manningN = "0.013";
     [ObservableProperty] private string _slopePercent = "1";
     [ObservableProperty] private string _discharge = "100";
@@ -78,7 +84,8 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ presentation helpers
 
-    public static IReadOnlyList<SectionShape> Shapes { get; } = [SectionShape.Rectangular, SectionShape.Trapezoidal, SectionShape.Triangular, SectionShape.Circular];
+    public static IReadOnlyList<SectionShape> Shapes { get; } = [SectionShape.Rectangular, SectionShape.Trapezoidal, SectionShape.Triangular, SectionShape.Circular, SectionShape.Elliptical];
+    public static IReadOnlyList<EllipticalPipeSize> EllipseSizes { get; } = EllipticalPipeCatalog.Sizes;
     public static IReadOnlyList<UnitSystem> UnitSystems { get; } = [UnitSystem.USCustomary, UnitSystem.SI];
     public static IReadOnlyList<SolveFor> SolveModes { get; } = [SolveFor.Discharge, SolveFor.NormalDepth, SolveFor.Slope, SolveFor.Roughness];
 
@@ -86,9 +93,12 @@ public sealed partial class CalculationViewModel : ObservableObject
     public string LengthUnit => Constants.Length;
     public string DischargeUnit => Constants.Discharge;
     public bool IsPipe => Shape == SectionShape.Circular;
+    public bool IsEllipse => Shape == SectionShape.Elliptical;
+    public bool ShowEllipseStandard => IsEllipse && EllipseStandard;
+    public bool ShowEllipseCustom => IsEllipse && !EllipseStandard;
     public bool ShowBottomWidth => Shape is SectionShape.Rectangular or SectionShape.Trapezoidal;
     public bool ShowSideSlopes => Shape is SectionShape.Trapezoidal or SectionShape.Triangular;
-    public bool ShowChannelDepth => !IsPipe;
+    public bool ShowChannelDepth => !IsPipe && !IsEllipse;
     /// <summary>Pipe diameters are entered in inches (U.S.) or millimetres (SI) and converted once, here, to the base length unit.</summary>
     public string DiameterUnit => Units == UnitSystem.USCustomary ? "in" : "mm";
     private double DiameterToBase => Units == UnitSystem.USCustomary ? 1.0 / 12.0 : 1.0 / 1000.0;
@@ -135,6 +145,24 @@ public sealed partial class CalculationViewModel : ObservableObject
             case TrapezoidalSection t: vm.BottomWidth = N(t.BottomWidth); vm.LeftSlope = N(t.LeftSideSlope); vm.RightSlope = N(t.RightSideSlope); break;
             case TriangularSection v: vm.BottomWidth = "0"; vm.LeftSlope = N(v.LeftSideSlope); vm.RightSlope = N(v.RightSideSlope); break;
             case CircularSection p: vm.Diameter = N(p.Diameter / vm.DiameterToBase); break;
+            case EllipticalSection e:
+            {
+                double k = vm.Units == UnitSystem.USCustomary ? 1.0 / 12.0 : 0.0254;
+                var match = e.EndRadius is { } r
+                    ? EllipticalPipeCatalog.Sizes.FirstOrDefault(z => Math.Abs(z.R1In * k - r) < 1e-9 && (Math.Abs(z.RiseIn * k - Math.Min(e.Rise, e.Span)) < 1e-9))
+                    : null;
+                if (match is not null)
+                {
+                    vm.EllipseStandard = true; vm.EllipseSize = match; vm.EllipseVertical = !e.IsHorizontal;
+                }
+                else
+                {
+                    vm.EllipseStandard = false; // custom shapes (or unrecognised radii) are edited as rise/span
+                }
+                vm.EllipseRise = N(e.Rise / vm.DiameterToBase);
+                vm.EllipseSpan = N(e.Span / vm.DiameterToBase);
+                break;
+            }
         }
         vm.ChannelDepth = i.Section.ChannelDepth is { } cd ? N(cd) : "";
         vm.ManningN = N(i.ManningN);
@@ -184,6 +212,8 @@ public sealed partial class CalculationViewModel : ObservableObject
             SectionShape.Rectangular => new RectangularSection(b),
             SectionShape.Triangular => new TriangularSection(zl, zr),
             SectionShape.Circular => new CircularSection(dia),
+            SectionShape.Elliptical when EllipseStandard => EllipticalPipeCatalog.Create(EllipseSize, EllipseVertical, Units),
+            SectionShape.Elliptical => new EllipticalSection(P(EllipseRise, "Rise", true) * DiameterToBase, P(EllipseSpan, "Span", true) * DiameterToBase, null, "True ellipse (custom size)"),
             _ => new TrapezoidalSection(b, zl, zr),
         };
         section = section with { ChannelDepth = cd };
@@ -239,13 +269,14 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ undo / redo
 
-    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, ManningN, SlopePercent, Discharge, Depth);
+    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth);
 
     private void Restore(FieldState s)
     {
         _restoring = true;
         (Title, Description, Shape, Units, SolveFor) = (s.Title, s.Description, s.Shape, s.Units, s.SolveFor);
         (BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter) = (s.BottomWidth, s.LeftSlope, s.RightSlope, s.ChannelDepth, s.Diameter);
+        (EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan) = (s.EllipseStandard, s.EllipseSize, s.EllipseVertical, s.EllipseRise, s.EllipseSpan);
         (ManningN, SlopePercent, Discharge, Depth) = (s.ManningN, s.SlopePercent, s.Discharge, s.Depth);
         _restoring = false;
         _committed = s;
@@ -286,7 +317,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     private void AfterInputChange()
     {
         Recalculate();
-        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(ShowChannelDepth), nameof(DiameterUnit),
+        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(DiameterUnit),
                      nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(CanUndo), nameof(CanRedo) })
             OnPropertyChanged(p);
     }

@@ -42,6 +42,7 @@ public static class UniformFlowCalculator
         {
             TrapezoidGeometry t => F($"Section: {input.Section.ShapeName}; b = {t.BottomWidth:G6} {c.Length}, zL = {t.LeftSideSlope:G6}, zR = {t.RightSideSlope:G6} (H:V)."),
             CircularGeometry p => F($"Section: circular conduit, D = {p.Diameter:G8} {c.Length}; A = D²/8 (θ − sin θ), P = Dθ/2, θ = 2 acos(1 − 2y/D)."),
+            SymmetricArcGeometry e => F($"Section: elliptical conduit, rise {((EllipticalSection)input.Section).Rise:G8} {c.Length}, span {((EllipticalSection)input.Section).Span:G8} {c.Length}; {e.Description}; full area {e.Area(e.MaxDepth):G8} {c.Area}."),
             _ => $"Section: {input.Section.ShapeName}.",
         });
         trace.Add(F($"Manning's equation Q = (k/n) A R^(2/3) S^(1/2) with k = {c.ManningK} ({c.System}); g = {c.Gravity} {c.Length}/s²."));
@@ -281,9 +282,9 @@ public static class UniformFlowCalculator
             messages.Add(CalcMessage.Error(MessageCodes.DischargeNotPositive, "Discharge must be greater than zero.", nameof(input.Discharge)));
         if (need(SolveFor.NormalDepth) && (!(input.Depth > 0) || !double.IsFinite(input.Depth)))
             messages.Add(CalcMessage.Error(MessageCodes.DepthNotPositive, "Flow depth must be greater than zero.", nameof(input.Depth)));
-        else if (need(SolveFor.NormalDepth) && input.Section is CircularSection { Diameter: > 0 } cs && input.Depth > cs.Diameter * (1 + 1e-12))
+        else if (need(SolveFor.NormalDepth) && ConduitRise(input.Section) is { } rise && input.Depth > rise * (1 + 1e-12))
             messages.Add(CalcMessage.Error(MessageCodes.DepthExceedsRise,
-                F($"Flow depth {input.Depth:G6} exceeds the pipe diameter {cs.Diameter:G6}. Pressurised flow is not modelled."), nameof(input.Depth)));
+                F($"Flow depth {input.Depth:G6} exceeds the conduit rise {rise:G6}. Pressurised flow is not modelled."), nameof(input.Depth)));
     }
 
     public static void ValidateSection(ChannelSection section, List<CalcMessage> messages)
@@ -317,6 +318,12 @@ public static class UniformFlowCalculator
                 if (!(p.Diameter > 0) || !double.IsFinite(p.Diameter))
                     messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "Pipe diameter must be greater than zero.", "Diameter"));
                 break;
+            case EllipticalSection e:
+                if (!(e.Rise > 0) || !double.IsFinite(e.Rise) || !(e.Span > 0) || !double.IsFinite(e.Span))
+                    messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "Rise and span must be greater than zero.", "Rise"));
+                else if (e.EndRadius is { } r && !SymmetricArcGeometry.IsValidFourCentred(e.Rise, e.Span, r))
+                    messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "The end radius must be positive and smaller than half the smaller of rise and span.", "EndRadius"));
+                break;
             default:
                 messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, $"Section type {section.GetType().Name} is not supported."));
                 break;
@@ -324,6 +331,13 @@ public static class UniformFlowCalculator
         if (section.ChannelDepth is { } cd && !(cd > 0 && double.IsFinite(cd)))
             messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "Channel depth, when given, must be greater than zero.", "ChannelDepth"));
     }
+
+    private static double? ConduitRise(ChannelSection s) => s switch
+    {
+        CircularSection { Diameter: > 0 } c => c.Diameter,
+        EllipticalSection { Rise: > 0 } e => e.Rise,
+        _ => null,
+    };
 
     private static void AddPostSolveMessages(UniformFlowInput input, double y, double s, double froude, FlowRegime regime, UnitConstants c, List<CalcMessage> messages)
     {

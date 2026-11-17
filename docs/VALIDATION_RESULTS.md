@@ -4,13 +4,13 @@ Run 2026-11-17, .NET 10.0.115, Linux x64. Command: `dotnet test MasterFlow.slnx`
 
 | Test project | Passed | Failed |
 |---|---|---|
-| MasterFlow.Hydraulics.Tests | 56 | 0 |
+| MasterFlow.Hydraulics.Tests | 91 | 0 |
 | MasterFlow.Application.Tests | 10 | 0 |
 | MasterFlow.IntegrationTests | 10 | 0 |
-| MasterFlow.Desktop.Tests | 15 | 0 |
-| **Total** | **91** | **0** |
+| MasterFlow.Desktop.Tests | 18 | 0 |
+| **Total** | **129** | **0** |
 
-(Updated after Phase C1 circular pipes; first run of the slice was 72/72.)
+(Updated for v0.3.0 elliptical pipes; v0.2.0 circular pipes was 91/91, the first slice 72/72.)
 
 ## Reference cases (engine vs independent calculation)
 US customary unless noted. Values from `validation/hand_calcs_output.txt`.
@@ -44,6 +44,24 @@ US customary unless noted. Values from `validation/hand_calcs_output.txt`.
 | Round trips | y = 0.6, 1.2, 1.85 ft (last one above full-flow Q) | S, n, y recovered | Pass |
 | T = dA/dy | numerical derivative | 1e-6 | Pass |
 
+## Elliptical conduit cases (validation/astm_c507_check.py, hand_calcs_elliptical.py)
+
+The scripts build each shape independently (polyline and midpoint integration with 200k strips), not
+with the engine's arc formulas.
+
+| Case | Inputs | Reference | Status |
+|---|---|---|---|
+| E1 all C507 sizes | 24 HE sizes, full | Tabulated waterway area | Pass, all within 0.6 % (largest 0.54 %) |
+| E2 HE 36 geometry | 28.75 × 45.5 in, R1 = 12.25 in | Derived R2 = 39.253676 in; A = 7.36010652 ft²; P = 10.00888436 ft | Pass (R2 1e-7; A, P 1e-8) |
+| E3 HE 36 discharge | y = 1.2 ft, n = 0.013, S = 0.005 | Q = 24.30662119 cfs | Pass (1e-8) |
+| E4 HE 36 normal depth | Q = 20 cfs, same n, S | yn = 1.07482756 ft | Pass (1e-7; reference printed to 9 s.f.) |
+| E5 true ellipse 2 × 3 ft | full | A = πab = 4.71238898; P = 7.93271979 (Ramanujan II) | Pass (A 1e-14, P 1e-10) |
+| E6 true ellipse discharge | y = 0.8 ft, n = 0.013, S = 0.005 | Q = 8.89571643 cfs | Pass (1e-8) |
+| E7 VE | VE 48 vs HE 48 | Same full area and perimeter (1e-12); rise 60 in, springline width 38.25 in | Pass |
+| E8 dual depth and capacity | Qfull < Q ≤ Qmax; Q > Qmax | Two roots with W-P-001; E-P-001 | Pass |
+| E9 invalid | rise or span ≤ 0; R1 out of range; y > rise | Errors, no numbers | Pass |
+| E10 T = dA/dy | numerical derivative | 1e-5 | Pass |
+
 ## Discrepancies explained
 1. **B1 first run failed** at 1e-7 relative on yc: the reference was printed with 10 decimals, i.e. 7
    significant figures at 1.46e-4 ft. Not an engine error. The test now uses the exact closed form
@@ -62,3 +80,9 @@ App run under Xvfb on Linux; screenshots reviewed: sample project loads, editing
 solved field highlighted with value, cross-section with yn and dashed yc, results grouped, messages,
 rating table. Report rendered in Chromium and printed to PDF (`docs/samples/sample-report.pdf`).
 **Not yet inspected on Windows** (high-DPI, multi-monitor, native file dialogs).
+
+### v0.3.0 elliptical UI check (Xvfb screenshot)
+HE 36 standard size, n = 0.013, S = 0.5 %, Q = 20 cfs: yn shows 1.075 ft (independent 1.07482756),
+Qfull 48.467 cfs, plot drawn to true scale. Fixed in this pass: the "Vertical (VE)" checkbox was clipped
+(moved to its own "Orientation" row), the size list text was shortened, "Depth / diameter" now reads
+"Depth / rise" for ellipses, and "Max. free-surface Q" became "Peak part-full Q" so it no longer truncates.
