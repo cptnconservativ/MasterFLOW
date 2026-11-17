@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MasterFlow.Application/MasterFlow.Application.csproj" />
+    <Project Path="src/MasterFlow.Domain/MasterFlow.Domain.csproj" />
+    <Project Path="src/MasterFlow.Hydraulics/MasterFlow.Hydraulics.csproj" />
+    <Project Path="src/MasterFlow.Persistence/MasterFlow.Persistence.csproj" />
+    <Project Path="src/MasterFlow.Reporting/MasterFlow.Reporting.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MasterFlow.Application.Tests/MasterFlow.Application.Tests.csproj" />
+    <Project Path="tests/MasterFlow.Hydraulics.Tests/MasterFlow.Hydraulics.Tests.csproj" />
+    <Project Path="tests/MasterFlow.IntegrationTests/MasterFlow.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,32 @@
+namespace MasterFlow.Domain;
+
+/// <summary>Project-level information that appears on reports.</summary>
+public sealed record ProjectInfo
+{
+    public string Name { get; init; } = "Untitled project";
+    public string ProjectNumber { get; init; } = "";
+    public string Client { get; init; } = "";
+    public string PreparedBy { get; init; } = "";
+    public string CheckedBy { get; init; } = "";
+    public string Notes { get; init; } = "";
+}
+
+/// <summary>One named calculation inside a project.</summary>
+public sealed record ChannelCalculation
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public string Title { get; init; } = "New channel";
+    public string Description { get; init; } = "";
+    public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
+    public required UniformFlowInput Input { get; init; }
+}
+
+/// <summary>
+/// A MasterFlow project: a local, self-contained collection of calculations. Persisted as JSON with
+/// an explicit schema version (see MasterFlow.Persistence).
+/// </summary>
+public sealed record Project
+{
+    public ProjectInfo Info { get; init; } = new();
+    public IReadOnlyList<ChannelCalculation> Calculations { get; init; } = [];
+}
