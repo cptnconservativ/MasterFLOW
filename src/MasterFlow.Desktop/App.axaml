@@ -1,0 +1,54 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MasterFlow.Desktop.App"
+             RequestedThemeVariant="Default">
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="TextBlock.h2">
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,10,0,4"/>
+      <Setter Property="Foreground" Value="{DynamicResource MfAccent}"/>
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="0,0,8,0"/>
+    </Style>
+    <Style Selector="TextBlock.unit">
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="6,0,0,0"/>
+      <Setter Property="Opacity" Value="0.7"/>
+    </Style>
+    <Style Selector="TextBox.num">
+      <Setter Property="HorizontalContentAlignment" Value="Right"/>
+      <Setter Property="MinWidth" Value="110"/>
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource MfCard}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource MfRule}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="12"/>
+    </Style>
+  </Application.Styles>
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="MfAccent" Color="#1F5F8B"/>
+          <SolidColorBrush x:Key="MfCard" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="MfPane" Color="#F2F4F7"/>
+          <SolidColorBrush x:Key="MfRule" Color="#D5DBE2"/>
+          <SolidColorBrush x:Key="MfSolved" Color="#E3EFF8"/>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="MfAccent" Color="#7FB7DC"/>
+          <SolidColorBrush x:Key="MfCard" Color="#1E242B"/>
+          <SolidColorBrush x:Key="MfPane" Color="#161A1F"/>
+          <SolidColorBrush x:Key="MfRule" Color="#323A44"/>
+          <SolidColorBrush x:Key="MfSolved" Color="#1D3A50"/>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

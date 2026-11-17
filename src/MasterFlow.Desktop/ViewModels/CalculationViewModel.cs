@@ -1,0 +1,284 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
+using CommunityToolkit.Mvvm.ComponentModel;
+using MasterFlow.Application;
+using MasterFlow.Domain;
+using MasterFlow.Hydraulics;
+
+namespace MasterFlow.Desktop.ViewModels;
+
+/// <summary>A message row shown in the UI.</summary>
+public sealed record MessageItem(string Severity, string Code, string Text)
+{
+    public string Display => $"{Severity}: {Text}";
+}
+
+/// <summary>Snapshot of every editable field, used for undo/redo.</summary>
+public sealed record FieldState(
+    string Title, string Description, SectionShape Shape, UnitSystem Units, SolveFor SolveFor,
+    string BottomWidth, string LeftSlope, string RightSlope, string ChannelDepth,
+    string ManningN, string SlopePercent, string Discharge, string Depth);
+
+/// <summary>
+/// Editable state of one calculation. Fields are held as text so that partially typed or invalid
+/// entries are preserved and flagged rather than silently replaced. Recalculation happens immediately
+/// after each edit; when any input is invalid, no numeric results are displayed.
+/// </summary>
+public sealed partial class CalculationViewModel : ObservableObject
+{
+    private static readonly string[] InputProps =
+    [
+        nameof(Title), nameof(Description), nameof(Shape), nameof(Units), nameof(SolveFor), nameof(BottomWidth), nameof(LeftSlope),
+        nameof(RightSlope), nameof(ChannelDepth), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
+    ];
+
+    private readonly Stack<FieldState> _undo = new();
+    private readonly Stack<FieldState> _redo = new();
+    private FieldState _committed;
+    private string? _lastEditedProp;
+    private DateTime _lastEditTime;
+    private bool _restoring;
+
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public DateTimeOffset CreatedUtc { get; private set; } = DateTimeOffset.UtcNow;
+
+    [ObservableProperty] private string _title = "New channel";
+    [ObservableProperty] private string _description = "";
+    [ObservableProperty] private SectionShape _shape = SectionShape.Trapezoidal;
+    [ObservableProperty] private UnitSystem _units = UnitSystem.USCustomary;
+    [ObservableProperty] private SolveFor _solveFor = SolveFor.NormalDepth;
+    [ObservableProperty] private string _bottomWidth = "10";
+    [ObservableProperty] private string _leftSlope = "2";
+    [ObservableProperty] private string _rightSlope = "2";
+    [ObservableProperty] private string _channelDepth = "";
+    [ObservableProperty] private string _manningN = "0.013";
+    [ObservableProperty] private string _slopePercent = "1";
+    [ObservableProperty] private string _discharge = "100";
+    [ObservableProperty] private string _depth = "1.5";
+
+    [ObservableProperty] private UniformFlowResult? _result;
+    [ObservableProperty] private IReadOnlyList<ResultLine> _resultLines = [];
+    [ObservableProperty] private IReadOnlyList<MessageItem> _messages = [];
+    [ObservableProperty] private IReadOnlyList<string> _trace = [];
+    [ObservableProperty] private CrossSectionDrawing? _drawing;
+    [ObservableProperty] private ChannelSection? _currentSection;
+    [ObservableProperty] private string _status = "";
+    [ObservableProperty] private bool _hasResult;
+
+    public event EventHandler? Edited;
+
+    public CalculationViewModel()
+    {
+        _committed = Capture();
+        PropertyChanged += OnAnyPropertyChanged;
+        Recalculate();
+    }
+
+    // ------------------------------------------------------------ presentation helpers
+
+    public static IReadOnlyList<SectionShape> Shapes { get; } = [SectionShape.Rectangular, SectionShape.Trapezoidal, SectionShape.Triangular];
+    public static IReadOnlyList<UnitSystem> UnitSystems { get; } = [UnitSystem.USCustomary, UnitSystem.SI];
+    public static IReadOnlyList<SolveFor> SolveModes { get; } = [SolveFor.Discharge, SolveFor.NormalDepth, SolveFor.Slope, SolveFor.Roughness];
+
+    public UnitConstants Constants => UnitConstants.For(Units);
+    public string LengthUnit => Constants.Length;
+    public string DischargeUnit => Constants.Discharge;
+    public bool ShowBottomWidth => Shape != SectionShape.Triangular;
+    public bool ShowSideSlopes => Shape != SectionShape.Rectangular;
+    public bool DischargeIsInput => SolveFor != SolveFor.Discharge;
+    public bool DepthIsInput => SolveFor != SolveFor.NormalDepth;
+    public bool SlopeIsInput => SolveFor != SolveFor.Slope;
+    public bool RoughnessIsInput => SolveFor != SolveFor.Roughness;
+    public string ListLabel => string.IsNullOrWhiteSpace(Title) ? "(untitled)" : Title;
+    public string ListDetail => HasResult && Result is { } r
+        ? $"{Shape} · Q {r.Discharge.ToString("F2", CultureInfo.CurrentCulture)} {DischargeUnit} · yn {r.Normal.Depth.ToString("F3", CultureInfo.CurrentCulture)} {LengthUnit}"
+        : $"{Shape} · check inputs";
+
+    /// <summary>The solved value, formatted, shown in place of the disabled input field.</summary>
+    public string SolvedValueText => Result is { Succeeded: true } r
+        ? SolveFor switch
+        {
+            SolveFor.Discharge => $"{r.Discharge.ToString("F3", CultureInfo.CurrentCulture)}  (solved)",
+            SolveFor.NormalDepth => $"{r.Normal.Depth.ToString("F3", CultureInfo.CurrentCulture)}  (solved)",
+            SolveFor.Slope => $"{(r.Slope * 100).ToString("F4", CultureInfo.CurrentCulture)}  (solved)",
+            _ => $"{r.ManningN.ToString("F4", CultureInfo.CurrentCulture)}  (solved)",
+        }
+        : "—  (no result)";
+
+    public bool CanUndo => _undo.Count > 0;
+    public bool CanRedo => _redo.Count > 0;
+
+    // ------------------------------------------------------------ model mapping
+
+    public static CalculationViewModel FromModel(ChannelCalculation c)
+    {
+        var vm = new CalculationViewModel();
+        vm._restoring = true;
+        var i = c.Input;
+        vm.Id = c.Id;
+        vm.CreatedUtc = c.CreatedUtc;
+        vm.Title = c.Title;
+        vm.Description = c.Description;
+        vm.Units = i.Units;
+        vm.SolveFor = i.SolveFor;
+        vm.Shape = i.Section.Shape;
+        switch (i.Section)
+        {
+            case RectangularSection r: vm.BottomWidth = N(r.BottomWidth); vm.LeftSlope = "0"; vm.RightSlope = "0"; break;
+            case TrapezoidalSection t: vm.BottomWidth = N(t.BottomWidth); vm.LeftSlope = N(t.LeftSideSlope); vm.RightSlope = N(t.RightSideSlope); break;
+            case TriangularSection v: vm.BottomWidth = "0"; vm.LeftSlope = N(v.LeftSideSlope); vm.RightSlope = N(v.RightSideSlope); break;
+        }
+        vm.ChannelDepth = i.Section.ChannelDepth is { } cd ? N(cd) : "";
+        vm.ManningN = N(i.ManningN);
+        vm.SlopePercent = N(i.Slope * 100.0);
+        vm.Discharge = N(i.Discharge);
+        vm.Depth = N(i.Depth);
+        vm._restoring = false;
+        vm._committed = vm.Capture();
+        vm.Recalculate();
+        return vm;
+    }
+
+    /// <summary>Converts to the domain model. Unparseable fields are stored as NaN so the saved file round-trips the invalid state visibly.</summary>
+    public ChannelCalculation ToModel() => new()
+    {
+        Id = Id,
+        CreatedUtc = CreatedUtc,
+        Title = Title,
+        Description = Description,
+        Input = BuildInput(out _),
+    };
+
+    private static string N(double v) => double.IsFinite(v) ? v.ToString("G10", CultureInfo.CurrentCulture) : "";
+
+    private UniformFlowInput BuildInput(out List<CalcMessage> parseErrors)
+    {
+        var errs = new List<CalcMessage>();
+        double P(string text, string label, bool required)
+        {
+            if (!required) return 0;
+            if (TryParse(text, out double v)) return v;
+            errs.Add(CalcMessage.Error("E-UI-001", $"{label}: \"{text}\" is not a number."));
+            return double.NaN;
+        }
+        double b = P(BottomWidth, "Bottom width", ShowBottomWidth);
+        double zl = P(LeftSlope, "Left side slope", ShowSideSlopes);
+        double zr = P(RightSlope, "Right side slope", ShowSideSlopes);
+        double? cd = null;
+        if (!string.IsNullOrWhiteSpace(ChannelDepth))
+        {
+            if (TryParse(ChannelDepth, out double v)) cd = v;
+            else errs.Add(CalcMessage.Error("E-UI-001", $"Channel depth: \"{ChannelDepth}\" is not a number (leave blank for none)."));
+        }
+        ChannelSection section = Shape switch
+        {
+            SectionShape.Rectangular => new RectangularSection(b),
+            SectionShape.Triangular => new TriangularSection(zl, zr),
+            _ => new TrapezoidalSection(b, zl, zr),
+        };
+        section = section with { ChannelDepth = cd };
+        var input = new UniformFlowInput
+        {
+            Section = section,
+            Units = Units,
+            SolveFor = SolveFor,
+            ManningN = P(ManningN, "Manning's n", RoughnessIsInput),
+            Slope = P(SlopePercent, "Slope", SlopeIsInput) / 100.0, // displayed as percent; converted here, labelled "%"
+            Discharge = P(Discharge, "Discharge", DischargeIsInput),
+            Depth = P(Depth, "Flow depth", DepthIsInput),
+        };
+        parseErrors = errs;
+        return input;
+    }
+
+    public static bool TryParse(string? text, out double value)
+    {
+        value = double.NaN;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var t = text.Trim();
+        return (double.TryParse(t, NumberStyles.Float, CultureInfo.CurrentCulture, out value)
+                || double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+               && double.IsFinite(value);
+    }
+
+    // ------------------------------------------------------------ calculation
+
+    public void Recalculate()
+    {
+        var input = BuildInput(out var parseErrors);
+        UniformFlowResult r;
+        if (parseErrors.Count > 0)
+            r = new UniformFlowResult { Input = input, Constants = UnitConstants.For(Units), Succeeded = false, Messages = parseErrors };
+        else
+            r = UniformFlowCalculator.Solve(input);
+
+        Result = r;
+        HasResult = r.Succeeded;
+        ResultLines = ResultSummary.Lines(r);
+        Messages = r.Messages.Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
+        Trace = r.Trace;
+        CurrentSection = input.Section;
+        bool geometryOk = parseErrors.Count == 0 && !r.Messages.Any(m => m.Code == MessageCodes.GeometryInvalid);
+        Drawing = geometryOk ? CrossSectionDrawing.Create(input.Section, r.Succeeded ? r.Normal.Depth : null, r.Succeeded ? r.Critical.Depth : null) : null;
+        Status = r.Succeeded
+            ? $"Calculated · {ResultSummary.RegimeText(r)}"
+            : $"No result · {r.Errors.Count()} input error(s)";
+        OnPropertyChanged(nameof(ListDetail));
+        OnPropertyChanged(nameof(SolvedValueText));
+    }
+
+    // ------------------------------------------------------------ undo / redo
+
+    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, ManningN, SlopePercent, Discharge, Depth);
+
+    private void Restore(FieldState s)
+    {
+        _restoring = true;
+        (Title, Description, Shape, Units, SolveFor) = (s.Title, s.Description, s.Shape, s.Units, s.SolveFor);
+        (BottomWidth, LeftSlope, RightSlope, ChannelDepth) = (s.BottomWidth, s.LeftSlope, s.RightSlope, s.ChannelDepth);
+        (ManningN, SlopePercent, Discharge, Depth) = (s.ManningN, s.SlopePercent, s.Discharge, s.Depth);
+        _restoring = false;
+        _committed = s;
+        _lastEditedProp = null;
+        AfterInputChange();
+    }
+
+    public void Undo()
+    {
+        if (_undo.Count == 0) return;
+        _redo.Push(Capture());
+        Restore(_undo.Pop());
+    }
+
+    public void Redo()
+    {
+        if (_redo.Count == 0) return;
+        _undo.Push(Capture());
+        Restore(_redo.Pop());
+    }
+
+    private void OnAnyPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_restoring || e.PropertyName is null || Array.IndexOf(InputProps, e.PropertyName) < 0) return;
+
+        // Coalesce consecutive keystrokes in the same field into one undo step.
+        var now = DateTime.UtcNow;
+        bool coalesce = _lastEditedProp == e.PropertyName && (now - _lastEditTime).TotalSeconds < 1.5;
+        if (!coalesce) _undo.Push(_committed);
+        _redo.Clear();
+        _lastEditedProp = e.PropertyName;
+        _lastEditTime = now;
+        _committed = Capture();
+        AfterInputChange();
+        Edited?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void AfterInputChange()
+    {
+        Recalculate();
+        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes),
+                     nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(CanUndo), nameof(CanRedo) })
+            OnPropertyChanged(p);
+    }
+}

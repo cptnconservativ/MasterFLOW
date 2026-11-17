@@ -38,7 +38,7 @@ public static class ResultSummary
             new(N, "Specific energy", "E", r.Normal.SpecificEnergy, c.Length, 4),
             new(N, "Froude number", "Fr", r.Normal.Froude, "", 3),
             new(N, "Conveyance", "K", r.Conveyance, c.Conveyance, 2),
-            new(N, "Section factor", "AR^(2/3)", r.UniformFlowSectionFactor, c.Length + "^(8/3)", 4),
+            new(N, "Section factor", "AR²ᐟ³", r.UniformFlowSectionFactor, c.Length + "⁸ᐟ³", 4),
 
             new(C, "Critical depth", "yc", r.Critical.Depth, c.Length, 3),
             new(C, "Critical velocity", "Vc", r.Critical.Velocity, c.Velocity, 3),
@@ -46,7 +46,7 @@ public static class ResultSummary
             new(C, "Critical top width", "Tc", r.Critical.TopWidth, c.Length, 3),
             new(C, "Critical specific energy", "Ec", r.Critical.SpecificEnergy, c.Length, 4),
             new(C, "Critical slope", "Sc", r.CriticalSlope * 100, "%", 4),
-            new(C, "Critical section factor", "Z = A√D", r.CriticalSectionFactor, c.Length + "^(5/2)", 4),
+            new(C, "Critical section factor", "Z", r.CriticalSectionFactor, c.Length + "⁵ᐟ²", 4),
         ];
     }
 

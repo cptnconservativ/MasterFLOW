@@ -54,7 +54,8 @@ table{border-collapse:collapse;width:100%}
 td,th{padding:3px 6px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
 th{font-weight:600;color:var(--muted);font-size:9pt;text-transform:uppercase;letter-spacing:.03em}
 td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.meta td{border:none;padding:1px 6px 1px 0}
+.meta{width:auto}.meta td{border:none;padding:1px 10px 1px 0}
+td.k{white-space:nowrap}
 h2{font-size:11.5pt;color:var(--accent);margin:18px 0 6px;border-bottom:1px solid var(--rule);padding-bottom:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .solved td{font-weight:700}
@@ -99,7 +100,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
         // Inputs + section plot
         sb.Append("<div class=\"grid2\"><div><h2>Input</h2><table>");
         foreach (var (label, value) in ResultSummary.InputLines(result.Input))
-            sb.Append($"<tr><td>{E(label)}</td><td class=\"num\">{E(value)}</td></tr>");
+            sb.Append($"<tr><td class=\"k\">{E(label)}</td><td class=\"num\">{E(value)}</td></tr>");
         sb.Append("</table></div><div><h2>Cross-section</h2>");
         var drawing = CrossSectionDrawing.Create(result.Input.Section, result.Succeeded ? result.Normal.Depth : null, result.Succeeded ? result.Critical.Depth : null);
         sb.Append(CrossSectionSvg.Render(drawing, result.Input.Section, c.Length));
@@ -178,8 +179,8 @@ public static class CrossSectionSvg
     public static string Render(CrossSectionDrawing d, ChannelSection section, string lengthUnit, int width = 360, int height = 200)
     {
         var inv = CultureInfo.InvariantCulture;
-        const double pad = 28;
-        double sx = (width - 2 * pad) / d.Width, sy = (height - 2 * pad) / d.Height;
+        const double pad = 28, padR = 96;
+        double sx = (width - pad - padR) / d.Width, sy = (height - 2 * pad) / d.Height;
         string P(double x, double y) => $"{(pad + x * sx).ToString("F1", inv)},{(height - pad - y * sy).ToString("F1", inv)}";
         var sb = new StringBuilder();
         sb.Append($"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" role=\"img\" aria-label=\"Cross-section of the {section.ShapeName.ToLowerInvariant()} channel\">");
