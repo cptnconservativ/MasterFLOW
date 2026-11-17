@@ -19,7 +19,8 @@ public sealed record FieldState(
     string Title, string Description, SectionShape Shape, UnitSystem Units, SolveFor SolveFor,
     string BottomWidth, string LeftSlope, string RightSlope, string ChannelDepth, string Diameter,
     bool EllipseStandard, EllipticalPipeSize EllipseSize, bool EllipseVertical, string EllipseRise, string EllipseSpan,
-    string ManningN, string SlopePercent, string Discharge, string Depth);
+    string ManningN, string SlopePercent, string Discharge, string Depth,
+    string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance);
 
 /// <summary>
 /// Editable state of one calculation. Fields are held as text so that partially typed or invalid
@@ -32,6 +33,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     [
         nameof(Title), nameof(Description), nameof(Shape), nameof(Units), nameof(SolveFor), nameof(BottomWidth), nameof(LeftSlope),
         nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(EllipseStandard), nameof(EllipseSize), nameof(EllipseVertical), nameof(EllipseRise), nameof(EllipseSpan), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
+        nameof(PointsText), nameof(RoughnessMethod),
     ];
 
     private readonly Stack<FieldState> _undo = new();
@@ -59,6 +61,8 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private bool _ellipseVertical;
     [ObservableProperty] private string _ellipseRise = "29";
     [ObservableProperty] private string _ellipseSpan = "45";
+    [ObservableProperty] private string _pointsText = "0\t5\n10\t0\n20\t0\n30\t5";
+    [ObservableProperty] private CompositeRoughnessMethod _roughnessMethod = CompositeRoughnessMethod.Conveyance;
     [ObservableProperty] private string _manningN = "0.013";
     [ObservableProperty] private string _slopePercent = "1";
     [ObservableProperty] private string _discharge = "100";
@@ -84,7 +88,8 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ presentation helpers
 
-    public static IReadOnlyList<SectionShape> Shapes { get; } = [SectionShape.Rectangular, SectionShape.Trapezoidal, SectionShape.Triangular, SectionShape.Circular, SectionShape.Elliptical];
+    public static IReadOnlyList<SectionShape> Shapes { get; } = [SectionShape.Rectangular, SectionShape.Trapezoidal, SectionShape.Triangular, SectionShape.Circular, SectionShape.Elliptical, SectionShape.Irregular];
+    public static IReadOnlyList<CompositeRoughnessMethod> RoughnessMethods { get; } = [CompositeRoughnessMethod.Conveyance, CompositeRoughnessMethod.EqualVelocity];
     public static IReadOnlyList<EllipticalPipeSize> EllipseSizes { get; } = EllipticalPipeCatalog.Sizes;
     public static IReadOnlyList<UnitSystem> UnitSystems { get; } = [UnitSystem.USCustomary, UnitSystem.SI];
     public static IReadOnlyList<SolveFor> SolveModes { get; } = [SolveFor.Discharge, SolveFor.NormalDepth, SolveFor.Slope, SolveFor.Roughness];
@@ -98,7 +103,8 @@ public sealed partial class CalculationViewModel : ObservableObject
     public bool ShowEllipseCustom => IsEllipse && !EllipseStandard;
     public bool ShowBottomWidth => Shape is SectionShape.Rectangular or SectionShape.Trapezoidal;
     public bool ShowSideSlopes => Shape is SectionShape.Trapezoidal or SectionShape.Triangular;
-    public bool ShowChannelDepth => !IsPipe && !IsEllipse;
+    public bool IsIrregular => Shape == SectionShape.Irregular;
+    public bool ShowChannelDepth => !IsPipe && !IsEllipse && !IsIrregular;
     /// <summary>Pipe diameters are entered in inches (U.S.) or millimetres (SI) and converted once, here, to the base length unit.</summary>
     public string DiameterUnit => Units == UnitSystem.USCustomary ? "in" : "mm";
     private double DiameterToBase => Units == UnitSystem.USCustomary ? 1.0 / 12.0 : 1.0 / 1000.0;
@@ -144,6 +150,10 @@ public sealed partial class CalculationViewModel : ObservableObject
             case RectangularSection r: vm.BottomWidth = N(r.BottomWidth); vm.LeftSlope = "0"; vm.RightSlope = "0"; break;
             case TrapezoidalSection t: vm.BottomWidth = N(t.BottomWidth); vm.LeftSlope = N(t.LeftSideSlope); vm.RightSlope = N(t.RightSideSlope); break;
             case TriangularSection v: vm.BottomWidth = "0"; vm.LeftSlope = N(v.LeftSideSlope); vm.RightSlope = N(v.RightSideSlope); break;
+            case IrregularSection ir:
+                vm.PointsText = StationPointText.Format(ir.Points);
+                vm.RoughnessMethod = ir.RoughnessMethod;
+                break;
             case CircularSection p: vm.Diameter = N(p.Diameter / vm.DiameterToBase); break;
             case EllipticalSection e:
             {
@@ -213,6 +223,7 @@ public sealed partial class CalculationViewModel : ObservableObject
             SectionShape.Triangular => new TriangularSection(zl, zr),
             SectionShape.Circular => new CircularSection(dia),
             SectionShape.Elliptical when EllipseStandard => EllipticalPipeCatalog.Create(EllipseSize, EllipseVertical, Units),
+            SectionShape.Irregular => BuildIrregular(errs),
             SectionShape.Elliptical => new EllipticalSection(P(EllipseRise, "Rise", true) * DiameterToBase, P(EllipseSpan, "Span", true) * DiameterToBase, null, "True ellipse (custom size)"),
             _ => new TrapezoidalSection(b, zl, zr),
         };
@@ -229,6 +240,13 @@ public sealed partial class CalculationViewModel : ObservableObject
         };
         parseErrors = errs;
         return input;
+    }
+
+    private IrregularSection BuildIrregular(List<CalcMessage> errs)
+    {
+        var parsed = StationPointText.Parse(PointsText);
+        foreach (var e in parsed.Errors) errs.Add(CalcMessage.Error("E-UI-002", "Points: " + e));
+        return new IrregularSection(parsed.Points, RoughnessMethod);
     }
 
     public static bool TryParse(string? text, out double value)
@@ -269,7 +287,7 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ undo / redo
 
-    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth);
+    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod);
 
     private void Restore(FieldState s)
     {
@@ -278,6 +296,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         (BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter) = (s.BottomWidth, s.LeftSlope, s.RightSlope, s.ChannelDepth, s.Diameter);
         (EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan) = (s.EllipseStandard, s.EllipseSize, s.EllipseVertical, s.EllipseRise, s.EllipseSpan);
         (ManningN, SlopePercent, Discharge, Depth) = (s.ManningN, s.SlopePercent, s.Discharge, s.Depth);
+        (PointsText, RoughnessMethod) = (s.PointsText, s.RoughnessMethod);
         _restoring = false;
         _committed = s;
         _lastEditedProp = null;
@@ -317,7 +336,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     private void AfterInputChange()
     {
         Recalculate();
-        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(DiameterUnit),
+        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(DiameterUnit),
                      nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(CanUndo), nameof(CanRedo) })
             OnPropertyChanged(p);
     }

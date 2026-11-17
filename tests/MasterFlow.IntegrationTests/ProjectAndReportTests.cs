@@ -15,6 +15,7 @@ public class ProjectAndReportTests
         [
             new ChannelCalculation { Title = "Ditch A", Input = new UniformFlowInput { Section = new TrapezoidalSection(4, 3, 3) { ChannelDepth = 2.5 }, SolveFor = SolveFor.NormalDepth, ManningN = 0.03, Slope = 0.005, Discharge = 60 } },
             new ChannelCalculation { Title = "Flume", Input = new UniformFlowInput { Section = new RectangularSection(3), Units = UnitSystem.SI, SolveFor = SolveFor.Discharge, ManningN = 0.015, Slope = 0.001, Depth = 1 } },
+            new ChannelCalculation { Title = "Creek", Input = new UniformFlowInput { Section = new IrregularSection([new(0, 8, 0.06, "LOB"), new(40, 5, 0.06), new(50, 5, 0.035), new(55, 0, 0.035), new(65, 0, 0.035), new(70, 5, 0.06), new(80, 5), new(120, 8)], CompositeRoughnessMethod.Conveyance), SolveFor = SolveFor.NormalDepth, ManningN = 0.06, Slope = 0.001, Discharge = 500 } },
             new ChannelCalculation { Title = "Gutter", Input = new UniformFlowInput { Section = new TriangularSection(50, 0.5), SolveFor = SolveFor.Roughness, Slope = 0.02, Discharge = 2, Depth = 0.15 } },
         ],
     };
@@ -60,6 +61,21 @@ public class ProjectAndReportTests
         var json = ProjectFile.Serialize(Sample()).Replace("\"schemaVersion\": 1", "\"schemaVersion\": 99");
         var ex = Assert.Throws<ProjectFileException>(() => ProjectFile.Deserialize(json));
         Assert.Contains("newer", ex.Message);
+    }
+
+    [Fact]
+    public void Report_Irregular_HasPointAndSubareaTables()
+    {
+        var p = Sample();
+        var calc = p.Calculations.Single(c => c.Title == "Creek");
+        var r = UniformFlowCalculator.Solve(calc.Input);
+        Assert.True(r.Succeeded);
+        var html = HtmlReport.Render(p.Info, calc, r, new ReportOptions());
+        Assert.Contains("Section points", html);
+        Assert.Contains("Flow distribution (conveyance subdivision)", html);
+        Assert.Contains("LOB", html);
+        Assert.Contains("Water-surface elev.", html);
+        Assert.Contains("\"shape\": \"irregular\"", ProjectFile.Serialize(p));
     }
 
     [Theory]
@@ -123,5 +139,21 @@ public class SampleArtifacts
         Directory.CreateDirectory(Path.Combine(dir, "docs", "samples"));
         File.WriteAllText(Path.Combine(dir, "docs", "samples", "sample-report.html"), html);
         Assert.True(r.Succeeded);
+
+        var creek = new ChannelCalculation
+        {
+            Title = "Creek with overbanks — normal depth",
+            Description = "Surveyed section; main channel n = 0.035, overbanks n = 0.06; conveyance subdivision.",
+            Input = new UniformFlowInput
+            {
+                Section = new IrregularSection([new(0, 108, 0.06, "Left overbank"), new(40, 105, 0.06), new(50, 105, 0.035, "Left bank"), new(55, 100, 0.035),
+                    new(65, 100, 0.035), new(70, 105, 0.06, "Right bank"), new(80, 105, 0.06), new(120, 108, null, "Right overbank")]),
+                SolveFor = SolveFor.NormalDepth, ManningN = 0.06, Slope = 0.001, Discharge = 500,
+            },
+        };
+        var rc = UniformFlowCalculator.Solve(creek.Input);
+        File.WriteAllText(Path.Combine(dir, "docs", "samples", "sample-report-irregular.html"),
+            HtmlReport.Render(info, creek, rc, new ReportOptions { Watermark = "SAMPLE", FooterText = "MasterFlow sample", Timestamp = new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero) }));
+        Assert.True(rc.Succeeded);
     }
 }

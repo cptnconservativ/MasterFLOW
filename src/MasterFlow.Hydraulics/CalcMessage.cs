@@ -33,6 +33,11 @@ public static class MessageCodes
     public const string TwoNormalDepths = "W-P-001";
     public const string NearCrown = "W-P-002";
     public const string FlowingFull = "I-P-001";
+    public const string RoughnessSolveNeedsSingleN = "E-N-002";
+    public const string MultipleNormalDepths = "W-I-001";
+    public const string SeparateWettedAreas = "W-I-002";
+    public const string WallExtended = "W-I-003";
+    public const string MultipleCriticalDepths = "W-I-004";
 
     public const string RoughnessUnusual = "W-N-001";
     public const string SlopeSteep = "W-S-001";

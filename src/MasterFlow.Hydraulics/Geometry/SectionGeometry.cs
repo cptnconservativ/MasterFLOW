@@ -43,6 +43,7 @@ public static class SectionGeometry
     {
         CircularSection c => new CircularGeometry(c.Diameter),
         EllipticalSection e => SymmetricArcGeometry.From(e),
+        IrregularSection i => new IrregularGeometry(i),
         _ => TrapezoidGeometry.From(section),
     };
 }

@@ -88,6 +88,34 @@ public sealed record UniformFlowResult
     /// <summary>Present only for closed conduits.</summary>
     public ConduitResult? Conduit { get; init; }
 
+    /// <summary>Present only for irregular (station/elevation) sections.</summary>
+    public IrregularResult? Irregular { get; init; }
+
     public IEnumerable<CalcMessage> Errors => Messages.Where(m => m.Severity == MessageSeverity.Error);
     public IEnumerable<CalcMessage> Warnings => Messages.Where(m => m.Severity == MessageSeverity.Warning);
 }
+
+/// <summary>Results specific to station/elevation sections.</summary>
+public sealed record IrregularResult
+{
+    /// <summary>Water-surface elevation at normal depth (lowest point + yn).</summary>
+    public double WaterSurfaceElevation { get; init; }
+    public double CriticalWaterSurfaceElevation { get; init; }
+    public double LowestElevation { get; init; }
+    /// <summary>Effective n = k A R^(2/3) / K at normal depth.</summary>
+    public double CompositeN { get; init; }
+    /// <summary>Velocity-distribution (energy) coefficient α = Σ(Kᵢ³/Aᵢ²) / (K³/A²); 1 for a single subarea.</summary>
+    public double EnergyCoefficient { get; init; } = 1;
+    public CompositeRoughnessMethod Method { get; init; }
+    public int WettedRegions { get; init; }
+    public bool LeftWallExtended { get; init; }
+    public bool RightWallExtended { get; init; }
+    /// <summary>Every depth that carries the discharge, ascending.</summary>
+    public IReadOnlyList<double> NormalDepthRoots { get; init; } = [];
+    /// <summary>Every depth where Fr = 1 with a specific-energy minimum, ascending.</summary>
+    public IReadOnlyList<double> CriticalDepthRoots { get; init; } = [];
+    public IReadOnlyList<SubareaFlow> Subareas { get; init; } = [];
+}
+
+/// <summary>Flow in one roughness subarea at normal depth.</summary>
+public sealed record SubareaFlow(double StationLeft, double StationRight, double ManningN, double Area, double WettedPerimeter, double Conveyance, double Discharge, double Velocity);

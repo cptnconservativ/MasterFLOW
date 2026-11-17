@@ -23,7 +23,10 @@ public sealed class EnumDisplayConverter : IValueConverter
         SectionShape.Circular => "Circular pipe",
         SectionShape.Elliptical => "Elliptical pipe",
         EllipticalPipeSize e => $"{e.EquivalentRound} in equiv. ({e.RiseIn:0.##} × {e.SpanIn:0.##} in)",
+        SectionShape.Irregular => "Irregular (station/elevation)",
         SectionShape s => s.ToString(),
+        CompositeRoughnessMethod.Conveyance => "Conveyance subdivision (HEC-RAS)",
+        CompositeRoughnessMethod.EqualVelocity => "Equal velocity (Horton–Einstein)",
         _ => value?.ToString(),
     };
 

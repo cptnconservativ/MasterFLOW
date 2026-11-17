@@ -33,11 +33,11 @@ Status as of 2026-11-17. Effort is engineering days (one developer). Risk: L/M/H
 
 ## Phase D — Irregular sections
 Dependencies: B, C1 (shared non-monotonic solver handling). Tech risk M, engineering risk H.
-- D1 Station/elevation editor with paste from Excel and delimiter detection — 3 d — ⬜
-- D2 Geometry engine: wetted sub-areas, disconnected pools, vertical walls, duplicate/reversed stations, wall-extension rule — 4 d — ⬜
-- D3 Composite n: equal-velocity (Horton–Einstein) and conveyance subdivision (HEC-RAS style), both documented — 3 d — ⬜
-- D4 Cross-section graphics with stationing — 2 d — ⬜
-- D5 HEC-RAS comparison set — 2 d — ⬜
+- D1 Station/elevation editor with paste from Excel and delimiter detection — 3 d — ✅ v0.4.0 (text grid: tab/semicolon/comma/space, header skip, 1+25.50 stationing, per-line errors; a spreadsheet-style grid is UI polish, deferred)
+- D2 Geometry engine: wetted sub-areas, disconnected pools, vertical walls, duplicate/reversed stations, wall-extension rule — 4 d — ✅ v0.4.0
+- D3 Composite n: equal-velocity (Horton–Einstein) and conveyance subdivision (HEC-RAS style), both documented — 3 d — ✅ v0.4.0 (plus α, subarea flow split, multi-root normal and critical depth)
+- D4 Cross-section graphics with stationing — 2 d — ✅ v0.4.0
+- D5 HEC-RAS comparison set — 2 d — ◐ independent script implementing the documented HEC-RAS subdivision method agrees to 1e-6; runs in HEC-RAS itself need a Windows machine with HEC-RAS installed (not available here)
 Acceptance: HEC-RAS normal-depth agreement within ±0.01 ft for equivalent subdivision; invalid sections rejected with clear messages.
 
 ## Phase E — Tables and comparison

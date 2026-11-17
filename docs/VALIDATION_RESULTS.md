@@ -4,13 +4,13 @@ Run 2026-11-17, .NET 10.0.115, Linux x64. Command: `dotnet test MasterFlow.slnx`
 
 | Test project | Passed | Failed |
 |---|---|---|
-| MasterFlow.Hydraulics.Tests | 91 | 0 |
-| MasterFlow.Application.Tests | 10 | 0 |
-| MasterFlow.IntegrationTests | 10 | 0 |
-| MasterFlow.Desktop.Tests | 18 | 0 |
-| **Total** | **129** | **0** |
+| MasterFlow.Hydraulics.Tests | 107 | 0 |
+| MasterFlow.Application.Tests | 20 | 0 |
+| MasterFlow.IntegrationTests | 11 | 0 |
+| MasterFlow.Desktop.Tests | 21 | 0 |
+| **Total** | **159** | **0** |
 
-(Updated for v0.3.0 elliptical pipes; v0.2.0 circular pipes was 91/91, the first slice 72/72.)
+(Updated for v0.4.0 irregular sections; v0.3.0 was 129/129, v0.2.0 91/91, the first slice 72/72.)
 
 ## Reference cases (engine vs independent calculation)
 US customary unless noted. Values from `validation/hand_calcs_output.txt`.
@@ -62,6 +62,30 @@ with the engine's arc formulas.
 | E9 invalid | rise or span ≤ 0; R1 out of range; y > rise | Errors, no numbers | Pass |
 | E10 T = dA/dy | numerical derivative | 1e-5 | Pass |
 
+## Irregular section cases (validation/hand_calcs_irregular.py)
+
+The script integrates depth over station on a 200k-step grid and measures wetted ground length on a
+resampled polyline; it shares no code or formulas with the engine. Tolerances set before the first run:
+exact (1e-12) for shapes that are also parametric sections, 1e-6 for script values.
+
+| Case | Inputs | Reference | Status |
+|---|---|---|---|
+| I1 Flow Calc Example #1 as points | (0,5) (10,0) (20,0) (30,5), n 0.013, S 1 %, y 1.5 | Equals parametric trapezoid; Q = 247.08514222 | Pass (1e-12; 1e-8) |
+| I1b vertical walls | (0,4) (0,0) (8,0) (8,4) | Equals rectangle b = 8 (yn, P, yc) | Pass (1e-10) |
+| I2 compound, subdivision | overbanks n 0.06, channel n 0.035, S 0.001, y 6 | A 128.3333, P 70.88369712, Q 311.83231363 | Pass |
+| I2b same, Q = 1500 | water above both ends | yn 9.67513472, W-I-003 | Pass |
+| I3 equal velocity | same, y 6 | Q 183.66530498 | Pass |
+| I4 single n compound | n 0.035, Q 180 | roots 4.54249328 and 5.41924191; step at 5.0 ignored; highest governs, W-I-001 | Pass |
+| I5 two pools | ridge at 2 ft, y 1.5 | A 7.35416667, P 12.6705197, Q 11.33544864, 2 regions, W-I-002 | Pass |
+| I6 wall extension | left end 2 ft, y 2.5 | A 20.16666667, P 13.13880262, Q 100.87769199 | Pass |
+| Round trips | y 0.8, 3, 5.6, 9 | S, n, y recovered | Pass |
+| Critical depth | single n compound | Z(yc) = Q/√g; E(y) ≥ Ec on a 0.05 ft scan to 10 ft | Pass |
+| Invalid | < 3 points, decreasing station, flat, NaN, n ≤ 0, solve n with point n | errors, no numbers | Pass |
+| Text parsing | tab, comma, semicolon, spaces, header, 0+10 stationing, CRLF, bad lines | points or line-numbered errors | Pass |
+
+Not yet done: comparison with HEC-RAS runs (needs HEC-RAS on Windows). The script implements the
+documented HEC-RAS subdivision rule, so agreement is expected wherever the main channel has one n.
+
 ## Discrepancies explained
 1. **B1 first run failed** at 1e-7 relative on yc: the reference was printed with 10 decimals, i.e. 7
    significant figures at 1.46e-4 ft. Not an engine error. The test now uses the exact closed form
@@ -86,3 +110,9 @@ HE 36 standard size, n = 0.013, S = 0.5 %, Q = 20 cfs: yn shows 1.075 ft (indepe
 Qfull 48.467 cfs, plot drawn to true scale. Fixed in this pass: the "Vertical (VE)" checkbox was clipped
 (moved to its own "Orientation" row), the size list text was shortened, "Depth / diameter" now reads
 "Depth / rise" for ellipses, and "Max. free-surface Q" became "Peak part-full Q" so it no longer truncates.
+4. **Irregular I2 effective n** first asserted 0.035 ≤ neff ≤ 0.06; the engine gave 0.0287. The test was
+   wrong: with conveyance subdivision the effective n of a compound section can be below every subarea n.
+   The test now checks neff against its definition k A R^(2/3)/K.
+5. **Irregular I5 wetted regions** first returned 1 instead of 2: two partly wet segments meeting at a dry
+   ridge crest were counted as touching. Fixed in the engine (a region continues only if wet pieces
+   actually touch); the reference value was unchanged.

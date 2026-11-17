@@ -13,6 +13,7 @@ namespace MasterFlow.Domain;
 [JsonDerivedType(typeof(TriangularSection), "triangular")]
 [JsonDerivedType(typeof(CircularSection), "circular")]
 [JsonDerivedType(typeof(EllipticalSection), "elliptical")]
+[JsonDerivedType(typeof(IrregularSection), "irregular")]
 public abstract record ChannelSection
 {
     /// <summary>
@@ -31,6 +32,7 @@ public abstract record ChannelSection
         SectionShape.Triangular => "Triangular",
         SectionShape.Circular => "Circular pipe",
         SectionShape.Elliptical => "Elliptical pipe",
+        SectionShape.Irregular => "Irregular (station/elevation)",
         _ => Shape.ToString(),
     };
 }
@@ -42,6 +44,7 @@ public enum SectionShape
     Triangular,
     Circular,
     Elliptical,
+    Irregular,
 }
 
 /// <summary>Rectangular open channel of bottom width b.</summary>

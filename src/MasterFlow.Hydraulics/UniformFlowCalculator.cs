@@ -38,6 +38,8 @@ public static class UniformFlowCalculator
             return Failed(input, c, messages, trace);
 
         var geometry = SectionGeometry.From(input.Section);
+        if (geometry is IrregularGeometry irregular)
+            return SolveIrregular(input, irregular, c, messages, trace);
         trace.Add(geometry switch
         {
             TrapezoidGeometry t => F($"Section: {input.Section.ShapeName}; b = {t.BottomWidth:G6} {c.Length}, zL = {t.LeftSideSlope:G6}, zR = {t.RightSideSlope:G6} (H:V)."),
@@ -110,7 +112,7 @@ public static class UniformFlowCalculator
         }
 
         var normal = State(geometry, y, q, c.Gravity);
-        ConduitResult? conduit = geometry.DischargeIsMonotonic ? null : ConduitValues(geometry, y, q, n, s, c, trace);
+        ConduitResult? conduit = double.IsFinite(geometry.MaxDepth) ? ConduitValues(geometry, y, q, n, s, c, trace) : null;
         double conveyance = c.ManningK / n * normal.Area * Math.Pow(normal.HydraulicRadius, 2.0 / 3.0);
 
         // Critical flow for the same discharge.
@@ -150,6 +152,199 @@ public static class UniformFlowCalculator
             Regime = regime,
             Conduit = conduit,
         };
+    }
+
+    // ---------------------------------------------------------------- irregular sections
+
+    private static UniformFlowResult SolveIrregular(UniformFlowInput input, IrregularGeometry g, UnitConstants c, List<CalcMessage> messages, List<string> trace)
+    {
+        var section = (IrregularSection)input.Section;
+        double n = input.ManningN, s = input.Slope, q = input.Discharge, y = input.Depth;
+        bool multi = g.HasMultipleRoughness(n);
+        trace.Add(F($"Section: irregular, {section.Points.Count} points, stations {g.LeftStation:G8} to {g.RightStation:G8} {c.Length}; lowest elevation {g.Datum:G8} {c.Length}; relief {g.Relief:G8} {c.Length}. Depth is measured from the lowest point."));
+        trace.Add(multi
+            ? (g.Method == CompositeRoughnessMethod.Conveyance
+                ? "Roughness varies: conveyance subdivision. Subareas split by vertical lines where n changes; K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3)."
+                : "Roughness varies: equal-velocity composite n = [Σ Pᵢ nᵢ^1.5 / P]^(2/3) (Horton–Einstein), K = (k/nc) A R^(2/3).")
+            : F($"Single roughness n = {n:G6}: K = (k/n) A R^(2/3)."));
+        trace.Add(F($"Manning's equation Q = K S^(1/2) with k = {c.ManningK} ({c.System}); g = {c.Gravity} {c.Length}/s²."));
+
+        Func<double, double> K = yy => g.Conveyance(yy, n, c.ManningK);
+        IReadOnlyList<double> normalRoots = [];
+        switch (input.SolveFor)
+        {
+            case SolveFor.Discharge:
+                q = K(y) * Math.Sqrt(s);
+                trace.Add(F($"Discharge computed directly at y = {y:G10} {c.Length}: Q = {q:G10} {c.Discharge}."));
+                break;
+            case SolveFor.NormalDepth:
+            {
+                var found = DropJumps(RootFinder.AllRoots(yy => K(yy) * Math.Sqrt(s) - q, g.Breakpoints, MaxSearchDepth),
+                    yy => K(yy) * Math.Sqrt(s), q, g, c, trace, "Q");
+                foreach (var (r, _) in found)
+                    trace.Add(DescribeRoot("Normal depth candidate", "f(y) = K(y) S^(1/2) − Q", r, c.Length));
+                if (found.Count == 0)
+                {
+                    messages.Add(CalcMessage.Error(MessageCodes.NoConvergence, "No depth carries this discharge within the searchable range. No result is reported."));
+                    return Failed(input, c, messages, trace);
+                }
+                foreach (var (r, _) in found)
+                    if (!AcceptRoot(r, yy => K(yy) * Math.Sqrt(s), q, "normal depth", messages))
+                        return Failed(input, c, messages, trace);
+                normalRoots = found.Select(f => f.Root.Root).ToArray();
+                y = normalRoots[^1];
+                if (normalRoots.Count > 1)
+                {
+                    trace.Add(F($"Q(y) is not monotonic for this section; {normalRoots.Count} depths carry Q. The highest is reported (D-019)."));
+                    messages.Add(CalcMessage.Warning(MessageCodes.MultipleNormalDepths,
+                        F($"{normalRoots.Count} depths carry {q:F3} {c.Discharge}: {string.Join(", ", normalRoots.Select(r => r.ToString("F3", CultureInfo.InvariantCulture)))} {c.Length}. Discharge falls when water spills onto a wide, flat area, so Manning's equation is ambiguous here. The highest depth is reported (conservative for freeboard). Assigning separate n values to the overbanks (conveyance subdivision) usually removes the ambiguity.")));
+                }
+                break;
+            }
+            case SolveFor.Slope:
+                s = Math.Pow(q / K(y), 2);
+                trace.Add(F($"Slope solved in closed form: S = (Q / K)² = {s:G10}."));
+                break;
+            case SolveFor.Roughness:
+            {
+                double k1 = g.Conveyance(y, 1.0, c.ManningK);
+                n = k1 * Math.Sqrt(s) / q;
+                K = yy => g.Conveyance(yy, n, c.ManningK);
+                trace.Add(F($"Roughness solved in closed form: n = k A R^(2/3) S^(1/2) / Q = {n:G10}."));
+                if (n < 0.008 || n > 0.20)
+                    messages.Add(CalcMessage.Warning(MessageCodes.RoughnessUnusual,
+                        F($"Back-calculated n = {n:F4} is outside the typical range 0.008–0.20. Check discharge, depth and slope."), nameof(input.ManningN)));
+                break;
+            }
+        }
+
+        if (!double.IsFinite(q) || !double.IsFinite(y) || !double.IsFinite(s) || !double.IsFinite(n) || q <= 0 || y <= 0)
+        {
+            messages.Add(CalcMessage.Error(MessageCodes.NonFinite, "The calculation produced a non-finite or non-positive value; no result is reported."));
+            return Failed(input, c, messages, trace);
+        }
+        if (normalRoots.Count == 0) normalRoots = [y];
+
+        var normal = State(g, y, q, c.Gravity);
+        double conveyance = K(y);
+
+        // Critical depth: every Fr = 1 crossing where specific energy has a minimum (Z − Q/√g rising);
+        // the one with the lowest specific energy governs.
+        double zTarget = q / Math.Sqrt(c.Gravity);
+        var crit = DropJumps(RootFinder.AllRoots(yy => CriticalSectionFactor(g, yy) - zTarget, g.Breakpoints, MaxSearchDepth),
+                yy => CriticalSectionFactor(g, yy), zTarget, g, c, trace, "Z")
+            .Where(r => r.Direction > 0).ToList();
+        foreach (var (r, _) in crit) trace.Add(DescribeRoot("Critical depth candidate (E minimum)", "f(y) = A √(A/T) − Q/√g", r, c.Length));
+        if (crit.Count == 0)
+        {
+            messages.Add(CalcMessage.Error(MessageCodes.NoConvergence, "Critical depth could not be found. No result is reported."));
+            return Failed(input, c, messages, trace);
+        }
+        foreach (var (r, _) in crit)
+            if (!AcceptRoot(r, yy => CriticalSectionFactor(g, yy), zTarget, "critical depth", messages))
+                return Failed(input, c, messages, trace);
+        var critStates = crit.Select(r => State(g, r.Root.Root, q, c.Gravity)).ToList();
+        var critical = critStates.MinBy(st => st.SpecificEnergy)!;
+        if (critStates.Count > 1)
+            messages.Add(CalcMessage.Warning(MessageCodes.MultipleCriticalDepths,
+                F($"Specific energy has {critStates.Count} minima, at depths {string.Join(", ", critStates.Select(st => st.Depth.ToString("F3", CultureInfo.InvariantCulture)))} {c.Length}. The depth with the lowest specific energy, {critical.Depth:F3} {c.Length}, is reported as critical depth.")));
+        double criticalSlope = Math.Pow(q / K(critical.Depth), 2);
+        trace.Add(F($"Critical depth yc = {critical.Depth:G10} {c.Length} (lowest specific energy of {critStates.Count} candidate(s)); critical slope Sc = (Q / K(yc))² = {criticalSlope:G8}."));
+
+        var subs = g.Subareas(y, n);
+        double aT = normal.Area, kT = conveyance;
+        double alpha = 1;
+        var flows = new List<SubareaFlow>();
+        if (subs.Count > 1 && g.Method == CompositeRoughnessMethod.Conveyance)
+        {
+            double sum = 0;
+            foreach (var sa in subs)
+            {
+                double ki = IrregularGeometry.SubareaConveyance(sa, c.ManningK);
+                if (sa.Area > 0) sum += ki * ki * ki / (sa.Area * sa.Area);
+                double qi = ki * Math.Sqrt(s);
+                flows.Add(new SubareaFlow(sa.StationLeft, sa.StationRight, sa.ManningN, sa.Area, sa.WettedPerimeter, ki, qi, sa.Area > 0 ? qi / sa.Area : 0));
+            }
+            alpha = sum * aT * aT / (kT * kT * kT);
+            trace.Add(F($"Energy coefficient α = Σ(Kᵢ³/Aᵢ²) / (K³/A²) = {alpha:G6}. Velocity head and Froude number use α = 1 (mean velocity)."));
+        }
+        double compositeN = c.ManningK * aT * Math.Pow(normal.HydraulicRadius, 2.0 / 3.0) / kT;
+
+        var regime = double.IsNaN(normal.Froude) ? FlowRegime.Undefined
+            : normal.Froude < NearCriticalLow ? FlowRegime.Subcritical
+            : normal.Froude > NearCriticalHigh ? FlowRegime.Supercritical
+            : FlowRegime.NearCritical;
+        AddPostSolveMessages(input, y, s, normal.Froude, regime, c, messages);
+
+        bool leftWall = y > g.LeftEndHeight, rightWall = y > g.RightEndHeight;
+        if (leftWall || rightWall)
+            messages.Add(CalcMessage.Warning(MessageCodes.WallExtended,
+                F($"The water surface (elevation {g.Datum + y:F3} {c.Length}) is above the {(leftWall && rightWall ? "left and right ends" : leftWall ? "left end" : "right end")} of the section. A vertical wall is assumed there; extend the survey if water would actually spread further.")));
+        int regions = g.WettedRegions(y);
+        if (regions > 1)
+            messages.Add(CalcMessage.Warning(MessageCodes.SeparateWettedAreas,
+                F($"The water surface forms {regions} separate wetted areas. All are assumed to carry flow at the same water-surface elevation; remove areas that are actually ineffective (ponded or blocked).")));
+
+        return new UniformFlowResult
+        {
+            Input = input,
+            Constants = c,
+            Succeeded = true,
+            Messages = messages,
+            Trace = trace,
+            ManningN = n,
+            Slope = s,
+            Discharge = q,
+            Normal = normal,
+            Conveyance = conveyance,
+            UniformFlowSectionFactor = normal.Area * Math.Pow(normal.HydraulicRadius, 2.0 / 3.0),
+            Critical = critical,
+            CriticalSectionFactor = CriticalSectionFactor(g, critical.Depth),
+            CriticalSlope = criticalSlope,
+            Regime = regime,
+            Irregular = new IrregularResult
+            {
+                WaterSurfaceElevation = g.Datum + y,
+                CriticalWaterSurfaceElevation = g.Datum + critical.Depth,
+                LowestElevation = g.Datum,
+                CompositeN = compositeN,
+                EnergyCoefficient = alpha,
+                Method = g.Method,
+                WettedRegions = regions,
+                LeftWallExtended = leftWall,
+                RightWallExtended = rightWall,
+                NormalDepthRoots = normalRoots,
+                CriticalDepthRoots = critStates.Select(st => st.Depth).ToArray(),
+                Subareas = flows,
+            },
+        };
+    }
+
+    /// <summary>
+    /// Removes sign changes caused by a jump rather than a root. When a flat segment becomes wet its whole
+    /// width joins the wetted perimeter at once, so Q(y) and Z(y) step down at that elevation. Brent then
+    /// converges onto the step, where the residual stays large. Such a point is not a solution and is
+    /// dropped (noted in the trace); any other residual failure is kept so it is reported as an error.
+    /// </summary>
+    private static List<(RootResult Root, int Direction)> DropJumps(IReadOnlyList<(RootResult Root, int Direction)> found,
+        Func<double, double> eval, double target, IrregularGeometry g, UnitConstants c, List<string> trace, string what)
+    {
+        var kept = new List<(RootResult, int)>();
+        foreach (var (r, dir) in found)
+        {
+            if (r.Converged && double.IsFinite(r.Root))
+            {
+                double rel = Math.Abs(eval(r.Root) - target) / Math.Max(Math.Abs(target), double.Epsilon);
+                bool atBreak = g.Breakpoints.Any(b => Math.Abs(b - r.Root) <= 1e-9 * Math.Max(1, b));
+                if (rel > AcceptedRelativeResidual && atBreak)
+                {
+                    trace.Add(F($"{what}(y) steps across the target at y = {r.Root:G10} {c.Length} (a flat segment wets there); not a solution, ignored."));
+                    continue;
+                }
+            }
+            kept.Add((r, dir));
+        }
+        return kept;
     }
 
     // ---------------------------------------------------------------- closed conduits
@@ -262,6 +457,9 @@ public static class UniformFlowCalculator
     public static void Validate(UniformFlowInput input, List<CalcMessage> messages)
     {
         ValidateSection(input.Section, messages);
+        if (input.SolveFor == SolveFor.Roughness && input.Section is IrregularSection { HasPointRoughness: true })
+            messages.Add(CalcMessage.Error(MessageCodes.RoughnessSolveNeedsSingleN,
+                "Solving for Manning's n needs one roughness for the whole section. Clear the per-point n values, or solve for another unknown.", nameof(input.ManningN)));
         bool need(SolveFor f) => input.SolveFor != f;
 
         if (need(SolveFor.Roughness))
@@ -324,12 +522,51 @@ public static class UniformFlowCalculator
                 else if (e.EndRadius is { } r && !SymmetricArcGeometry.IsValidFourCentred(e.Rise, e.Span, r))
                     messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "The end radius must be positive and smaller than half the smaller of rise and span.", "EndRadius"));
                 break;
+            case IrregularSection ir:
+                ValidateIrregular(ir, messages);
+                break;
             default:
                 messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, $"Section type {section.GetType().Name} is not supported."));
                 break;
         }
         if (section.ChannelDepth is { } cd && !(cd > 0 && double.IsFinite(cd)))
             messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "Channel depth, when given, must be greater than zero.", "ChannelDepth"));
+    }
+
+    public const int MaxIrregularPoints = 5000;
+
+    private static void ValidateIrregular(IrregularSection ir, List<CalcMessage> messages)
+    {
+        var pts = ir.Points ?? [];
+        if (pts.Count < 3)
+        {
+            messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "An irregular section needs at least 3 points.", "Points"));
+            return;
+        }
+        if (pts.Count > MaxIrregularPoints)
+            messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, F($"An irregular section may have at most {MaxIrregularPoints} points."), "Points"));
+        for (int i = 0; i < pts.Count; i++)
+        {
+            var p = pts[i];
+            if (!double.IsFinite(p.Station) || !double.IsFinite(p.Elevation))
+            {
+                messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, F($"Point {i + 1}: station and elevation must be numbers."), "Points"));
+                return;
+            }
+            if (p.ManningN is { } pn && !(pn > 0 && double.IsFinite(pn)))
+                messages.Add(CalcMessage.Error(MessageCodes.RoughnessNotPositive, F($"Point {i + 1}: Manning's n must be greater than zero."), "Points"));
+            if (i > 0 && p.Station < pts[i - 1].Station)
+            {
+                messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid,
+                    F($"Station decreases from point {i} ({pts[i - 1].Station:G8}) to point {i + 1} ({p.Station:G8}). Points must run left to right looking downstream; overhangs are not supported."), "Points"));
+                return;
+            }
+        }
+        if (pts[^1].Station - pts[0].Station <= 0)
+            messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "The section has no width: first and last stations are equal.", "Points"));
+        double zmin = pts.Min(p => p.Elevation);
+        if (pts.Max(p => p.Elevation) - zmin <= 0)
+            messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "All points have the same elevation, so the section holds no water.", "Points"));
     }
 
     private static double? ConduitRise(ChannelSection s) => s switch

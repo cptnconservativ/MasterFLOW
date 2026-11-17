@@ -130,6 +130,16 @@
                   <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowEllipseCustom}">
                     <TextBox Classes="num" Text="{Binding EllipseSpan}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
                   </StackPanel>
+                  <TextBlock Grid.Row="2" Classes="label" Text="Composite n" IsVisible="{Binding IsIrregular}"/>
+                  <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding IsIrregular}"
+                            ItemsSource="{x:Static vm:CalculationViewModel.RoughnessMethods}" SelectedItem="{Binding RoughnessMethod}">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Spacing="2" IsVisible="{Binding IsIrregular}">
+                    <TextBlock Classes="label" Text="Points: station, elevation, n to next point (optional), description. Paste from Excel."/>
+                    <TextBox Text="{Binding PointsText}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Consolas,Menlo,monospace"
+                             Height="170" TextWrapping="NoWrap" Watermark="0&#x09;5&#x0a;10&#x09;0 ..."/>
+                  </StackPanel>
                   <TextBlock Grid.Row="5" Classes="label" Text="Channel depth" IsVisible="{Binding ShowChannelDepth}"/>
                   <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowChannelDepth}">
                     <TextBox Classes="num" Text="{Binding ChannelDepth}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>

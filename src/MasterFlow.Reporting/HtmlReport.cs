@@ -10,7 +10,7 @@ namespace MasterFlow.Reporting;
 /// <summary>Options that control report presentation (not calculation).</summary>
 public sealed record ReportOptions
 {
-    public string SoftwareVersion { get; init; } = "0.3.0";
+    public string SoftwareVersion { get; init; } = "0.4.0";
     public string? Watermark { get; init; }
     public string? FooterText { get; init; }
     /// <summary>Optional company logo as a data: URI (PNG/SVG). Embedded, never fetched.</summary>
@@ -123,13 +123,40 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
             }
             sb.Append("</div>");
             ResultTable(sb, "Critical flow (same discharge)", ResultSummary.Lines(result).Where(l => l.Group == "Critical flow"));
+            var subs = ResultSummary.Subareas(result);
+            if (subs.Count > 0)
+            {
+                sb.Append("<h2>Flow distribution (conveyance subdivision)</h2><table><tr>");
+                foreach (var h in new[] { $"From sta. ({c.Length})", $"To sta. ({c.Length})", "n", $"A ({c.Area})", $"P ({c.Length})", $"K ({c.Discharge})", $"Q ({c.Discharge})", "Q share", $"V ({c.Velocity})" })
+                    sb.Append($"<th>{E(h)}</th>");
+                sb.Append("</tr>");
+                foreach (var sa in subs)
+                    sb.Append($"<tr><td class=\"num\">{sa.StationLeft.ToString("F2", Inv)}</td><td class=\"num\">{sa.StationRight.ToString("F2", Inv)}</td><td class=\"num\">{sa.ManningN.ToString("F3", Inv)}</td><td class=\"num\">{sa.Area.ToString("F3", Inv)}</td><td class=\"num\">{sa.WettedPerimeter.ToString("F3", Inv)}</td><td class=\"num\">{sa.Conveyance.ToString("F1", Inv)}</td><td class=\"num\">{sa.Discharge.ToString("F3", Inv)}</td><td class=\"num\">{(100 * sa.Discharge / result.Discharge).ToString("F1", Inv)} %</td><td class=\"num\">{sa.Velocity.ToString("F3", Inv)}</td></tr>");
+                sb.Append("</table>");
+            }
+        }
+        if (result.Input.Section is IrregularSection irs)
+        {
+            sb.Append("<h2>Section points</h2><table><tr>");
+            foreach (var h in new[] { "#", $"Station ({c.Length})", $"Elevation ({c.Length})", "n (to next point)", "Description" })
+                sb.Append($"<th>{E(h)}</th>");
+            sb.Append("</tr>");
+            for (int i = 0; i < irs.Points.Count; i++)
+            {
+                var pt = irs.Points[i];
+                string nTxt = i == irs.Points.Count - 1 ? "" : (pt.ManningN ?? result.Input.ManningN).ToString("F3", Inv) + (pt.ManningN is null ? " (default)" : "");
+                sb.Append($"<tr><td class=\"num\">{i + 1}</td><td class=\"num\">{pt.Station.ToString("F2", Inv)}</td><td class=\"num\">{pt.Elevation.ToString("F3", Inv)}</td><td class=\"num\">{E(nTxt)}</td><td>{E(pt.Description ?? "")}</td></tr>");
+            }
+            sb.Append("</table>");
         }
 
         // Messages
         sb.Append("<h2>Warnings, notes and assumptions</h2>");
         foreach (var m in result.Messages)
             sb.Append($"<div class=\"msg {m.Severity}\"><strong>{m.Severity}</strong> [{E(m.Code)}] {E(m.Text)}</div>");
-        sb.Append("<div class=\"msg Info\">Assumes a prismatic channel, uniform roughness across the wetted perimeter, small slope (depth measured vertically) and hydrostatic pressure. Manning's n is the engineer's selection; results are only as reliable as n.</div>");
+        sb.Append(result.Input.Section is IrregularSection { HasPointRoughness: true }
+            ? "<div class=\"msg Info\">Assumes a prismatic channel, small slope (depth measured vertically) and hydrostatic pressure. Roughness varies across the section and is combined as stated in the input; the velocity head uses the mean velocity (α = 1). Manning's n values are the engineer's selection; results are only as reliable as n.</div>"
+            : "<div class=\"msg Info\">Assumes a prismatic channel, uniform roughness across the wetted perimeter, small slope (depth measured vertically) and hydrostatic pressure. Manning's n is the engineer's selection; results are only as reliable as n.</div>");
 
         if (options.RatingTable is { Rows.Count: > 0 } rt)
         {
@@ -181,7 +208,8 @@ public static class CrossSectionSvg
         var inv = CultureInfo.InvariantCulture;
         const double pad = 28, padR = 96;
         double sx = (width - pad - padR) / d.Width, sy = (height - 2 * pad) / d.Height;
-        string P(double x, double y) => $"{(pad + x * sx).ToString("F1", inv)},{(height - pad - y * sy).ToString("F1", inv)}";
+        double x0 = d.Outline.Min(p => p.X); // stations of surveyed sections need not start at 0
+        string P(double x, double y) => $"{(pad + (x - x0) * sx).ToString("F1", inv)},{(height - pad - y * sy).ToString("F1", inv)}";
         var sb = new StringBuilder();
         sb.Append($"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" role=\"img\" aria-label=\"Cross-section of the {section.ShapeName.ToLowerInvariant()} channel\">");
         sb.Append($"<rect x=\"0\" y=\"0\" width=\"{width}\" height=\"{height}\" fill=\"#f6f8fa\"/>");
@@ -192,8 +220,8 @@ public static class CrossSectionSvg
         {
             if (y is not > 0) return;
             var (l, r) = d.ExtentAt(section, y.Value);
-            sb.Append($"<line x1=\"{(pad + l * sx).ToString("F1", inv)}\" x2=\"{(pad + r * sx).ToString("F1", inv)}\" y1=\"{(height - pad - y.Value * sy).ToString("F1", inv)}\" y2=\"{(height - pad - y.Value * sy).ToString("F1", inv)}\" stroke=\"{color}\" stroke-width=\"1.5\"{(dashed ? " stroke-dasharray=\"5 3\"" : "")}/>");
-            sb.Append($"<text x=\"{(pad + r * sx + 4).ToString("F1", inv)}\" y=\"{(height - pad - y.Value * sy + 4).ToString("F1", inv)}\" font-size=\"10\" fill=\"{color}\">{label} = {y.Value.ToString("F3", inv)} {lengthUnit}</text>");
+            sb.Append($"<line x1=\"{(pad + (l - x0) * sx).ToString("F1", inv)}\" x2=\"{(pad + (r - x0) * sx).ToString("F1", inv)}\" y1=\"{(height - pad - y.Value * sy).ToString("F1", inv)}\" y2=\"{(height - pad - y.Value * sy).ToString("F1", inv)}\" stroke=\"{color}\" stroke-width=\"1.5\"{(dashed ? " stroke-dasharray=\"5 3\"" : "")}/>");
+            sb.Append($"<text x=\"{(pad + (r - x0) * sx + 4).ToString("F1", inv)}\" y=\"{(height - pad - y.Value * sy + 4).ToString("F1", inv)}\" font-size=\"10\" fill=\"{color}\">{label} = {y.Value.ToString("F3", inv)} {lengthUnit}</text>");
         }
         Level(d.WaterDepth, "#1f5f8b", "yn", false);
         Level(d.CriticalDepth, "#b3261e", "yc", true);

@@ -66,8 +66,26 @@ public static class ResultSummary
                 new(P, "Q / Qfull", "", r.Discharge / p.FullFlowDischarge, "", 4),
             ]);
         }
+        if (r.Irregular is { } ir)
+        {
+            const string I = "Irregular section";
+            if (ir.NormalDepthRoots.Count > 1)
+                lines.Insert(2, new(G, "Lower normal depth", "yn,low", ir.NormalDepthRoots[0], c.Length, 3));
+            lines.AddRange(
+            [
+                new(I, "Water-surface elev.", "WSE", ir.WaterSurfaceElevation, c.Length, 3),
+                new(I, "Critical WS elev.", "WSEc", ir.CriticalWaterSurfaceElevation, c.Length, 3),
+                new(I, "Lowest ground elev.", "zmin", ir.LowestElevation, c.Length, 3),
+                new(I, "Effective n", "neff", ir.CompositeN, "", 4),
+                new(I, "Energy coefficient", "α", ir.EnergyCoefficient, "", 3),
+                new(I, "Wetted areas", "", ir.WettedRegions, "", 0),
+            ]);
+        }
         return lines;
     }
+
+    /// <summary>Subarea flow split rows (station range, n, A, P, K, Q, V) for an irregular section with conveyance subdivision.</summary>
+    public static IReadOnlyList<SubareaFlow> Subareas(UniformFlowResult r) => r.Irregular?.Subareas ?? [];
 
     public static string RegimeText(UniformFlowResult r) => r.Regime switch
     {
@@ -110,6 +128,18 @@ public static class ResultSummary
                 if (e.EndRadius is { } r) list.Add(("End radius R1", $"{Num(r * f, 2)} {u} (R2 from tangency)"));
                 break;
             }
+            case IrregularSection ir:
+            {
+                list.Add(("Points", $"{ir.Points.Count} (stations {Num(ir.Points[0].Station, 2)} to {Num(ir.Points[^1].Station, 2)} {c.Length})"));
+                list.Add(("Lowest elevation", $"{Num(ir.MinElevation)} {c.Length} (depth datum)"));
+                var ns = ir.Points.Take(ir.Points.Count - 1).Select(p => p.ManningN).Where(v => v is not null).Select(v => v!.Value).Distinct().ToList();
+                if (ns.Count > 0)
+                {
+                    list.Add(("Roughness", $"varies ({string.Join(", ", ns.OrderBy(v => v).Select(v => Num(v, 3)))})"));
+                    list.Add(("Composite method", ir.RoughnessMethod == CompositeRoughnessMethod.Conveyance ? "Conveyance subdivision" : "Equal velocity (Horton–Einstein)"));
+                }
+                break;
+            }
             case CircularSection p:
                 list.Add(("Diameter D", i.Units == UnitSystem.USCustomary
                     ? $"{Num(p.Diameter * 12, 2)} in ({Num(p.Diameter, 4)} ft)"
@@ -117,7 +147,7 @@ public static class ResultSummary
                 break;
         }
         if (i.Section.ChannelDepth is { } cd) list.Add(("Channel depth", $"{Num(cd)} {c.Length}"));
-        if (i.SolveFor != SolveFor.Roughness) list.Add(("Manning's n", Num(i.ManningN, 4)));
+        if (i.SolveFor != SolveFor.Roughness) list.Add((i.Section is IrregularSection { HasPointRoughness: true } ? "Manning's n (other segments)" : "Manning's n", Num(i.ManningN, 4)));
         if (i.SolveFor != SolveFor.Slope) list.Add(("Channel slope S", $"{Num(i.Slope * 100, 4)} % ({i.Slope.ToString("G6", inv)} {c.Length}/{c.Length})"));
         if (i.SolveFor != SolveFor.Discharge) list.Add(("Discharge Q", $"{Num(i.Discharge)} {c.Discharge}"));
         if (i.SolveFor != SolveFor.NormalDepth) list.Add(("Flow depth y", $"{Num(i.Depth)} {c.Length}"));

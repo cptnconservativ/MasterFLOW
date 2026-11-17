@@ -22,7 +22,13 @@ public sealed record CrossSectionDrawing(
         var g = SectionGeometry.From(section);
         double h;
         double? top = section.ChannelDepth;
-        if (double.IsFinite(g.MaxDepth))
+        if (g is IrregularGeometry ig)
+        {
+            // Draw the surveyed ground; end walls are extended only as far as the water actually rises.
+            h = new[] { ig.Relief, waterDepth ?? 0, criticalDepth ?? 0 }.Max();
+            top = null;
+        }
+        else if (double.IsFinite(g.MaxDepth))
         {
             h = g.MaxDepth;
             top = null; // a conduit's crown is drawn by its outline

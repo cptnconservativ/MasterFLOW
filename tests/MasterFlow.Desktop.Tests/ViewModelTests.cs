@@ -109,7 +109,7 @@ public class ViewModelTests
             var vm2 = new MainViewModel();
             vm2.LoadFrom(path);
             Assert.Equal("VM test", vm2.ProjectName);
-            Assert.Equal(5, vm2.Calculations.Count);
+            Assert.Equal(6, vm2.Calculations.Count);
             Assert.Equal(vm.Calculations[0].Result!.Normal.Depth, vm2.Calculations[0].Result!.Normal.Depth, 12);
             Assert.Equal(vm.Calculations.Select(c => c.Id), vm2.Calculations.Select(c => c.Id));
         }
@@ -144,11 +144,11 @@ public class ViewModelTests
     {
         var vm = MainViewModel.CreateWithSample();
         vm.DuplicateCommand.Execute(null);
-        Assert.Equal(6, vm.Calculations.Count);
+        Assert.Equal(7, vm.Calculations.Count);
         Assert.EndsWith("(copy)", vm.Selected!.Title);
         Assert.NotEqual(vm.Calculations[0].Id, vm.Selected.Id);
         vm.DeleteCommand.Execute(null); // no dialog service attached → deletes without prompt
-        Assert.Equal(5, vm.Calculations.Count);
+        Assert.Equal(6, vm.Calculations.Count);
     }
 }
 
@@ -242,6 +242,60 @@ public class EllipseViewModelTests
             Assert.True(c.EllipseVertical);
             Assert.Equal(60, c.EllipseSize.EquivalentRound);
             Assert.Equal(Ellipse(vm).Result!.Normal.Depth, c.Result!.Normal.Depth, 12);
+        }
+        finally { File.Delete(path); }
+    }
+}
+
+public class IrregularViewModelTests
+{
+    private static CalculationViewModel Creek(MainViewModel vm) => vm.Calculations.Single(x => x.Shape == SectionShape.Irregular);
+
+    [Fact]
+    public void SampleCreek_Solves_WithSubareas()
+    {
+        var c = Creek(MainViewModel.CreateWithSample());
+        Assert.True(c.HasResult, string.Join("; ", c.Messages.Select(m => m.Text)));
+        Assert.Equal(3, c.Result!.Irregular!.Subareas.Count);
+        Assert.Contains(c.ResultLines, l => l.Label == "Water-surface elev.");
+        Assert.True(c.IsIrregular);
+        Assert.False(c.ShowChannelDepth);
+    }
+
+    [Fact]
+    public void PastedExcelText_IsParsed_AndBadLinesBlockTheResult()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.Shape = SectionShape.Irregular;
+        c.SolveFor = SolveFor.Discharge;
+        c.ManningN = "0.013"; c.SlopePercent = "1"; c.Depth = "1.5";
+        c.PointsText = "Station\tElevation\n0+00\t5\n0+10\t0\n0+20\t0\n0+30\t5";
+        Assert.True(c.HasResult);
+        Assert.Equal(247.08514222, c.Result!.Discharge, 6);
+        c.PointsText = "0\t5\n10\tabc\n20\t0\n30\t5";
+        Assert.False(c.HasResult);
+        Assert.Contains(c.Messages, m => m.Code == "E-UI-002" && m.Text.Contains("Line 2"));
+        c.Undo();
+        Assert.True(c.HasResult);
+    }
+
+    [Fact]
+    public void SaveLoad_RestoresPointsAndMethod()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = Creek(vm);
+        c.RoughnessMethod = CompositeRoughnessMethod.EqualVelocity;
+        string path = Path.Combine(Path.GetTempPath(), $"mf-{Guid.NewGuid():N}.mfproj");
+        try
+        {
+            vm.SaveTo(path);
+            var vm2 = new MainViewModel();
+            vm2.LoadFrom(path);
+            var c2 = Creek(vm2);
+            Assert.Equal(CompositeRoughnessMethod.EqualVelocity, c2.RoughnessMethod);
+            Assert.Equal(c.Result!.Normal.Depth, c2.Result!.Normal.Depth, 12);
+            Assert.Equal(((IrregularSection)c.Result.Input.Section).Points, ((IrregularSection)c2.Result.Input.Section).Points);
         }
         finally { File.Delete(path); }
     }

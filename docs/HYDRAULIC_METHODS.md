@@ -160,6 +160,40 @@ peak search, two-root reporting (W-P-001), capacity error above Qmax (E-P-001), 
 Assumption: the pipe matches the nominal C507 shape; manufacturing tolerances, joint gaps and
 deformation are not represented.
 
+## 8b. Irregular (station/elevation) sections (v0.4.0)
+**Input.** Points left to right looking downstream: station, elevation, optional n, optional
+description. Stations must not decrease (equal stations = vertical wall; overhangs rejected). At least 3
+points, finite values, some relief. Identical consecutive points are ignored. A point's n applies to the
+segment to the next point; blank n uses the calculation's n (D-022). Depth y is measured from the
+lowest point; water-surface elevation WSE = z_min + y is reported.
+
+**Geometry (exact for straight segments).** Each segment contributes: fully wet A = w(y − z̄),
+P = segment length, T = w; partly wet, the triangle up to the crossing; vertical, P = wetted height.
+A segment lying exactly at the water surface is dry, so A is continuous but P and T step up when a flat
+segment wets. All parts below the water surface count, including pools cut off by a ridge (warning
+W-I-002). If the water is above an end point, a vertical wall is assumed there and its height counts as
+wetted perimeter (warning W-I-003, D-021).
+
+**Composite roughness** (only when segment n values differ):
+- *Conveyance subdivision* (default; HEC-RAS approach): the wetted area is split by vertical lines where
+  n changes; K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3), Q = K√S. The report lists each subarea's A, P, K, Q, share and V.
+  Effective n = k A R^(2/3) / K is reported and can be **lower than every subarea n**, because the deep
+  main channel carries most of the flow. Energy coefficient α = Σ(Kᵢ³/Aᵢ²)/(K³/A²) is reported.
+- *Equal velocity* (Horton 1933 / Einstein 1934): nc = [Σ Pᵢ nᵢ^1.5 / P]^(2/3) over the whole area.
+HEC-RAS subdivides only the overbanks and treats the main channel as one subarea between bank stations;
+MasterFlow has no bank stations and breaks at every n change, which is the same when the main channel
+has one n.
+
+**Solving.** Q(y) and Z(y) = A√(A/T) are not monotonic for compound sections (they step down when a flat
+overbank wets). The solver samples each interval between point elevations in 16 steps, refines every
+sign change with Brent's method, and uses upward expansion above the highest point (where both are
+monotonic). Sign changes caused by a step rather than a root are recognised (residual stays large at a
+point elevation) and ignored, with a trace note.
+- Several normal depths: all are listed; the highest governs (W-I-001, D-019).
+- Critical depth: only roots where specific energy has a minimum (Z − Q/√g rising) qualify; the one with
+  the lowest specific energy governs; others are listed (W-I-004, D-020). Velocity head and Fr use α = 1.
+- Solving for n requires a single n (error E-N-002 when points carry their own n).
+
 ## 9. Rating tables
 Each row is a full call to the same calculator (same validation, convergence and acceptance checks).
 Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
@@ -168,4 +202,6 @@ Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
 Chow, V. T. (1959) *Open-Channel Hydraulics*. McGraw-Hill. · Brent, R. P. (1973) *Algorithms for
 Minimization without Derivatives*. · USACE EM 1110-2-1601 (1994) *Hydraulic Design of Flood Control
 Channels*. · FHWA HDS-4 *Introduction to Highway Hydraulics*. · ASTM C507-22 *Reinforced Concrete
-Elliptical Culvert, Storm Drain, and Sewer Pipe*, Fig. 5.
+Elliptical Culvert, Storm Drain, and Sewer Pipe*, Fig. 5. · Horton, R. E. (1933) and Einstein, H. A. (1934)
+equal-velocity composite n, as given in Chow (1959) §6-6. · USACE HEC-RAS *Hydraulic Reference Manual*,
+conveyance subdivision.

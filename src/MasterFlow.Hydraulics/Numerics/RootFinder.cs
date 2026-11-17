@@ -149,4 +149,40 @@ public static class RootFinder
         var r = Brent(f, low, hi, xTolerance, fTolerance, maxIterations);
         return r with { Iterations = r.Iterations + expansions };
     }
+
+    /// <summary>
+    /// Finds every sign change of f on a grid built from <paramref name="breakpoints"/> (each interval split
+    /// into <paramref name="subdivisions"/> equal steps) and refines each with Brent's method. Above the last
+    /// breakpoint f must be monotonic; a final root there is found by upward expansion. Returns the roots in
+    /// ascending order with the direction of each crossing (+1 rising, −1 falling). A non-converged
+    /// refinement is returned as-is so the caller can refuse it.
+    /// </summary>
+    public static IReadOnlyList<(RootResult Root, int Direction)> AllRoots(
+        Func<double, double> f, IReadOnlyList<double> breakpoints, double maxHigh, int subdivisions = 16, double xTolerance = 1e-12)
+    {
+        var grid = new List<double>();
+        for (int i = 0; i + 1 < breakpoints.Count; i++)
+            for (int j = 0; j < subdivisions; j++)
+                grid.Add(breakpoints[i] + (breakpoints[i + 1] - breakpoints[i]) * j / subdivisions);
+        double top = breakpoints[^1];
+        grid.Add(top);
+        var roots = new List<(RootResult, int)>();
+        double xa = grid[0], fa = f(xa);
+        for (int i = 1; i < grid.Count; i++)
+        {
+            double xb = grid[i], fb = f(xb);
+            if (fb == 0 && fa != 0)
+                roots.Add((new RootResult(true, xb, 0, 0, xa, xb, "Brent"), fa < 0 ? 1 : -1));
+            else if (fa != 0 && fb != 0 && Math.Sign(fa) != Math.Sign(fb))
+                roots.Add((Brent(f, xa, xb, xTolerance), fa < 0 ? 1 : -1));
+            xa = xb; fa = fb;
+        }
+        if (fa != 0)
+        {
+            double step = Math.Max(top, 1.0);
+            var up = BrentWithUpwardExpansion(f, top, top + step, maxHigh, xTolerance);
+            if (up.Converged && up.Root > top) roots.Add((up, fa < 0 ? 1 : -1));
+        }
+        return roots;
+    }
 }

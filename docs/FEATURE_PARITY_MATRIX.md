@@ -11,8 +11,8 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Trapezoidal (asymmetric) | Wizard → points (obs.) | MVP / Diff | ✅ | |
 | Triangular (asymmetric) | Wizard → points (obs.) | MVP / Diff | ✅ | |
 | Parabolic | Not seen | Plan | ⬜ | Justify with demand |
-| Irregular station/elevation | Yes (obs., site) | MVP | ⬜ | Phase D |
-| Per-point n / composite n | Yes; Constant or Flow Conveyance methods (obs.) | Pro | ⬜ | Phase D; document method (Horton/Einstein, conveyance subdivision) |
+| Irregular station/elevation | Yes (obs., site) | MVP | ✅ | v0.4.0: text-grid editor with Excel paste, stationing notation, vertical walls, pools, end-wall extension with warning |
+| Per-point n / composite n | Yes; Constant or Flow Conveyance methods (obs.) | Pro | ✅ | v0.4.0: per-segment n; conveyance subdivision (HEC-RAS) or equal velocity (Horton–Einstein); subarea flow table and α in results and report |
 | Circular pipe partial flow | Yes (obs., site) | MVP | ✅ | Diameter in in/mm; true-scale plot |
 | Dual normal depth / max discharge in pipes | Yes (obs.) | MVP | ✅ | Plus error when Q > Qmax and near-crown warning |
 | Elliptical pipes (horizontal/vertical) | Yes (span/rise) | Pro | ✅ | v0.3.0: 24 ASTM C507 HE/VE standard sizes plus a true ellipse for custom rise/span; capacity, both normal depths and full-flow values as for circular pipes |

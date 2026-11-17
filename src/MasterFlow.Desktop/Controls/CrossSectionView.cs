@@ -50,23 +50,24 @@ public sealed class CrossSectionView : Control
         bool trueScale = TrueScale || Section is CircularSection or EllipticalSection; // never distort a conduit
         if (trueScale) { double s = Math.Min(sx, sy); sx = sy = s; }
         double x0 = padL + (w - d.Width * sx) / 2, y0 = padT + h;
-        Point P(double x, double y) => new(x0 + x * sx, y0 - y * sy);
+        double xMin = d.Outline.Min(p => p.X); // surveyed stations need not start at 0
+        Point P(double x, double y) => new(x0 + (x - xMin) * sx, y0 - y * sy);
 
         // Grid with "nice" spacing in each direction.
         var gridPen = new Pen(new SolidColorBrush(grid), 1);
         double gy = Nice(d.Height / 5), gx = Nice(d.Width / 8);
         for (double y = 0; y <= d.Height + 1e-9; y += gy)
         {
-            ctx.DrawLine(gridPen, P(0, y), P(d.Width, y));
-            Text(ctx, y.ToString("0.##", CultureInfo.CurrentCulture), new Point(x0 - 40, P(0, y).Y - 8), muted, 11);
+            ctx.DrawLine(gridPen, P(xMin, y), P(xMin + d.Width, y));
+            Text(ctx, y.ToString("0.##", CultureInfo.CurrentCulture), new Point(x0 - 40, P(xMin, y).Y - 8), muted, 11);
         }
-        for (double x = 0; x <= d.Width + 1e-9; x += gx)
+        for (double x = Math.Ceiling(xMin / gx - 1e-9) * gx; x <= xMin + d.Width + 1e-9; x += gx)
         {
             ctx.DrawLine(gridPen, P(x, 0), P(x, d.Height));
             Text(ctx, x.ToString("0.##", CultureInfo.CurrentCulture), new Point(P(x, 0).X - 8, y0 + 6), muted, 11);
         }
-        Text(ctx, $"Offset ({LengthUnit})", new Point(x0 + d.Width * sx / 2 - 30, y0 + 22), muted, 11);
-        Text(ctx, $"Depth ({LengthUnit})", new Point(4, 4), muted, 11);
+        Text(ctx, Section is IrregularSection ? $"Station ({LengthUnit})" : $"Offset ({LengthUnit})", new Point(x0 + d.Width * sx / 2 - 30, y0 + 22), muted, 11);
+        Text(ctx, Section is IrregularSection ir ? $"Height above lowest point {ir.MinElevation.ToString("0.###", CultureInfo.CurrentCulture)} ({LengthUnit})" : $"Depth ({LengthUnit})", new Point(4, 4), muted, 11);
 
         if (d.Water.Count > 2)
         {

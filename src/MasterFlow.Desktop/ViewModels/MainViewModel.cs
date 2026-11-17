@@ -21,7 +21,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.3.0";
+    public const string AppVersion = "0.4.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
 
@@ -124,6 +124,20 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 Title = "Roadside V-ditch",
                 Input = new UniformFlowInput { Section = new TriangularSection(4, 3) { ChannelDepth = 1.5 }, SolveFor = SolveFor.NormalDepth, ManningN = 0.030, Slope = 0.02, Discharge = 12, Depth = 1 },
+            },
+            new ChannelCalculation
+            {
+                Title = "Creek with overbanks",
+                Description = "Surveyed section; main channel n = 0.035, grassed overbanks n = 0.06; conveyance subdivision.",
+                Input = new UniformFlowInput
+                {
+                    Section = new IrregularSection(
+                    [
+                        new(0, 108, 0.06, "Left overbank"), new(40, 105, 0.06), new(50, 105, 0.035, "Left bank"), new(55, 100, 0.035),
+                        new(65, 100, 0.035), new(70, 105, 0.06, "Right bank"), new(80, 105, 0.06), new(120, 108, null, "Right overbank"),
+                    ]),
+                    SolveFor = SolveFor.NormalDepth, ManningN = 0.06, Slope = 0.001, Discharge = 500, Depth = 6,
+                },
             },
         ],
     };

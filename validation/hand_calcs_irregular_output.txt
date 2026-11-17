@@ -1,0 +1,16 @@
+--- I1 Flow Calc Example #1 trapezoid as points
+y = 1.5: A = 19.50000000, P = 16.70820393, T = 16.00006000, Q = 247.08514222
+--- I2 compound, conveyance subdivision
+y = 6.0: A = 128.33333332, P = 70.88369712, T = 66.66760001, Q = 311.83231363
+--- I2 compound, conveyance subdivision, solve yn
+Q = 1500.0: normal depth roots = [9.67513472]
+--- I3 compound, equal velocity
+y = 6.0: A = 128.33333332, P = 70.88369712, T = 66.66760001, Q = 183.66530498
+--- I4 compound, single n (non-monotonic Q)
+y = 5.05: A = 77.03333333, P = 45.47921370, T = 41.33281999, Q = 146.96252937
+--- I4 compound, single n, two roots (Q drops when the flat overbanks wet at y = 5)
+Q = 180.0: normal depth roots = [4.54249328, 5.41924191]; Q(y) steps across Q (not a root) at [5.0]
+--- I5 two pools
+y = 1.5: A = 7.35416667, P = 12.67051970, T = 11.58330000, Q = 11.33544864
+--- I6 water above left end (wall extended)
+y = 2.5: A = 20.16666667, P = 13.13880262, T = 11.33333333, Q = 100.87769199
