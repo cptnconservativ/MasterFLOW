@@ -156,6 +156,8 @@ public sealed class BackwaterTool : IDesignTool
         if (ctl is "critical" or "yc") y0 = yc;
         else if (ToolInput.TryNumber(ctl, out double v) && v > 0) y0 = v;
         else return ToolResult.Failed(title, CalcMessage.Error("E-BW-005", "control depth must be a depth > 0 or \"critical\"."));
+        if (double.IsFinite(g.MaxDepth) && y0 >= g.MaxDepth - 1e-9)
+            return ToolResult.Failed(title, CalcMessage.Error("E-BW-008", $"The control depth {y0:F3} is at or above the conduit crown ({g.MaxDepth:F3}): the pipe is surcharged at the control, which is pressure flow, not an open-channel profile. Use the storm network HGL for a surcharged pipe, or enter a control below the crown."));
         if (sub && y0 < yc - 1e-9)
         {
             msgs.Add(CalcMessage.Warning("W-BW-002", $"The control depth {y0:F3} is below critical ({yc:F3}) on a {(s0 > 0 ? "mild" : "flat/adverse")} channel; subcritical flow cannot reach it, so critical depth is used at the control (drawdown to a free overfall)."));

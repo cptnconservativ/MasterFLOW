@@ -79,7 +79,20 @@ public static class LandXmlAlignments
                 if (bad) break;
             }
             if (bad || els.Count == 0) continue;
-            var al = new Alignment(name, sta0, els);
+            // Station equations. staInternal is the continuous station; when it is missing it is recovered from
+            // staBack under the previous equation. An equation that cannot be placed rejects the alignment rather
+            // than giving plausible but wrong stations past it.
+            var eqs = new List<StationEquation>();
+            foreach (var q in a.Elements().Where(e => e.Name.LocalName == "StaEquation"))
+            {
+                double? back = Num(q, "staBack"), ahead = Num(q, "staAhead"), inner = Num(q, "staInternal");
+                if (ahead is null || (inner is null && back is null)) { problems.Add($"Alignment \"{name}\": a station equation has no staAhead or no staInternal/staBack; alignment skipped (stations past it would be wrong)."); bad = true; break; }
+                double internalSta = inner ?? (back!.Value - (eqs.Count > 0 ? eqs[^1].Ahead - eqs[^1].Internal : 0));
+                eqs.Add(new StationEquation(internalSta, back ?? double.NaN, ahead.Value));
+            }
+            if (bad) continue;
+            var al = new Alignment(name, sta0, els, eqs);
+            if (eqs.Count > 0) problems.Add($"Alignment \"{name}\": {eqs.Count} station equation(s) applied; stations are shown as ahead stations past each equation.");
             problems.AddRange(al.Problems.Select(p => $"Alignment \"{name}\": {p}"));
             list.Add(al);
         }

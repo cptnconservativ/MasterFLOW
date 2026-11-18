@@ -27,7 +27,13 @@ public class DetentionToolTests
         // barrel: 2 ft pipe, 80 ft, n 0.013, Ke 0.5; head above the outlet crown 98.7 + 2
         var pipe = new PondOutlet("p", "pipe", 99.5, 2, 0, 0.5, 80, 0.013, 98.7);
         double kf = 29 * 0.013 * 0.013 * 80 / Math.Pow(0.5, 4.0 / 3.0);
-        Assert.Equal(Math.PI * Math.Sqrt(2 * G * (105 - 100.7) / (1.5 + kf)), pipe.BarrelCapacity(105, G, true), 9);
+        double qb = pipe.BarrelCapacity(105, G, true);
+        double dc = PondOutlet.CircularCriticalDepth(qb, 2, G);
+        // Outlet control: the returned Q satisfies its own equation with ho = (dc + D)/2.
+        Assert.Equal(Math.PI * Math.Sqrt(2 * G * (105 - (98.7 + (dc + 2) / 2)) / (1.5 + kf)), qb, 6);
+        // dc satisfies Q²/g = A³/T independently.
+        double th = 2 * Math.Acos(1 - dc), aC = 4.0 / 8 * (th - Math.Sin(th)), tC = 2 * Math.Sin(th / 2);
+        Assert.Equal(qb * qb / G, aC * aC * aC / tC, 4);
     }
 
     [Fact]
@@ -58,5 +64,26 @@ public class DetentionToolTests
         Assert.Contains(r.Messages, m => m.Code == "W-DT-004");
         r = tool.Run(tool.SampleInput(ctx).Replace("Outlet pipe\tpipe\t99.5\t2.0", "Outlet pipe\tpipe\t99.5\t1.25"), ctx);
         Assert.Contains(r.Messages, m => m.Code == "W-DT-005");
+    }
+
+    /// <summary>
+    /// Review finding: with a 1 ft orifice and a 2 ft barrel, outflow fell from 4.6 to 0.15 cfs between 1.9999 and 2.0001 ft.
+    /// The rating must be continuous at the crown and never fall as the stage rises.
+    /// </summary>
+    [Fact]
+    public void BarrelRating_IsContinuousAtCrown_AndNonDecreasing()
+    {
+        var barrel = new PondOutlet("b", "pipe", 0, 2, 0, 0.5, 60, 0.013, -0.3);
+        var pond = new Pond([(0, 5000), (6, 20000)], [new PondOutlet("o", "orifice", 0, 1, 0, 0.6), barrel], G, true);
+        double below = pond.Outflow(1.9999), above = pond.Outflow(2.0001);
+        Assert.InRange(Math.Abs(above - below), 0, 0.01);
+        Assert.Equal(barrel.BarrelCapacity(1.9999, G, true), barrel.BarrelCapacity(2.0001, G, true), 2);
+        double prev = 0;
+        for (double e = 0; e <= 6 + 1e-9; e += 0.001)
+        {
+            double q = pond.Outflow(e);
+            Assert.True(q >= prev - 1e-9, $"outflow falls at {e:F3}: {prev} → {q}");
+            prev = q;
+        }
     }
 }

@@ -54,4 +54,19 @@ public class GutterInletToolTests
         var r = new GutterInletTool().Run(Street + "CB-3\tgrate\tgrade\t2\t0.01\t3\t2", DesignToolTests.Ctx());
         Assert.Contains(r.Messages, m => m.Code == "E-GI-011");
     }
+
+    /// <summary>Review finding: a Type B (combination) inlet is a grate on grade (40 % clogged) and a combination only in a sag (33 %).</summary>
+    [Fact]
+    public void Combination_Clogging_GradeIsGrate_SagIsCombination()
+    {
+        var grade = new GutterInletTool().Run(Street + "CB-3\tcombination\tgrade\t2\t0.01\t10\t2\t\t5", DesignToolTests.Ctx());
+        var sag = new GutterInletTool().Run(Street + "CB-3\tcombination\tsag\t2\t\t10\t2\t\t\t10\t0.5", DesignToolTests.Ctx());
+        Assert.True(grade.Succeeded, string.Join("\n", grade.Messages.Select(m => m.Text)));
+        Assert.True(sag.Succeeded, string.Join("\n", sag.Messages.Select(m => m.Text)));
+        Assert.Equal(6.0, (double)grade.Tables[0].Rows[0][6]!, 9);
+        Assert.Equal(6.7, (double)sag.Tables[0].Rows[0][6]!, 9);
+        // On grade it computes exactly as a grate of the same size.
+        var grate = new GutterInletTool().Run(Street + "CB-3\tgrate\tgrade\t2\t0.01\t10\t2\t\t5", DesignToolTests.Ctx());
+        Assert.Equal((double)grate.Tables[0].Rows[0][8]!, (double)grade.Tables[0].Rows[0][8]!, 9);
+    }
 }
