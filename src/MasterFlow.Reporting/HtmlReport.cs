@@ -17,6 +17,8 @@ public sealed record ReportOptions
     public string? LogoDataUri { get; init; }
     public bool IncludeCalculationTrace { get; init; } = true;
     public RatingTable? RatingTable { get; init; }
+    /// <summary>Optional sensitivity table (n and slope varied).</summary>
+    public SensitivityTable? Sensitivity { get; init; }
     public DateTimeOffset? Timestamp { get; init; }
 }
 
@@ -180,6 +182,22 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
             foreach (var row in rt.Rows)
                 sb.Append($"<tr><td class=\"num\">{row.Depth.ToString("F3", Inv)}</td><td class=\"num\">{row.Discharge.ToString("F3", Inv)}</td><td class=\"num\">{row.Area.ToString("F3", Inv)}</td><td class=\"num\">{row.Velocity.ToString("F3", Inv)}</td><td class=\"num\">{row.TopWidth.ToString("F3", Inv)}</td><td class=\"num\">{row.Froude.ToString("F3", Inv)}</td><td class=\"num\">{row.CriticalDepth.ToString("F3", Inv)}</td></tr>");
             sb.Append("</table>");
+        }
+
+        if (options.Sensitivity is { Rows.Count: > 0 } st)
+        {
+            sb.Append("<h2>Sensitivity to n and slope</h2><table><tr>");
+            foreach (var h in SensitivityAnalysis.Headers(st, c)) sb.Append($"<th>{E(h)}</th>");
+            sb.Append("</tr>");
+            foreach (var row in st.Rows)
+            {
+                var cells = SensitivityAnalysis.Cells(row);
+                sb.Append("<tr>");
+                for (int i = 0; i < cells.Count; i++) sb.Append(i == 0 || i == 7 || !row.Succeeded && i == cells.Count - 1 ? $"<td>{E(cells[i])}</td>" : $"<td class=\"num\">{E(cells[i])}</td>");
+                sb.Append("</tr>");
+            }
+            sb.Append("</table>");
+            foreach (var n in st.Notes) sb.Append($"<p style=\"color:#5b6876;font-size:12px\">{E(n)}</p>");
         }
 
         if (!string.IsNullOrWhiteSpace(project.Notes))
