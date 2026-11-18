@@ -112,7 +112,7 @@
           <Button Content="Duplicate" Command="{Binding DuplicateCommand}" ToolTip.Tip="Duplicate (Ctrl+D)"/>
           <Button Content="Save as template" Command="{Binding SaveAsTemplateCommand}" ToolTip.Tip="Keep the selected calculation in My templates (per user, all projects)"/>
           <Button Content="Delete" Command="{Binding DeleteCommand}" ToolTip.Tip="Move to the recycle bin"/>
-          <Button Content="Import LandXML…" Command="{Binding ImportLandXmlCommand}" ToolTip.Tip="Cross-sections from Civil 3D or other design software (LandXML CrossSects); one calculation each"/>
+          <Button Content="Import LandXML…" Command="{Binding ImportLandXmlCommand}" ToolTip.Tip="Cross-sections and pipe networks from Civil 3D or other design software (LandXML); one calculation per section or pipe, plus a structure and inlet list"/>
           <Button Content="Sort" Command="{Binding SortCommand}" ToolTip.Tip="Sort by folder, then title (2 before 10)"/>
         </WrapPanel>
         <Expander DockPanel.Dock="Bottom" Header="{Binding RecycleBinLabel}" IsVisible="{Binding HasRecycleBin}" HorizontalAlignment="Stretch" Margin="0,6,0,0">
@@ -447,6 +447,27 @@
               </ItemsControl>
             </ScrollViewer>
           </DockPanel>
+        </TabItem>
+        <TabItem Header="Structures" IsVisible="{Binding HasStructures}">
+          <ScrollViewer>
+            <StackPanel>
+              <TextBlock Text="Inlets, manholes and outlets from imported pipe networks (values as in the file). Included in the Excel workbook." FontSize="11" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <ItemsControl ItemsSource="{Binding Structures}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:StructureRow">
+                    <Border Padding="6,4" BorderBrush="{DynamicResource MfRule}" BorderThickness="0,0,0,1">
+                      <StackPanel>
+                        <TextBlock FontWeight="SemiBold"><Run Text="{Binding Name}"/><Run Text="  ·  "/><Run Text="{Binding Kind}"/><Run Text="  ·  " Foreground="Gray"/><Run Text="{Binding Network}" Foreground="Gray"/></TextBlock>
+                        <SelectableTextBlock Text="{Binding Location}" FontSize="12"/>
+                        <TextBlock Text="{Binding Elevations}" FontSize="12"/>
+                        <TextBlock Text="{Binding Inverts}" FontSize="12" Opacity="0.75" TextWrapping="Wrap"/>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
         </TabItem>
       </TabControl>
     </Grid>

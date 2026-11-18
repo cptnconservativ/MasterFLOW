@@ -28,6 +28,10 @@ public sealed partial class MainViewModel : ObservableObject
     public static string AppVersion => AppInfo.Version;
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
+
+    /// <summary>Drainage structures imported from pipe networks (listed and exported, not solved).</summary>
+    public ObservableCollection<StructureRow> Structures { get; } = [];
+    public bool HasStructures => Structures.Count > 0;
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
     public ObservableCollection<string> RecentFiles { get; } = [];
 
@@ -235,6 +239,9 @@ public sealed partial class MainViewModel : ObservableObject
         (Watermark, FooterText, LogoDataUri, IncludeCalculationTrace) = (p.Report.Watermark, p.Report.FooterText, p.Report.LogoDataUri, p.Report.IncludeCalculationTrace);
         RecycleBin.Clear();
         foreach (var c in p.RecycleBin) RecycleBin.Add(c);
+        Structures.Clear();
+        foreach (var s in p.Structures) Structures.Add(new StructureRow(s));
+        OnPropertyChanged(nameof(HasStructures));
         NotifyBin();
         Selected = Calculations.FirstOrDefault();
         FilePath = path;
@@ -269,6 +276,7 @@ public sealed partial class MainViewModel : ObservableObject
         Info = new ProjectInfo { Name = ProjectName, ProjectNumber = ProjectNumber, Client = Client, PreparedBy = PreparedBy, CheckedBy = CheckedBy, Notes = Notes },
         Calculations = Calculations.Select(c => c.ToModel()).ToList(),
         RecycleBin = RecycleBin.ToList(),
+        Structures = Structures.Select(r => r.Structure).ToList(),
         Report = new ReportSettings { Watermark = Watermark, FooterText = FooterText, LogoDataUri = LogoDataUri, IncludeCalculationTrace = IncludeCalculationTrace },
     };
 
@@ -692,7 +700,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var items = BatchCalculations.Select(c => (c.ToModel() with { Title = c.DisplayTitle }, c.Result!)).ToList();
         var ratings = BatchCalculations.Select(c => (Title: SafeName(c.DisplayTitle) + " rating", Table: c.BuildRatingTable())).Where(t => t.Table is not null).Select(t => (t.Title, t.Table!)).ToList();
-        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, ratings));
+        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, ratings, Structures.Select(r => r.Structure).ToList()));
     }
 
     [RelayCommand]
@@ -810,10 +818,75 @@ public sealed partial class MainViewModel : ObservableObject
         if (Dialogs is null) return;
         var path = await Dialogs.PickOpenFileAsync("Import cross-sections from LandXML", "LandXML", "*.xml", "*.landxml");
         if (path is null) return;
-        LandXmlReadResult read;
-        try { await using var fs = File.OpenRead(path); read = LandXmlCrossSections.Read(fs); }
+        byte[] bytes;
+        try { bytes = await File.ReadAllBytesAsync(path); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Could not read {path}: {ex.Message}"; return; }
-        StatusMessage = ImportCrossSections(read, Path.GetFileName(path));
+        StatusMessage = ImportLandXmlBytes(bytes, Path.GetFileName(path));
+    }
+
+    /// <summary>Imports cross-sections and pipe networks from one LandXML file; returns the status text. Public for tests.</summary>
+    public string ImportLandXmlBytes(byte[] bytes, string fileName)
+    {
+        var sections = LandXmlCrossSections.Read(new MemoryStream(bytes));
+        var networks = LandXmlPipeNetworks.Read(new MemoryStream(bytes));
+        bool hasSections = sections.Sections.Count > 0, hasNetworks = networks.Pipes.Count > 0 || networks.Structures.Count > 0;
+        if (!hasSections && !hasNetworks)
+            return $"Nothing imported from {fileName}: it has no cross-sections or pipe networks. " + (sections.Problems.FirstOrDefault(p => !p.Contains("no cross-sections")) ?? "");
+        var parts = new List<string>();
+        if (hasSections) parts.Add(ImportCrossSections(sections, fileName));
+        if (hasNetworks) parts.Add(ImportPipeNetwork(networks, fileName));
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>
+    /// Adds one pipe calculation per circular or elliptical pipe (folder "network/Pipes", item no. = pipe
+    /// name, slope from the inverts, depth set to the full rise so Solve for Q gives full-flow capacity)
+    /// and lists the network's structures. Values are not converted. Returns the status text.
+    /// </summary>
+    public string ImportPipeNetwork(LandXmlNetworkReadResult read, string fileName)
+    {
+        if (read.Pipes.Count == 0 && read.Structures.Count == 0)
+            return "No pipe network imported. " + (read.Problems.Count > 0 ? read.Problems[0] : "");
+        var units = read.Units ?? Selected?.Units ?? UnitSystem.USCustomary;
+        var inv = CultureInfo.InvariantCulture;
+        CalculationViewModel? first = null;
+        foreach (var p in read.Pipes)
+        {
+            ChannelSection section = p.Shape == NetworkPipeShape.Circular ? new CircularSection(p.Rise) : new EllipticalSection(p.Rise, p.Span);
+            string L(double? v) => v is { } x ? x.ToString("0.###", inv) : "?";
+            var model = new ChannelCalculation
+            {
+                Title = $"{p.Name} ({p.StartStructure} → {p.EndStructure})",
+                Folder = (p.Network.Length > 0 ? p.Network + "/" : "") + "Pipes",
+                ItemNumber = p.Name,
+                Description = $"Pipe imported from {fileName}, network \"{p.Network}\": {p.StartStructure} → {p.EndStructure}, length {L(p.Length)}, inverts {L(p.StartInvert)} → {L(p.EndInvert)}" +
+                              (p.Material.Length > 0 ? $", {p.Material}" : "") + ". Slope from the inverts; n = 0.013 assumed (check for the material). Depth is set to the full rise, so Solve for Q gives the full-flow capacity; enter the design Q and solve for normal depth to check it.",
+                Input = new UniformFlowInput
+                {
+                    Units = units, Section = section, SolveFor = SolveFor.Discharge, ManningN = 0.013,
+                    Slope = p.Slope ?? double.NaN, Depth = p.Rise, Discharge = double.NaN, InvertElevation = p.StartInvert,
+                },
+            };
+            var c = CalculationViewModel.FromModel(model);
+            c.ClearHistory();
+            Add(c);
+            first ??= c;
+        }
+        foreach (var s in read.Structures)
+        {
+            var existing = Structures.FirstOrDefault(r => r.Structure.Network == s.Network && r.Structure.Name == s.Name);
+            if (existing is not null) Structures.Remove(existing);
+            Structures.Add(new StructureRow(s));
+        }
+        OnPropertyChanged(nameof(HasStructures));
+        if (first is not null) Selected = first;
+        MarkDirty();
+        RefreshComparison();
+        int inlets = read.Structures.Count(s => s.Kind == "Inlet");
+        string unitNote = read.Units is null ? $" Unit system not stated in the file; set to {(units == UnitSystem.SI ? "SI" : "U.S. customary")}, please check." : "";
+        var other = read.Problems.Where(p => !p.StartsWith("The file does not state") && !p.StartsWith("Linear unit")).ToList();
+        string probNote = other.Count > 0 ? $" {other.Count} problem(s), first: {other[0]}" : "";
+        return $"Imported {read.Pipes.Count} pipe(s) and {read.Structures.Count} structure(s) ({inlets} inlet(s)) from {fileName}.{unitNote}{probNote}";
     }
 
     /// <summary>Adds one calculation per cross-section; returns the status text. Public for tests.</summary>
@@ -854,4 +927,16 @@ public sealed partial class MainViewModel : ObservableObject
         var cleaned = new string(s.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
         return string.IsNullOrEmpty(cleaned) ? "MasterFlow" : cleaned;
     }
+}
+
+/// <summary>Display row for an imported drainage structure.</summary>
+public sealed record StructureRow(DrainageStructure Structure)
+{
+    private static string F(double? v) => v is { } x ? x.ToString("0.###", System.Globalization.CultureInfo.CurrentCulture) : "—";
+    public string Name => Structure.Name;
+    public string Kind => Structure.Kind;
+    public string Network => Structure.Network;
+    public string Location => Structure.Northing is null ? "—" : $"N {F(Structure.Northing)}  E {F(Structure.Easting)}";
+    public string Elevations => $"Rim {F(Structure.RimElevation)} · Sump {F(Structure.SumpElevation)}";
+    public string Inverts => string.Join("; ", Structure.Inverts.Select(i => $"{i.Pipe} {i.FlowDirection} {F(i.Elevation)}"));
 }

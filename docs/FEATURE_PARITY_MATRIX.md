@@ -30,6 +30,7 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Input validation / errors | Yes (obs.) | MVP | ✅ | Structured codes |
 | n reference picker | Handbook table (obs.) | Pro | ✅ | v0.5.0: 49 entries, min/normal/max from Chow Table 5-6, original descriptions; picking copies the normal value (undoable) |
 | Rating table depth → Q | Yes | MVP | ✅ | |
+| Civil 3D pipe networks (LandXML) | Not known | Diff | ✅ H4 | Pipes → capacity calculations (slope from inverts); inlets/manholes/outlets with location, rim, sump and inverts on a Structures tab and Excel sheet |
 | Rating tables saved as project items | Yes (Store: "rating tables"; obs. saved per item) | Pro | ✅ v0.11.0 | The generated range is saved with its calculation and reproduced in its report, batch PDF and its own Excel sheet |
 | Rating table Q → depth | Inv | MVP | ✅ | |
 | Rating chart | Inv | Pro | ✅ | v0.5.0: in the rating tab and in reports with a rating table |
