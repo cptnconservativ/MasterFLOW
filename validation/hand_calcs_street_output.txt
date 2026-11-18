@@ -1,0 +1,12 @@
+Composite gutter, T = 8 ft (HEC-22 Ex. 4-2 data)
+  Eo = 0.688865   Qs = 0.608768   Q = 1.956605 cfs   (HEC-22 prints Eo 0.69, Q 1.94 with 5/3, 8/3)
+
+Sample street: a = 0.085000 ft; T allowed 12.0, curb-full T 20.750000, governing 12.000000
+  reach 1: T = 10.100127 ft  d = 0.287003 ft  V = 2.895598 fps  Eo = 0.535590  Q allowed = 4.825187 cfs
+  reach 2: T = 15.569535 ft  d = 0.396391 ft  V = 2.590566 fps  Eo = 0.358940  Q allowed = 3.411923 cfs
+  reach 3: T = 18.344481 ft  d = 0.451890 ft  V = 2.608545 fps  Eo = 0.305405  Q allowed = 3.114645 cfs
+
+100-yr: crown 0.445000 ft, ROW line 0.700000 ft
+  reach 1: y = 0.476362 ft (5.716 in.)  Q at 12 in. = 237.337654  Q at ROW = 93.424638
+  reach 2: y = 0.643555 ft (7.723 in.)  Q at 12 in. = 167.823064  Q at ROW = 66.061195
+  reach 3: y = 0.826664 ft (9.920 in.)  Q at 12 in. = 153.200797  Q at ROW = 60.305344

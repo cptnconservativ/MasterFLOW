@@ -11,6 +11,15 @@ public sealed record DesignToolContext(UnitSystem Units, StormNetwork? Network =
 /// <summary>A result table: shown in the window, the HTML report and as an Excel sheet. Cells are numbers or text.</summary>
 public sealed record ToolTable(string Title, IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows, IReadOnlyList<string>? Notes = null);
 
+/// <summary>How a figure series is drawn: ground as a heavy line, water as a filled polygon, a limit as a dashed line.</summary>
+public enum ToolSeriesKind { Ground, Water, Limit }
+
+/// <summary>One polyline (or, for water, closed polygon) of a figure, in drawing units (ft).</summary>
+public sealed record ToolFigureSeries(string Label, ToolSeriesKind Kind, IReadOnlyList<(double X, double Y)> Points);
+
+/// <summary>A cross-section style drawing: x horizontal, y vertical, same units; the report exaggerates the vertical scale to fit.</summary>
+public sealed record ToolFigure(string Title, IReadOnlyList<ToolFigureSeries> Series, string XLabel, string YLabel, IReadOnlyList<string>? Notes = null);
+
 /// <summary>
 /// The outcome of running a tool. Messages carry every error, warning and assumption; a tool with an error
 /// returns no numbers for the failed part. A tool that can change the selected network returns it in
@@ -19,6 +28,8 @@ public sealed record ToolTable(string Title, IReadOnlyList<string> Headers, IRea
 public sealed record ToolResult(string Title, IReadOnlyList<string> Summary, IReadOnlyList<ToolTable> Tables, IReadOnlyList<CalcMessage> Messages)
 {
     public StormNetwork? UpdatedNetwork { get; init; }
+    /// <summary>Drawings for the report (e.g. a street section with water surfaces); empty for most tools.</summary>
+    public IReadOnlyList<ToolFigure> Figures { get; init; } = [];
     public string? UpdateDescription { get; init; }
     public bool Succeeded => Messages.All(m => m.Severity != MessageSeverity.Error);
 
