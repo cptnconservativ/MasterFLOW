@@ -91,10 +91,10 @@ public static class PdfReport
 
     // ------------------------------------------------------------------ calculation report
 
-    private static PdfPager.PageContext Context(ReportOptions o) =>
+    internal static PdfPager.PageContext Context(ReportOptions o) =>
         new(string.IsNullOrWhiteSpace(o.Watermark) ? null : o.Watermark, string.IsNullOrWhiteSpace(o.FooterText) ? null : o.FooterText, Disclaimer);
 
-    private static string Stamp(ReportOptions o) => (o.Timestamp ?? DateTimeOffset.Now).ToString("yyyy-MM-dd HH:mm", Inv);
+    internal static string Stamp(ReportOptions o) => (o.Timestamp ?? DateTimeOffset.Now).ToString("yyyy-MM-dd HH:mm", Inv);
 
     private static void Calculation(PdfPager pager, ProjectInfo project, PdfReportItem item)
     {

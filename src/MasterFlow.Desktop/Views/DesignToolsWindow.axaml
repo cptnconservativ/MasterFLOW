@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MasterFlow.Desktop.ViewModels"
+        xmlns:tools="using:MasterFlow.Application.Tools"
+        x:Class="MasterFlow.Desktop.Views.DesignToolsWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Design tools — MasterFlow"
+        Width="1300" Height="820" MinWidth="800" MinHeight="500"
+        Background="{DynamicResource MfPane}">
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource MfCard}" BorderBrush="{DynamicResource MfRule}" BorderThickness="0,0,0,1" Padding="8,6">
+      <StackPanel Spacing="4">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <TextBlock Text="Tool" VerticalAlignment="Center" Margin="4,0"/>
+          <ComboBox AutomationProperties.Name="Design tool" MinWidth="360" ItemsSource="{Binding Tools.Tools}" SelectedItem="{Binding Tools.SelectedTool}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="tools:IDesignTool"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <Button Content="Sample" Command="{Binding Tools.LoadSampleCommand}" ToolTip.Tip="Replace the input with a worked example (uses the selected network's structure names where it can)"/>
+          <Button Content="Run" Command="{Binding Tools.RunCommand}" FontWeight="SemiBold" ToolTip.Tip="Run the tool (F5)"/>
+          <Button Content="Apply to network" Command="{Binding Tools.ApplyToNetworkCommand}" IsEnabled="{Binding Tools.CanApply}" ToolTip.Tip="Write the tool's result into the selected storm network and re-solve it"/>
+          <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
+          <Button Content="Copy" Command="{Binding Tools.CopyCommand}"/>
+          <Button Content="Save…" Command="{Binding Tools.SaveReportCommand}" ToolTip.Tip="HTML report (print to PDF) or Excel workbook"/>
+          <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
+          <TextBlock Text="Network:" VerticalAlignment="Center" Margin="4,0"/>
+          <ComboBox AutomationProperties.Name="Storm network for tools" MinWidth="180" ItemsSource="{Binding Networks}" SelectedItem="{Binding SelectedNetwork}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:NetworkViewModel"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <TextBlock Text="{Binding Tools.Description}" TextWrapping="Wrap" Opacity="0.8" Margin="4,0"/>
+      </StackPanel>
+    </Border>
+    <Border DockPanel.Dock="Bottom" Padding="8,4" Background="{DynamicResource MfCard}" MaxHeight="140">
+      <ScrollViewer>
+        <StackPanel>
+          <SelectableTextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+          <ItemsControl ItemsSource="{Binding Tools.Messages}">
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12"/></DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+    <Grid ColumnDefinitions="*,4,1.3*" Margin="6">
+      <DockPanel Grid.Column="0">
+        <TextBlock DockPanel.Dock="Top" Text="Input (key = value lines; tables under [Section] headings, tab- or comma-separated; # comments)" FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+        <TextBox AutomationProperties.Name="Tool input" Text="{Binding Tools.InputText}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                 FontFamily="Consolas,Menlo,monospace" FontSize="12"/>
+      </DockPanel>
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns"/>
+      <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto">
+        <SelectableTextBlock AutomationProperties.Name="Tool result" Text="{Binding Tools.ResultText}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="6,0"/>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</Window>

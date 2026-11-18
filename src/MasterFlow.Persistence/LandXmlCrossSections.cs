@@ -22,34 +22,11 @@ public static class LandXmlCrossSections
 {
     public static LandXmlReadResult Read(Stream stream)
     {
-        XDocument doc;
-        try
-        {
-            using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
-            doc = XDocument.Load(reader);
-        }
-        catch (XmlException ex) { return new([], null, null, [$"Not a readable XML file: {ex.Message}"]); }
-
-        var root = doc.Root;
-        if (root is null || root.Name.LocalName != "LandXML") return new([], null, null, ["Not a LandXML file (the root element is not <LandXML>)."]);
-
-        UnitSystem? units = null; string? linear = null;
-        var unitsEl = root.Elements().FirstOrDefault(e => e.Name.LocalName == "Units");
-        var sys = unitsEl?.Elements().FirstOrDefault(e => e.Name.LocalName is "Imperial" or "Metric");
-        if (sys is not null)
-        {
-            linear = (string?)sys.Attribute("linearUnit");
-            units = linear switch
-            {
-                "foot" or "USSurveyFoot" or "IntlFoot" => UnitSystem.USCustomary,
-                "meter" => UnitSystem.SI,
-                _ => null,
-            };
-        }
+        if (!LandXmlFile.TryLoad(stream, out var root, out var error)) return new([], null, null, [error]);
+        var (units, linear) = LandXmlFile.UnitsOf(root);
 
         var problems = new List<string>();
-        if (units is null)
-            problems.Add(linear is null ? "The file does not state its linear unit; choose the unit system yourself." : $"Linear unit \"{linear}\" is not feet or metres; choose the unit system yourself (values are not converted).");
+        if (units is null) problems.Add(LandXmlFile.UnitProblem(linear));
 
         var sections = new List<LandXmlCrossSection>();
         foreach (var cs in root.Descendants().Where(e => e.Name.LocalName == "CrossSect"))
@@ -99,4 +76,46 @@ public static class LandXmlCrossSections
         if (Math.Round(rest, 2) >= 100) { hundreds++; rest = 0; }
         return (sta < 0 ? "-" : "") + hundreds.ToString(CultureInfo.InvariantCulture) + "+" + rest.ToString("00.00", CultureInfo.InvariantCulture);
     }
+}
+
+/// <summary>Shared LandXML reading: safe XML load (no DTD, no external resolution) and the file's units.</summary>
+internal static class LandXmlFile
+{
+    public static bool TryLoad(Stream stream, out XElement root, out string error)
+    {
+        root = null!; error = "";
+        XDocument doc;
+        try
+        {
+            using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
+            doc = XDocument.Load(reader);
+        }
+        catch (XmlException ex) { error = $"Not a readable XML file: {ex.Message}"; return false; }
+        if (doc.Root is null || doc.Root.Name.LocalName != "LandXML") { error = "Not a LandXML file (the root element is not <LandXML>)."; return false; }
+        root = doc.Root;
+        return true;
+    }
+
+    public static (UnitSystem? Units, string? Linear) UnitsOf(XElement root)
+    {
+        var sys = root.Elements().FirstOrDefault(e => e.Name.LocalName == "Units")?.Elements().FirstOrDefault(e => e.Name.LocalName is "Imperial" or "Metric");
+        string? linear = (string?)sys?.Attribute("linearUnit");
+        UnitSystem? units = linear switch
+        {
+            "foot" or "USSurveyFoot" or "IntlFoot" => UnitSystem.USCustomary,
+            "meter" => UnitSystem.SI,
+            _ => null,
+        };
+        return (units, linear);
+    }
+
+    public static string UnitProblem(string? linear) => linear is null
+        ? "The file does not state its linear unit; choose the unit system yourself."
+        : $"Linear unit \"{linear}\" is not feet or metres; choose the unit system yourself (values are not converted).";
+
+    public static double? Num(XElement e, string attr) =>
+        double.TryParse((string?)e.Attribute(attr), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) && double.IsFinite(v) ? v : null;
+
+    public static IEnumerable<XElement> Kids(XElement e, string name) => e.Elements().Where(x => x.Name.LocalName == name);
+    public static XElement? Kid(XElement e, string name) => e.Elements().FirstOrDefault(x => x.Name.LocalName == name);
 }

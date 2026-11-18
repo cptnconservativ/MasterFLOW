@@ -770,6 +770,152 @@ public class FlowCalcGapTests
     }
 }
 
+public class PipeNetworkImportTests
+{
+    private static byte[] StormBytes()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "MasterFlow.slnx"))) d = d.Parent;
+        return File.ReadAllBytes(Path.Combine(d!.FullName, "docs", "samples", "storm-network.xml"));
+    }
+
+    [Fact]
+    public void Import_CreatesSolvedPipeCalculations_AndStructureList()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        int n0 = vm.Calculations.Count;
+        var status = vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        Assert.StartsWith("Imported 2 pipe(s) and 3 structure(s) (1 inlet(s)) from storm.xml.", status);
+        Assert.Contains("RectPipe", status);
+        Assert.Equal(n0 + 2, vm.Calculations.Count);
+        Assert.True(vm.HasStructures);
+        Assert.Equal(3, vm.Structures.Count);
+
+        var p1 = vm.Calculations.Single(c => c.ItemNumber == "P-1");
+        Assert.Equal("Storm A/Pipes", p1.Folder);
+        Assert.Equal("P-1 (CB-1 → MH-1)", p1.Title);
+        Assert.Equal(SectionShape.Circular, p1.Shape);
+        Assert.Equal("18", p1.Diameter);           // 1.5 ft shown in inches in the field (the model keeps 1.5 ft)
+        Assert.Equal("1", p1.SlopePercent);
+        Assert.Equal("100.5", p1.InvertElevation);
+        Assert.True(p1.HasResult);
+        // Flowing just full: Q = (1.486/0.013) A R^(2/3) S^(1/2), A = π·1.5²/4, R = 1.5/4 (independent of the engine)
+        double qFull = 1.486 / 0.013 * (Math.PI * 1.5 * 1.5 / 4) * Math.Pow(1.5 / 4, 2.0 / 3.0) * Math.Sqrt(0.01);
+        Assert.Equal(qFull, p1.Result!.Discharge, 6);
+        Assert.False(p1.CanUndo);
+        Assert.Equal(SectionShape.Elliptical, vm.Calculations.Single(c => c.ItemNumber == "P-2").Shape);
+
+        // Saved with the project, in the workbook, and re-import replaces rather than duplicates.
+        Assert.Equal(3, ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject())).Structures.Count);
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(vm.BuildWorkbook()));
+        Assert.Contains("Structures", new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open()).ReadToEnd());
+        vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        Assert.Equal(3, vm.Structures.Count);
+    }
+
+    [Fact]
+    public void Import_SetsUpStormNetwork_ForHgl()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var status = vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        Assert.Contains("1 storm network(s) set up for HGL/EGL", status);
+        var n = Assert.Single(vm.Networks);
+        Assert.Same(n, vm.SelectedNetwork);
+        Assert.Equal("Storm A", n.Name);
+        var model = n.ToModel();
+        Assert.Equal(["P-1", "P-2"], model.Pipes.Select(p => p.Name));
+        Assert.Equal(1.5, model.Pipes[0].Rise, 9);
+        Assert.Equal(100.5, model.Pipes[0].UpstreamInvert, 9);
+        Assert.True(double.IsNaN(model.Pipes[0].Discharge));      // design Q is entered by the user
+        Assert.Equal(104.8, model.Structures.Single(s => s.Name == "MH-1").RimElevation);
+        Assert.Equal(5100.0, model.Structures.Single(s => s.Name == "MH-1").Northing);
+
+        // Without Q the network does not solve, and says why.
+        n.Solve();
+        Assert.False(n.HasResult);
+        Assert.StartsWith("Not solved", n.Status);
+
+        // Enter Q (last column), apply the Rapid City criteria and solve.
+        var lines = n.PipesText.Split('\n');
+        n.PipesText = string.Join('\n', lines.Select((l, i) => i == 0 ? l : l[..^1] + (i == 1 ? "6" : "10") + "\t"));   // Q is the second-last column
+        n.ApplyRapidCityCommand.Execute(null);
+        n.Tailwater = TailwaterRule.FreeOutfall;
+        n.Solve();
+        Assert.True(n.HasResult, n.Status);
+        Assert.Equal(2, n.PipeRows.Count);
+        Assert.Equal(3, n.StructureRows.Count);
+        Assert.Equal("CB-1", n.SelectedPath);
+        Assert.NotNull(n.Profile);
+        Assert.Equal(225, n.Profile!.Length, 9);
+        Assert.Equal(1.0, n.ToModel().Criteria.HglBelowRim);
+        Assert.Contains("Rapid City", n.ToModel().Criteria.Source);
+        Assert.Contains("\t", n.ResultsText());
+
+        // Saved with the project and reloaded; edits mark the project changed; reports and workbook build.
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        var saved = Assert.Single(back.Networks);
+        Assert.Equal(10, saved.Pipes[1].Discharge);
+        Assert.Equal(TailwaterRule.FreeOutfall, saved.Tailwater);
+        Assert.NotNull(vm.BuildNetworkPdf(n));
+        Assert.Contains("<svg", vm.BuildNetworkHtml(n));
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(vm.BuildWorkbook()));
+        Assert.Contains("Storm A profile", new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open()).ReadToEnd());
+    }
+
+    [Fact]
+    public void SizePipes_ThenExportLandXml_ForCivil3D()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        var n = vm.SelectedNetwork!;
+        // Inflows at the inlet (CB-1) and the manhole; Rapid City criteria; free outfall.
+        n.StructuresText = n.StructuresText.Replace("CB-1\tInlet\t105.2\tAuto\t\t", "CB-1\tInlet\t105.2\tAuto\t\t12").Replace("MH-1\tManhole (circular)\t104.8\tAuto\t\t", "MH-1\tManhole (circular)\t104.8\tAuto\t\t4");
+        n.ApplyRapidCityCommand.Execute(null);
+        n.Tailwater = TailwaterRule.FreeOutfall;
+        string before = n.PipesText;
+        n.SizePipes();
+        Assert.True(n.HasResult, n.Status);
+        Assert.NotEmpty(n.SizingReport);
+        Assert.Contains(n.SizingReport, x => x.StartsWith("P-1: 18 → 21 in"));   // Qfull(18 in., 1 %) = 10.5 cfs < 12
+        Assert.True(n.CanUndoSizing);
+        var (xml, warnings) = vm.BuildNetworkLandXml(n);
+        Assert.Empty(warnings);                                   // imported structures carry coordinates
+        var back = LandXmlPipeNetworks.Read(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml)));
+        Assert.Equal(n.ToModel().Pipes.Single(p => p.Name == "P-1").Rise, back.Pipes.Single(p => p.Name == "P-1").Rise, 6);
+        n.UndoSizing();
+        Assert.Equal(before, n.PipesText);
+        Assert.False(n.CanUndoSizing);
+    }
+
+    [Fact]
+    public void NewNetwork_EditMarksDirty_DeleteRemoves()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        Assert.False(vm.IsDirty);
+        vm.NewNetworkCommand.Execute(null);
+        var n = Assert.Single(vm.Networks);
+        vm.IsDirty = false;
+        n.HglBelowRim = "1";
+        Assert.True(vm.IsDirty);
+        vm.IsDirty = false;
+        n.Solve();                       // solving is not an edit
+        Assert.False(vm.IsDirty);
+        vm.DeleteNetworkCommand.Execute(null);   // no dialog service in tests: deletes without asking
+        Assert.Empty(vm.Networks);
+        Assert.Null(vm.SelectedNetwork);
+    }
+
+    [Fact]
+    public void Import_FileWithNothingUseful_ChangesNothing()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        int n = vm.Calculations.Count;
+        Assert.StartsWith("Nothing imported", vm.ImportLandXmlBytes(System.Text.Encoding.UTF8.GetBytes("<LandXML/>"), "x.xml"));
+        Assert.Equal(n, vm.Calculations.Count);
+        Assert.False(vm.IsDirty);
+    }
+}
+
 public class DesignCheckViewModelTests
 {
     [Fact]
@@ -837,5 +983,68 @@ public class SensitivityViewModelTests
                 e => new StreamReader(e.Open()).ReadToEnd().Contains("Sensitivity to n and slope"));
         var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
         Assert.True(back.Calculations.Single(c => c.Id == calc.Id).Sensitivity);
+    }
+}
+
+public class AlignmentImportTests
+{
+    [Fact]
+    public void ApplyAlignments_StationsListedAndNetworkStructures()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "MasterFlow.slnx"))) d = d.Parent;
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(File.ReadAllBytes(Path.Combine(d!.FullName, "docs", "samples", "storm-network.xml")), "storm.xml");
+        // Tangent heading north along E 2010: CB-1 (N 5000, E 2000) is 10 ft left, MH-1 (N 5100, E 2050) 40 ft right.
+        const string xml = """
+            <LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2">
+              <Units><Imperial linearUnit="USSurveyFoot"/></Units>
+              <Alignments><Alignment name="CL" staStart="1000"><CoordGeom>
+                <Line><Start>4900 2010</Start><End>5300 2010</End></Line>
+              </CoordGeom></Alignment></Alignments>
+            </LandXML>
+            """;
+        var status = vm.ImportLandXmlBytes(System.Text.Encoding.UTF8.GetBytes(xml), "cl.xml");
+        Assert.Contains("1 alignment(s) from cl.xml (CL): stationed 3 listed structure(s) and 3 network structure(s).", status);
+        var cb = vm.Structures.Single(s => s.Structure.Name == "CB-1").Structure;
+        Assert.Equal("CL", cb.Alignment);
+        Assert.Equal(1100, cb.Station!.Value, 6);
+        Assert.Equal(-10, cb.Offset!.Value, 6);
+        var mh = vm.SelectedNetwork!.ToModel().Structures.Single(s => s.Name == "MH-1");
+        Assert.Equal(1200, mh.Station!.Value, 6);
+        Assert.Equal(40, mh.Offset!.Value, 6);
+        Assert.Equal("CL", ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject())).Structures.Single(s => s.Name == "CB-1").Alignment);
+    }
+}
+
+public class DesignToolsViewModelTests
+{
+    [Fact]
+    public void RationalMethod_AppliesInflowsToNetwork_AndInputsAreSaved()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "MasterFlow.slnx"))) d = d.Parent;
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(File.ReadAllBytes(Path.Combine(d!.FullName, "docs", "samples", "storm-network.xml")), "storm.xml");
+        var tools = vm.Tools;
+        tools.SelectedTool = MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city");
+        Assert.Contains("CB-1", tools.InputText);             // sample uses the network's structure names
+        tools.Run();
+        Assert.True(tools.Result!.Succeeded, tools.ResultText);
+        Assert.True(tools.CanApply);
+        tools.ApplyToNetwork();
+        var cb = vm.SelectedNetwork!.ToModel().Structures.Single(s => s.Name == "CB-1");
+        Assert.True(cb.Inflow > 0 && cb.MinorInflow > 0 && cb.MinorInflow < cb.Inflow);
+        Assert.True(vm.IsDirty);
+        Assert.Contains("<table>", tools.BuildHtml());
+        Assert.NotNull(tools.BuildWorkbook());
+
+        tools.InputText += "\n# edited";
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        Assert.EndsWith("# edited", back.ToolInputs["rational-rapid-city"]);
+        var vm2 = new MainViewModel();
+        vm2.Tools.LoadInputs(back.ToolInputs);
+        vm2.Tools.SelectedTool = MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city");
+        Assert.EndsWith("# edited", vm2.Tools.InputText);
     }
 }

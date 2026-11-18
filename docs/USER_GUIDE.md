@@ -122,6 +122,26 @@ in the file. The unit system comes from the file; if the file does not say (or u
 feet or metres) the status bar tells you and you must check it. n is set to 0.035: set n, slope and
 discharge for each section. Anything the file contains that cannot be read is listed, not guessed.
 
+The same button reads **pipe networks** (export the storm network to LandXML from Civil 3D):
+
+- Each circular or elliptical pipe becomes a pipe calculation titled `P-1 (CB-1 → MH-1)` in the folder
+  `<network>/Pipes`, with the pipe name as item number. The slope comes from the start and end inverts
+  and the length; the invert elevation is the upstream invert. Depth is set to the full rise and the
+  calculation solves for Q, so it shows the **full-flow capacity**. Enter the design Q and switch to
+  *Solve for normal depth* to check it. n is set to 0.013: change it for the material.
+- Inlets, manholes and outlets appear on the **Structures** tab with northing/easting, rim and sump
+  elevations and pipe inverts, and in a *Structures* sheet in the Excel workbook. Importing the same
+  network again updates them.
+- **Alignments** in the file (or a separate alignment-only LandXML export) station the structures: each
+  structure with northing/easting gets the nearest alignment's name, station (shown as `12+34.56`, or
+  `1+234.567` in SI) and offset, positive to the right of stationing. They appear on the Structures tab,
+  in the network tables of the PDF/HTML report and in the Excel sheets. Lines, curves and clothoid
+  spirals are read; gaps between elements and unsupported elements are reported. Alignments themselves
+  are not kept: import again after the road changes.
+- Reported, not fixed: missing inverts (no slope), flat or adverse slopes, other pipe shapes (box, egg),
+  and sizes that look like inches or millimetres in a feet or metre file.
+- Sample: `docs/samples/storm-network.xml`.
+
 ### 2.5 Pipes
 
 - **Circular**: enter the diameter in inches (U.S.) or mm (SI). Above about 94 % full, the same Q can
@@ -240,6 +260,61 @@ inputs, cross-section, results, warnings and assumptions, the rating table when 
 
 Numbers in Excel are stored at full precision; non-finite values are left empty rather than written
 as text.
+
+## 6a. Storm networks (HGL and EGL)
+
+**Storm networks…** opens a separate window for storm sewer hydraulic grade lines.
+
+1. **New** adds an empty network, or **Import LandXML** in the main window sets one up from a Civil 3D
+   pipe network (pipes, sizes, lengths, inverts, structures and rims). Imported pipes have no design Q:
+   give each inlet its inflow (see 3), or type a Q per pipe.
+2. Pipes: one per line, columns *Pipe, From (upstream structure), To (downstream structure), Shape,
+   Size or rise (in. or mm), Span (elliptical only), Length, Invert up, Invert down, n, Q*. Leave Q blank
+   to have it added up from the structure inflows (a pipe carries the inflow at its upstream structure plus
+   every pipe entering that structure; a typed Q overrides this and is carried on downstream). Accumulated
+   values are marked Σ in the tables. An optional last column, *Q minor*, is the check-storm flow (the
+   2-year storm in Rapid City) used only for the minimum-velocity check; leave it blank to add it up
+   from the structures' minor inflows. Tab, semicolon
+   or comma separated, so a range copied from Excel can be pasted straight in.
+3. Structures: *Structure, Type, Rim, Loss method, K, Inflow Q, Minor inflow Q*. Name the minor storm
+   in *Minor storm* (the Rapid City preset sets "2-yr"). Leave the loss method blank for *Auto*; the list
+   of methods is under the table (IDCM Figs. 4-6/4-7 cases, bends, or StandardK with K).
+4. Tailwater rule and, for a known tailwater, its elevation.
+5. Criteria: type values or press **Rapid City IDCM 2012** (HGL 1 ft below the rim, 2.5 to 20 fps,
+   12 in. minimum, slopes below critical, no surcharge).
+6. **Solve** (F5). The status line says whether the HGL criterion is met everywhere.
+
+**Size pipes** picks circular sizes for you: the smallest standard size (12 to 108 in., or 300 to 3000 mm)
+that carries the design Q part full (when pressure flow is not allowed) within the velocity limits and is
+never smaller than a pipe upstream; then, wherever a structure's HGL is too close to its rim or a pipe still
+flows full, it tries one size up on each pipe between that structure and the outfall and keeps the one that
+lowers the water level most, repeating until the criteria are met or nothing more helps. Inverts, n, lengths
+and elliptical pipes are kept, and no crown is put above a rim. Every change, and anything it could not fix
+(for example an inlet too shallow for the 1 ft rule), is listed on the **Sizing** tab; **Undo sizing**
+restores the previous sizes.
+
+**LandXML…** writes the network as a LandXML 1.2 pipe network (units stated as foot or meter, sizes,
+lengths, inverts at each structure, rims, sumps at the lowest invert, coordinates, structure types; HGL, EGL
+and Q as Feature properties). In Civil 3D use *Insert → LandXML* and pick a parts list that has the sizes;
+Civil 3D creates a new pipe network from it. Structures need northing/easting (they come with a LandXML
+import); the export warns about any that do not.
+
+Results: **Profile** (choose the path; HGL solid, EGL dashed, rim/ground dashed brown, the criterion line
+as an orange tick at each structure; an HGL label in red fails the criterion; under the graph a band
+lists the station, HGL, EGL and the Rapid City limit (rim/ground − 1 ft) every 50 ft, or 15 m in SI, with
+the HGL in red wherever it is above the limit), **Pipes**, **Structures**
+(failing rows shaded red), **Messages** and **Trace**. **Report…** saves a PDF (or HTML) with a profile per
+path and both tables; **Copy tables** puts them on the clipboard; **Excel…** adds sheets for the pipes,
+structures, the 50 ft readings (with limit − HGL and OK/FAILS), every profile point (station, invert, crown, HGL, EGL) and messages. Networks are saved with
+the project.
+
+## 6b. Design tools
+
+**Design tools…** opens drainage design tools that share one window: pick a tool, edit its text input
+(**Sample** fills in an example), press **Run** (F5), then copy, save as HTML/Excel, or **Apply to network**
+where the tool offers it. Inputs are saved with the project. See [docs/tools](tools/README.md) for each tool's
+method and sources. The first tool is the Rapid City rational method, which can fill in the storm network's
+structure inflows for the design and minor storms.
 
 ## 7. Projects, templates and safety nets
 

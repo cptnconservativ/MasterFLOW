@@ -67,7 +67,41 @@ public sealed record Project
     public IReadOnlyList<ChannelCalculation> RecycleBin { get; init; } = [];
 
     public ReportSettings Report { get; init; } = new();
+
+    /// <summary>Drainage structures (inlets, manholes, outlets) imported from a pipe network; listed and exported, not solved.</summary>
+    public IReadOnlyList<DrainageStructure> Structures { get; init; } = [];
+
+    /// <summary>Storm sewer networks for HGL/EGL computation (additive; older files have none).</summary>
+    public IReadOnlyList<StormNetwork> Networks { get; init; } = [];
+
+    /// <summary>Last input of each design tool, by tool id (additive; older files have none).</summary>
+    public IReadOnlyDictionary<string, string> ToolInputs { get; init; } = new Dictionary<string, string>();
 }
+
+/// <summary>
+/// A drainage structure as read from a LandXML pipe network, in the file's units. Coordinates are
+/// northing/easting as written in the file; null where the file gives no value.
+/// </summary>
+public sealed record DrainageStructure
+{
+    public string Network { get; init; } = "";
+    public string Name { get; init; } = "";
+    /// <summary>Inlet, Outlet, Manhole, Structure or Connection, from the LandXML element type.</summary>
+    public string Kind { get; init; } = "";
+    public string Description { get; init; } = "";
+    public double? Northing { get; init; }
+    public double? Easting { get; init; }
+    public double? RimElevation { get; init; }
+    public double? SumpElevation { get; init; }
+    public IReadOnlyList<StructureInvert> Inverts { get; init; } = [];
+    /// <summary>Station and offset (right positive) on the nearest imported alignment, when one was imported.</summary>
+    public string? Alignment { get; init; }
+    public double? Station { get; init; }
+    public double? Offset { get; init; }
+}
+
+/// <summary>One pipe connection at a structure: pipe name, "in" or "out", and invert elevation.</summary>
+public sealed record StructureInvert(string Pipe, string FlowDirection, double Elevation);
 
 /// <summary>Report appearance saved with the project.</summary>
 public sealed record ReportSettings

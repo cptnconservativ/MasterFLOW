@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2">
+  <Units><Imperial linearUnit="USSurveyFoot" areaUnit="squareFoot" volumeUnit="cubicFeet"/></Units>
+  <PipeNetworks>
+    <PipeNetwork name="Storm A" pipeNetType="storm">
+      <Structs>
+        <Struct name="CB-1" elevRim="105.20" elevSump="100.00" desc="Curb inlet">
+          <Center>5000.00 2000.00</Center>
+          <InletStruct/>
+          <Invert elev="100.50" flowDir="out" refPipe="P-1"/>
+        </Struct>
+        <Struct name="MH-1" elevRim="104.80" elevSump="98.50">
+          <Center>5100.00 2050.00</Center>
+          <CircStruct diameter="4"/>
+          <Invert elev="99.50" flowDir="in" refPipe="P-1"/>
+          <Invert elev="99.40" flowDir="out" refPipe="P-2"/>
+        </Struct>
+        <Struct name="OUT-1" elevRim="101.00" elevSump="98.00">
+          <Center>5200.00 2100.00</Center>
+          <OutletStruct/>
+          <Invert elev="98.40" flowDir="in" refPipe="P-2"/>
+        </Struct>
+      </Structs>
+      <Pipes>
+        <Pipe name="P-1" refStart="CB-1" refEnd="MH-1" length="100.0" slope="1.0"><CircPipe diameter="1.5" material="RCP"/></Pipe>
+        <Pipe name="P-2" refStart="MH-1" refEnd="OUT-1" length="125.0"><EllipPipe height="1.9333" span="3.0833" material="RCP"/></Pipe>
+        <Pipe name="P-3" refStart="MH-1" refEnd="OUT-1" length="50"><RectPipe height="2" width="3"/></Pipe>
+      </Pipes>
+    </PipeNetwork>
+  </PipeNetworks>
+</LandXML>
+

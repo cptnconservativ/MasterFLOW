@@ -28,6 +28,14 @@ public sealed partial class MainViewModel : ObservableObject
     public static string AppVersion => AppInfo.Version;
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
+
+    /// <summary>Drainage structures imported from pipe networks (listed and exported, not solved).</summary>
+    public ObservableCollection<StructureRow> Structures { get; } = [];
+    public bool HasStructures => Structures.Count > 0;
+
+    /// <summary>Storm sewer networks solved for HGL/EGL (Storm networks window).</summary>
+    public ObservableCollection<NetworkViewModel> Networks { get; } = [];
+    [ObservableProperty] private NetworkViewModel? _selectedNetwork;
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
     public ObservableCollection<string> RecentFiles { get; } = [];
 
@@ -167,6 +175,11 @@ public sealed partial class MainViewModel : ObservableObject
 
     private bool _loading;
     private void MarkDirty() { if (!_loading) IsDirty = true; }
+    internal void MarkDirtyFromTools() => MarkDirty();
+
+    private DesignToolsViewModel? _tools;
+    /// <summary>The Design tools window's state (tool inputs are saved with the project).</summary>
+    public DesignToolsViewModel Tools => _tools ??= new DesignToolsViewModel(this);
 
     // ------------------------------------------------------------ construction
 
@@ -237,6 +250,14 @@ public sealed partial class MainViewModel : ObservableObject
         (Watermark, FooterText, LogoDataUri, IncludeCalculationTrace) = (p.Report.Watermark, p.Report.FooterText, p.Report.LogoDataUri, p.Report.IncludeCalculationTrace);
         RecycleBin.Clear();
         foreach (var c in p.RecycleBin) RecycleBin.Add(c);
+        Structures.Clear();
+        foreach (var s in p.Structures) Structures.Add(new StructureRow(s));
+        OnPropertyChanged(nameof(HasStructures));
+        foreach (var n in Networks) n.Edited -= OnNetworkEdited;
+        Networks.Clear();
+        foreach (var n in p.Networks) AddNetwork(NetworkViewModel.FromModel(n));
+        SelectedNetwork = Networks.FirstOrDefault();
+        Tools.LoadInputs(p.ToolInputs);
         NotifyBin();
         Selected = Calculations.FirstOrDefault();
         FilePath = path;
@@ -272,6 +293,9 @@ public sealed partial class MainViewModel : ObservableObject
         Info = new ProjectInfo { Name = ProjectName, ProjectNumber = ProjectNumber, Client = Client, PreparedBy = PreparedBy, CheckedBy = CheckedBy, Notes = Notes },
         Calculations = Calculations.Select(c => c.ToModel()).ToList(),
         RecycleBin = RecycleBin.ToList(),
+        Structures = Structures.Select(r => r.Structure).ToList(),
+        Networks = Networks.Select(n => n.ToModel()).ToList(),
+        ToolInputs = Tools.SavedInputs(),
         Report = new ReportSettings { Watermark = Watermark, FooterText = FooterText, LogoDataUri = LogoDataUri, IncludeCalculationTrace = IncludeCalculationTrace },
     };
 
@@ -288,6 +312,137 @@ public sealed partial class MainViewModel : ObservableObject
         try { Store.SaveSettings(s); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* settings are a convenience */ }
         RecentFiles.Clear();
         foreach (var f in s.RecentFiles) RecentFiles.Add(f);
+    }
+
+    // ------------------------------------------------------------ storm networks (HGL/EGL)
+
+    private void AddNetwork(NetworkViewModel n)
+    {
+        n.Edited += OnNetworkEdited;
+        Networks.Add(n);
+    }
+
+    private void OnNetworkEdited(object? sender, EventArgs e) => MarkDirty();
+
+    [RelayCommand]
+    private void NewNetwork()
+    {
+        var units = Selected?.Units ?? UnitSystem.USCustomary;
+        var n = NetworkViewModel.FromModel(new StormNetwork { Name = $"Storm network {Networks.Count + 1}", Units = units });
+        AddNetwork(n);
+        SelectedNetwork = n;
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private async Task DeleteNetwork()
+    {
+        if (SelectedNetwork is not { } n) return;
+        if (Dialogs is not null && !await Dialogs.ConfirmDiscardAsync($"Delete the storm network \"{n.Name}\"? This cannot be undone.")) return;
+        n.Edited -= OnNetworkEdited;
+        int i = Networks.IndexOf(n);
+        Networks.Remove(n);
+        SelectedNetwork = Networks.Count == 0 ? null : Networks[Math.Min(i, Networks.Count - 1)];
+        MarkDirty();
+    }
+
+    /// <summary>One storm network per LandXML pipe network (replacing one of the same name); returns how many.</summary>
+    private int AddNetworksFromImport(LandXmlNetworkReadResult read, UnitSystem units)
+    {
+        int count = 0;
+        foreach (var g in read.Pipes.GroupBy(p => p.Network))
+        {
+            string name = g.Key.Length > 0 ? g.Key : "Imported network";
+            var structs = read.Structures.Where(s => s.Network == g.Key).Select(s => new NetworkStructure
+            {
+                Name = s.Name, Kind = s.Kind, RimElevation = s.RimElevation, Northing = s.Northing, Easting = s.Easting,
+                Alignment = s.Alignment, Station = s.Station, Offset = s.Offset,
+            }).ToList();
+            var pipes = g.Select(p => new NetworkPipe
+            {
+                Name = p.Name, From = p.StartStructure, To = p.EndStructure, Shape = p.Shape, Rise = p.Rise, Span = p.Span,
+                Length = p.Length ?? double.NaN, UpstreamInvert = p.StartInvert ?? double.NaN, DownstreamInvert = p.EndInvert ?? double.NaN,
+                ManningN = 0.013, Discharge = double.NaN,
+            }).ToList();
+            var model = new StormNetwork { Name = name, Units = units, Pipes = pipes, Structures = structs };
+            var old = Networks.FirstOrDefault(n => n.Name == name);
+            if (old is not null) { old.Edited -= OnNetworkEdited; Networks.Remove(old); }
+            var vm = NetworkViewModel.FromModel(model);
+            AddNetwork(vm);
+            SelectedNetwork = vm;
+            count++;
+        }
+        return count;
+    }
+
+    private ReportOptions NetworkReportOptions() => new()
+    {
+        SoftwareVersion = AppVersion,
+        Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark,
+        FooterText = string.IsNullOrWhiteSpace(FooterText) ? null : FooterText,
+        LogoDataUri = LogoDataUri,
+        IncludeCalculationTrace = IncludeCalculationTrace,
+    };
+
+    /// <summary>PDF (landscape) of the selected network: profiles, pipes and structures tables, messages. Public for tests.</summary>
+    public byte[]? BuildNetworkPdf(NetworkViewModel n)
+    {
+        n.Solve();
+        return n.Result is { Succeeded: true } r ? NetworkReport.ToPdf(ToProject().Info, r, NetworkReportOptions()) : null;
+    }
+
+    public string? BuildNetworkHtml(NetworkViewModel n)
+    {
+        n.Solve();
+        return n.Result is { Succeeded: true } r ? NetworkReport.ToHtml(ToProject().Info, r, NetworkReportOptions()) : null;
+    }
+
+    [RelayCommand]
+    private async Task ExportNetworkReport()
+    {
+        if (SelectedNetwork is not { } n || Dialogs is null) return;
+        n.Solve();
+        if (!n.HasResult) { StatusMessage = "The network did not solve; see its messages."; return; }
+        var path = await Dialogs.PickSaveAsync(SafeName(n.Name) + " HGL.pdf", ".pdf", "PDF network report", HtmlChoice);
+        if (path is null) return;
+        try
+        {
+            if (IsHtml(path)) await File.WriteAllTextAsync(path, BuildNetworkHtml(n)!);
+            else await File.WriteAllBytesAsync(path, BuildNetworkPdf(n)!);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Report not saved: {ex.Message}"; return; }
+        StatusMessage = $"Network report saved to {path}.{LogoNote(path)}";
+        Dialogs.OpenWithShell(path);
+    }
+
+    /// <summary>LandXML pipe network for Civil 3D (sizes, inverts, structures; HGL/EGL as Feature properties). Public for tests.</summary>
+    public (string Xml, IReadOnlyList<string> Warnings) BuildNetworkLandXml(NetworkViewModel n)
+    {
+        n.Solve();
+        return LandXmlPipeNetworkWriter.Write(n.ToModel(), n.Result is { Succeeded: true } r ? r : null, AppVersion);
+    }
+
+    [RelayCommand]
+    private async Task ExportNetworkLandXml()
+    {
+        if (SelectedNetwork is not { } n || Dialogs is null) return;
+        var path = await Dialogs.PickSaveAsync(SafeName(n.Name) + ".xml", ".xml", "LandXML pipe network (Civil 3D)");
+        if (path is null) return;
+        var (xml, warnings) = BuildNetworkLandXml(n);
+        try { await File.WriteAllTextAsync(path, xml, new System.Text.UTF8Encoding(false)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"LandXML not saved: {ex.Message}"; return; }
+        n.Status = $"LandXML saved to {path}. In Civil 3D: Insert → LandXML, then choose a parts list with these sizes." +
+                   (warnings.Count > 0 ? $" {warnings.Count} warning(s): {warnings[0]}" : "");
+        StatusMessage = n.Status;
+    }
+
+    [RelayCommand]
+    private async Task CopyNetworkResults()
+    {
+        if (SelectedNetwork is not { } n || Dialogs is null) return;
+        if (n.Result is null) n.Solve();
+        await Dialogs.SetClipboardAsync(n.ResultsText());
+        StatusMessage = "Network tables copied (tab-separated).";
     }
 
     // ------------------------------------------------------------ autosave and recovery
@@ -705,18 +860,20 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportWorkbook()
     {
-        if (Dialogs is null || Calculations.Count == 0) return;
+        if (Dialogs is null || (Calculations.Count == 0 && Networks.Count == 0)) return;
         var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + ".xlsx", ".xlsx", "Excel workbook");
         if (path is null) return;
-        await File.WriteAllBytesAsync(path, BuildWorkbook());
-        StatusMessage = $"Workbook saved to {path} (comparison, one sheet per calculation and one per saved rating table).";
+        try { await File.WriteAllBytesAsync(path, BuildWorkbook()); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Workbook not saved: {ex.Message}"; return; }
+        StatusMessage = $"Workbook saved to {path} (comparison, one sheet per calculation, saved rating tables and storm network pipes, structures and HGL/EGL profile points).";
     }
 
     public byte[] BuildWorkbook()
     {
         var items = BatchCalculations.Select(c => (c.ToModel() with { Title = c.DisplayTitle }, c.Result!)).ToList();
         var ratings = BatchCalculations.Select(c => (Title: SafeName(c.DisplayTitle) + " rating", Table: c.BuildRatingTable())).Where(t => t.Table is not null).Select(t => (t.Title, t.Table!)).ToList();
-        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, ratings));
+        var networks = Networks.Select(n => { n.Solve(); return n.Result; }).Where(r => r is { Succeeded: true }).Select(r => r!).ToList();
+        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, ratings, Structures.Select(r => r.Structure).ToList(), networks));
     }
 
     [RelayCommand]
@@ -834,10 +991,102 @@ public sealed partial class MainViewModel : ObservableObject
         if (Dialogs is null) return;
         var path = await Dialogs.PickOpenFileAsync("Import cross-sections from LandXML", "LandXML", "*.xml", "*.landxml");
         if (path is null) return;
-        LandXmlReadResult read;
-        try { await using var fs = File.OpenRead(path); read = LandXmlCrossSections.Read(fs); }
+        byte[] bytes;
+        try { bytes = await File.ReadAllBytesAsync(path); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Could not read {path}: {ex.Message}"; return; }
-        StatusMessage = ImportCrossSections(read, Path.GetFileName(path));
+        StatusMessage = ImportLandXmlBytes(bytes, Path.GetFileName(path));
+    }
+
+    /// <summary>Imports cross-sections and pipe networks from one LandXML file; returns the status text. Public for tests.</summary>
+    public string ImportLandXmlBytes(byte[] bytes, string fileName)
+    {
+        var sections = LandXmlCrossSections.Read(new MemoryStream(bytes));
+        var networks = LandXmlPipeNetworks.Read(new MemoryStream(bytes));
+        var alignments = LandXmlAlignments.Read(new MemoryStream(bytes));
+        bool hasSections = sections.Sections.Count > 0, hasNetworks = networks.Pipes.Count > 0 || networks.Structures.Count > 0, hasAlignments = alignments.Alignments.Count > 0;
+        if (!hasSections && !hasNetworks && !hasAlignments)
+            return $"Nothing imported from {fileName}: it has no cross-sections, pipe networks or alignments. " + (sections.Problems.FirstOrDefault(p => !p.Contains("no cross-sections")) ?? "");
+        var parts = new List<string>();
+        if (hasSections) parts.Add(ImportCrossSections(sections, fileName));
+        if (hasNetworks) parts.Add(ImportPipeNetwork(networks, fileName));
+        if (hasAlignments || alignments.Problems.Count > 0) parts.Add(ApplyAlignments(alignments, fileName));
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>
+    /// Stations every structure with coordinates (imported list and storm networks) on the nearest alignment in
+    /// the file; returns the status text. Alignments are not kept; import again after they change. Public for tests.
+    /// </summary>
+    public string ApplyAlignments(LandXmlAlignmentReadResult read, string fileName)
+    {
+        if (read.Alignments.Count == 0)
+            return "No alignments imported. " + (read.Problems.FirstOrDefault() ?? "");
+        int n = 0;
+        for (int i = 0; i < Structures.Count; i++)
+        {
+            var s = Structures[i].Structure;
+            if (s.Northing is not { } north || s.Easting is not { } east) continue;
+            if (Alignment.Nearest(read.Alignments, north, east) is not { } so) continue;
+            Structures[i] = new StructureRow(s with { Alignment = so.Alignment, Station = so.Station, Offset = so.Offset });
+            n++;
+        }
+        int m = Networks.Sum(net => net.ApplyStations((north, east) => Alignment.Nearest(read.Alignments, north, east)));
+        if (n + m > 0) MarkDirty();
+        string probs = read.Problems.Count > 0 ? $" {read.Problems.Count} alignment problem(s), first: {read.Problems[0]}" : "";
+        return $"{read.Alignments.Count} alignment(s) from {fileName} ({string.Join(", ", read.Alignments.Select(a => a.Name))}): stationed {n} listed structure(s) and {m} network structure(s).{probs}";
+    }
+
+    /// <summary>
+    /// Adds one pipe calculation per circular or elliptical pipe (folder "network/Pipes", item no. = pipe
+    /// name, slope from the inverts, depth set to the full rise so Solve for Q gives full-flow capacity)
+    /// and lists the network's structures. Values are not converted. Returns the status text.
+    /// </summary>
+    public string ImportPipeNetwork(LandXmlNetworkReadResult read, string fileName)
+    {
+        if (read.Pipes.Count == 0 && read.Structures.Count == 0)
+            return "No pipe network imported. " + (read.Problems.Count > 0 ? read.Problems[0] : "");
+        var units = read.Units ?? Selected?.Units ?? UnitSystem.USCustomary;
+        var inv = CultureInfo.InvariantCulture;
+        CalculationViewModel? first = null;
+        foreach (var p in read.Pipes)
+        {
+            ChannelSection section = p.Shape == NetworkPipeShape.Circular ? new CircularSection(p.Rise) : new EllipticalSection(p.Rise, p.Span);
+            string L(double? v) => v is { } x ? x.ToString("0.###", inv) : "?";
+            var model = new ChannelCalculation
+            {
+                Title = $"{p.Name} ({p.StartStructure} → {p.EndStructure})",
+                Folder = (p.Network.Length > 0 ? p.Network + "/" : "") + "Pipes",
+                ItemNumber = p.Name,
+                Description = $"Pipe imported from {fileName}, network \"{p.Network}\": {p.StartStructure} → {p.EndStructure}, length {L(p.Length)}, inverts {L(p.StartInvert)} → {L(p.EndInvert)}" +
+                              (p.Material.Length > 0 ? $", {p.Material}" : "") + ". Slope from the inverts; n = 0.013 assumed (check for the material). Depth is set to the full rise, so Solve for Q gives the full-flow capacity; enter the design Q and solve for normal depth to check it.",
+                Input = new UniformFlowInput
+                {
+                    Units = units, Section = section, SolveFor = SolveFor.Discharge, ManningN = 0.013,
+                    Slope = p.Slope ?? double.NaN, Depth = p.Rise, Discharge = double.NaN, InvertElevation = p.StartInvert,
+                },
+            };
+            var c = CalculationViewModel.FromModel(model);
+            c.ClearHistory();
+            Add(c);
+            first ??= c;
+        }
+        foreach (var s in read.Structures)
+        {
+            var existing = Structures.FirstOrDefault(r => r.Structure.Network == s.Network && r.Structure.Name == s.Name);
+            if (existing is not null) Structures.Remove(existing);
+            Structures.Add(new StructureRow(s));
+        }
+        OnPropertyChanged(nameof(HasStructures));
+        int nets = AddNetworksFromImport(read, units);
+        if (first is not null) Selected = first;
+        MarkDirty();
+        RefreshComparison();
+        int inlets = read.Structures.Count(s => s.Kind == "Inlet");
+        string unitNote = read.Units is null ? $" Unit system not stated in the file; set to {(units == UnitSystem.SI ? "SI" : "U.S. customary")}, please check." : "";
+        var other = read.Problems.Where(p => !p.StartsWith("The file does not state") && !p.StartsWith("Linear unit")).ToList();
+        string probNote = other.Count > 0 ? $" {other.Count} problem(s), first: {other[0]}" : "";
+        string netNote = nets > 0 ? $" {nets} storm network(s) set up for HGL/EGL (Storm networks window; enter the inflow at each inlet, or a Q for each pipe)." : "";
+        return $"Imported {read.Pipes.Count} pipe(s) and {read.Structures.Count} structure(s) ({inlets} inlet(s)) from {fileName}.{netNote}{unitNote}{probNote}";
     }
 
     /// <summary>Adds one calculation per cross-section; returns the status text. Public for tests.</summary>
@@ -878,4 +1127,18 @@ public sealed partial class MainViewModel : ObservableObject
         var cleaned = new string(s.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
         return string.IsNullOrEmpty(cleaned) ? "MasterFlow" : cleaned;
     }
+}
+
+/// <summary>Display row for an imported drainage structure.</summary>
+public sealed record StructureRow(DrainageStructure Structure)
+{
+    private static string F(double? v) => v is { } x ? x.ToString("0.###", System.Globalization.CultureInfo.CurrentCulture) : "—";
+    public string Name => Structure.Name;
+    public string Kind => Structure.Kind;
+    public string Network => Structure.Network;
+    public string Location => Structure.Northing is null ? "—" : $"N {F(Structure.Northing)}  E {F(Structure.Easting)}";
+    public string Elevations => $"Rim {F(Structure.RimElevation)} · Sump {F(Structure.SumpElevation)}";
+    public string Inverts => string.Join("; ", Structure.Inverts.Select(i => $"{i.Pipe} {i.FlowDirection} {F(i.Elevation)}"));
+    public string StationText => Structure.Station is { } st ? $"{Structure.Alignment}  station {F(st)}  offset {F(Structure.Offset)} {(Structure.Offset >= 0 ? "R" : "L")}" : "";
+    public bool HasStation => Structure.Station is not null;
 }
