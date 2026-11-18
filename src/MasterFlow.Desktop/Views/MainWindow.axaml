@@ -70,14 +70,14 @@
       <DockPanel Grid.Column="0" Margin="8">
         <Expander DockPanel.Dock="Top" Header="Project information" Margin="0,0,0,8" HorizontalAlignment="Stretch">
           <StackPanel Spacing="4">
-            <TextBox Watermark="Project name" Text="{Binding ProjectName}"/>
-            <TextBox Watermark="Project number" Text="{Binding ProjectNumber}"/>
-            <TextBox Watermark="Client" Text="{Binding Client}"/>
-            <TextBox Watermark="Prepared by" Text="{Binding PreparedBy}"/>
-            <TextBox Watermark="Checked by" Text="{Binding CheckedBy}"/>
-            <TextBox Watermark="Report notes" Text="{Binding Notes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="50"/>
-            <TextBox Watermark="Report watermark (e.g. PRELIMINARY)" Text="{Binding Watermark}"/>
-            <TextBox Watermark="Report footer text" Text="{Binding FooterText}"/>
+            <TextBox AutomationProperties.Name="Project name" Watermark="Project name" Text="{Binding ProjectName}"/>
+            <TextBox AutomationProperties.Name="Project number" Watermark="Project number" Text="{Binding ProjectNumber}"/>
+            <TextBox AutomationProperties.Name="Client" Watermark="Client" Text="{Binding Client}"/>
+            <TextBox AutomationProperties.Name="Prepared by" Watermark="Prepared by" Text="{Binding PreparedBy}"/>
+            <TextBox AutomationProperties.Name="Checked by" Watermark="Checked by" Text="{Binding CheckedBy}"/>
+            <TextBox AutomationProperties.Name="Report notes" Watermark="Report notes" Text="{Binding Notes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="50"/>
+            <TextBox AutomationProperties.Name="Report watermark" Watermark="Report watermark (e.g. PRELIMINARY)" Text="{Binding Watermark}"/>
+            <TextBox AutomationProperties.Name="Report footer text" Watermark="Report footer text" Text="{Binding FooterText}"/>
             <StackPanel Orientation="Horizontal" Spacing="4">
               <Button Content="Logo…" Command="{Binding PickLogoCommand}" ToolTip.Tip="PNG, JPEG, GIF or SVG up to 1 MB, embedded in the project"/>
               <Button Content="Remove logo" Command="{Binding ClearLogoCommand}" IsVisible="{Binding HasLogo}"/>
@@ -95,7 +95,7 @@
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="app:CalculationTemplate">
                         <DockPanel>
-                          <Button DockPanel.Dock="Right" Content="✕" IsVisible="{Binding !BuiltIn}" ToolTip.Tip="Remove from My templates" Background="Transparent"
+                          <Button DockPanel.Dock="Right" Content="✕" IsVisible="{Binding !BuiltIn}" AutomationProperties.Name="Remove from My templates" ToolTip.Tip="Remove from My templates" Background="Transparent"
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DeleteUserTemplateCommand}" CommandParameter="{Binding}"/>
                           <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" ToolTip.Tip="{Binding Description}"
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).NewFromTemplateCommand}" CommandParameter="{Binding}">
@@ -130,11 +130,11 @@
             <Button Content="Empty recycle bin" Command="{Binding EmptyRecycleBinCommand}"/>
           </StackPanel>
         </Expander>
-        <ListBox ItemsSource="{Binding Calculations}" SelectedItem="{Binding Selected}" Background="Transparent">
+        <ListBox AutomationProperties.Name="Calculations" ItemsSource="{Binding Calculations}" SelectedItem="{Binding Selected}" Background="Transparent">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:CalculationViewModel">
               <DockPanel Margin="0,2">
-                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IncludeInBatch}" MinWidth="0" Margin="0,0,6,0" VerticalAlignment="Center"
+                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IncludeInBatch}" AutomationProperties.Name="Include in batch outputs" MinWidth="0" Margin="0,0,6,0" VerticalAlignment="Center"
                           ToolTip.Tip="Include in the batch report, comparison and Excel workbook"/>
                 <StackPanel>
                   <TextBlock Text="{Binding ListLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
@@ -153,10 +153,10 @@
         <StackPanel Margin="8" Spacing="8" DataContext="{Binding Selected}" x:DataType="vm:CalculationViewModel">
           <Border Classes="card">
             <StackPanel Spacing="4">
-              <TextBox Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Watermark="Calculation title (may contain fields such as {Q:F1})" ToolTip.Tip="{x:Static vm:CalculationViewModel.TitleFieldHelp}"/>
+              <TextBox AutomationProperties.Name="Calculation title" Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Watermark="Calculation title (may contain fields such as {Q:F1})" ToolTip.Tip="{x:Static vm:CalculationViewModel.TitleFieldHelp}"/>
               <TextBlock IsVisible="{Binding TitleHasFields}" FontSize="12" Opacity="0.75" TextWrapping="Wrap"><Run Text="Title preview: "/><Run Text="{Binding DisplayTitle}" FontWeight="SemiBold"/></TextBlock>
-              <TextBox Text="{Binding Folder}" Watermark="Folder (optional, e.g. Ditches/Phase 1)"/>
-              <TextBox Text="{Binding Description}" Watermark="Description (appears on the report)" AcceptsReturn="True" TextWrapping="Wrap"/>
+              <TextBox AutomationProperties.Name="Folder" Text="{Binding Folder}" Watermark="Folder (optional, e.g. Ditches/Phase 1)"/>
+              <TextBox AutomationProperties.Name="Description" Text="{Binding Description}" Watermark="Description (appears on the report)" AcceptsReturn="True" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
 
@@ -166,55 +166,55 @@
                 <TextBlock Classes="h2" Text="Section" Margin="0,0,0,4"/>
                 <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                   <TextBlock Classes="label" Text="Shape"/>
-                  <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.Shapes}" SelectedItem="{Binding Shape}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+                  <ComboBox AutomationProperties.Name="Section shape" Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.Shapes}" SelectedItem="{Binding Shape}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
                   <TextBlock Grid.Row="1" Classes="label" Text="Units"/>
-                  <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.UnitSystems}" SelectedItem="{Binding Units}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+                  <ComboBox AutomationProperties.Name="Unit system" Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.UnitSystems}" SelectedItem="{Binding Units}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
                   <TextBlock Grid.Row="2" Classes="label" Text="Bottom width b" IsVisible="{Binding ShowBottomWidth}"/>
                   <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowBottomWidth}">
-                    <TextBox Classes="num" Text="{Binding BottomWidth}"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
+                    <TextBox AutomationProperties.Name="Bottom width" Classes="num" Text="{Binding BottomWidth}"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
                   </StackPanel>
                   <TextBlock Grid.Row="3" Classes="label" Text="Left slope zL" IsVisible="{Binding ShowSideSlopes}"/>
                   <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowSideSlopes}">
-                    <TextBox Classes="num" Text="{Binding LeftSlope}"/><TextBlock Classes="unit" Text="H : 1 V"/>
+                    <TextBox AutomationProperties.Name="Left side slope, horizontal per 1 vertical" Classes="num" Text="{Binding LeftSlope}"/><TextBlock Classes="unit" Text="H : 1 V"/>
                   </StackPanel>
                   <TextBlock Grid.Row="4" Classes="label" Text="Right slope zR" IsVisible="{Binding ShowSideSlopes}"/>
                   <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowSideSlopes}">
-                    <TextBox Classes="num" Text="{Binding RightSlope}"/><TextBlock Classes="unit" Text="H : 1 V"/>
+                    <TextBox AutomationProperties.Name="Right side slope, horizontal per 1 vertical" Classes="num" Text="{Binding RightSlope}"/><TextBlock Classes="unit" Text="H : 1 V"/>
                   </StackPanel>
                   <TextBlock Grid.Row="2" Classes="label" Text="Diameter D" IsVisible="{Binding IsPipe}"/>
                   <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding IsPipe}">
-                    <TextBox Classes="num" Text="{Binding Diameter}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
+                    <TextBox AutomationProperties.Name="Pipe diameter" Classes="num" Text="{Binding Diameter}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
                   </StackPanel>
                   <TextBlock Grid.Row="2" Classes="label" Text="Definition" IsVisible="{Binding IsEllipse}"/>
                   <CheckBox Grid.Row="2" Grid.Column="1" Content="ASTM C507 standard size" IsChecked="{Binding EllipseStandard}" IsVisible="{Binding IsEllipse}"/>
                   <TextBlock Grid.Row="4" Classes="label" Text="Orientation" IsVisible="{Binding ShowEllipseStandard}"/>
                   <CheckBox Grid.Row="4" Grid.Column="1" Content="Vertical (VE)" IsChecked="{Binding EllipseVertical}" IsVisible="{Binding ShowEllipseStandard}"/>
                   <TextBlock Grid.Row="3" Classes="label" Text="Standard size" IsVisible="{Binding ShowEllipseStandard}"/>
-                  <ComboBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding ShowEllipseStandard}"
+                  <ComboBox AutomationProperties.Name="Standard ellipse size" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding ShowEllipseStandard}"
                             ItemsSource="{x:Static vm:CalculationViewModel.EllipseSizes}" SelectedItem="{Binding EllipseSize}">
                     <ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate>
                   </ComboBox>
                   <TextBlock Grid.Row="3" Classes="label" Text="Rise" IsVisible="{Binding ShowEllipseCustom}"/>
                   <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowEllipseCustom}">
-                    <TextBox Classes="num" Text="{Binding EllipseRise}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
+                    <TextBox AutomationProperties.Name="Ellipse rise" Classes="num" Text="{Binding EllipseRise}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
                   </StackPanel>
                   <TextBlock Grid.Row="4" Classes="label" Text="Span" IsVisible="{Binding ShowEllipseCustom}"/>
                   <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowEllipseCustom}">
-                    <TextBox Classes="num" Text="{Binding EllipseSpan}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
+                    <TextBox AutomationProperties.Name="Ellipse span" Classes="num" Text="{Binding EllipseSpan}"/><TextBlock Classes="unit" Text="{Binding DiameterUnit}"/>
                   </StackPanel>
                   <TextBlock Grid.Row="2" Classes="label" Text="Composite n" IsVisible="{Binding IsIrregular}"/>
-                  <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding IsIrregular}"
+                  <ComboBox AutomationProperties.Name="Composite roughness method" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding IsIrregular}"
                             ItemsSource="{x:Static vm:CalculationViewModel.RoughnessMethods}" SelectedItem="{Binding RoughnessMethod}">
                     <ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate>
                   </ComboBox>
                   <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Spacing="2" IsVisible="{Binding IsIrregular}">
                     <TextBlock Classes="label" Text="Points: station, elevation, n to next point (optional), description. Paste from Excel."/>
-                    <TextBox Text="{Binding PointsText}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Consolas,Menlo,monospace"
+                    <TextBox AutomationProperties.Name="Section points: station, elevation, optional n and description, one per line" Text="{Binding PointsText}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Consolas,Menlo,monospace"
                              Height="170" TextWrapping="NoWrap" Watermark="0&#x09;5&#x0a;10&#x09;0 ..."/>
                   </StackPanel>
                   <TextBlock Grid.Row="5" Classes="label" Text="Channel depth" IsVisible="{Binding ShowChannelDepth}"/>
                   <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowChannelDepth}">
-                    <TextBox Classes="num" Text="{Binding ChannelDepth}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
+                    <TextBox AutomationProperties.Name="Channel depth" Classes="num" Text="{Binding ChannelDepth}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
                   </StackPanel>
                 </Grid>
               </StackPanel>
@@ -225,31 +225,31 @@
                 <TextBlock Classes="h2" Text="Flow" Margin="0,0,0,4"/>
                 <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                   <TextBlock Classes="label" Text="Solve for"/>
-                  <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.SolveModes}" SelectedItem="{Binding SolveFor}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+                  <ComboBox AutomationProperties.Name="Solve for" Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.SolveModes}" SelectedItem="{Binding SolveFor}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
                   <TextBlock Grid.Row="1" Classes="label" Text="Manning's n"/>
                   <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox Classes="num" Text="{Binding ManningN}" IsVisible="{Binding RoughnessIsInput}"/><Border IsVisible="{Binding !RoughnessIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border>
+                    <TextBox AutomationProperties.Name="Manning's n" Classes="num" Text="{Binding ManningN}" IsVisible="{Binding RoughnessIsInput}"/><Border IsVisible="{Binding !RoughnessIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border>
                   </StackPanel>
                   <TextBlock Grid.Row="2" Classes="label" Text="Slope S"/>
                   <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox Classes="num" Text="{Binding SlopePercent}" IsVisible="{Binding SlopeIsInput}"/><Border IsVisible="{Binding !SlopeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="%"/>
+                    <TextBox AutomationProperties.Name="Channel slope in percent" Classes="num" Text="{Binding SlopePercent}" IsVisible="{Binding SlopeIsInput}"/><Border IsVisible="{Binding !SlopeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="%"/>
                   </StackPanel>
                   <TextBlock Grid.Row="3" Classes="label" Text="Discharge Q"/>
                   <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox Classes="num" Text="{Binding Discharge}" IsVisible="{Binding DischargeIsInput}"/><Border IsVisible="{Binding !DischargeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="{Binding DischargeUnit}"/>
+                    <TextBox AutomationProperties.Name="Discharge" Classes="num" Text="{Binding Discharge}" IsVisible="{Binding DischargeIsInput}"/><Border IsVisible="{Binding !DischargeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="{Binding DischargeUnit}"/>
                   </StackPanel>
                   <TextBlock Grid.Row="4" Classes="label" Text="Depth y"/>
                   <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox Classes="num" Text="{Binding Depth}" IsVisible="{Binding DepthIsInput}"/><Border IsVisible="{Binding !DepthIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
+                    <TextBox AutomationProperties.Name="Flow depth" Classes="num" Text="{Binding Depth}" IsVisible="{Binding DepthIsInput}"/><Border IsVisible="{Binding !DepthIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
                   </StackPanel>
                   <TextBlock Grid.Row="5" Classes="label" Text="n reference" IsVisible="{Binding RoughnessIsInput}"/>
-                  <ComboBox Grid.Row="5" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding RoughnessIsInput}" PlaceholderText="Pick a typical n (Chow 1959)…"
+                  <ComboBox AutomationProperties.Name="Typical Manning's n reference" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding RoughnessIsInput}" PlaceholderText="Pick a typical n (Chow 1959)…"
                             ItemsSource="{x:Static vm:CalculationViewModel.RoughnessEntries}" SelectedItem="{Binding RoughnessPick}" MaxDropDownHeight="420">
                     <ComboBox.ItemTemplate><DataTemplate x:DataType="dom:RoughnessEntry"><StackPanel><TextBlock Text="{Binding Description}"/><TextBlock FontSize="11" Opacity="0.65"><Run Text="{Binding Category}"/><Run Text=" · normal "/><Run Text="{Binding Normal, StringFormat={}{0:0.000}}"/><Run Text=" · range "/><Run Text="{Binding Range}"/></TextBlock></StackPanel></DataTemplate></ComboBox.ItemTemplate>
                   </ComboBox>
                   <TextBlock Grid.Row="6" Classes="label" Text="Invert elevation" IsVisible="{Binding ShowInvertElevation}"/>
                   <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowInvertElevation}">
-                    <TextBox Classes="num" Text="{Binding InvertElevation}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
+                    <TextBox AutomationProperties.Name="Invert elevation" Classes="num" Text="{Binding InvertElevation}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
                   </StackPanel>
                 </Grid>
                 <TextBlock Text="The highlighted field is the unknown being solved for." FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,8,0,0"/>
@@ -355,11 +355,11 @@
         <TabItem Header="Rating table">
           <DockPanel>
             <StackPanel DockPanel.Dock="Top" Spacing="6">
-              <ComboBox ItemsSource="{x:Static vm:MainViewModel.RatingModes}" SelectedItem="{Binding RatingMode}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+              <ComboBox AutomationProperties.Name="Rating table mode" ItemsSource="{x:Static vm:MainViewModel.RatingModes}" SelectedItem="{Binding RatingMode}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
               <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
-                <TextBox Grid.Column="0" Classes="num" MinWidth="0" Text="{Binding RatingStart}" ToolTip.Tip="{Binding RatingStartLabel}" Watermark="Start"/>
-                <TextBox Grid.Column="1" Classes="num" MinWidth="0" Text="{Binding RatingEnd}" ToolTip.Tip="{Binding RatingEndLabel}" Watermark="End"/>
-                <TextBox Grid.Column="2" Classes="num" MinWidth="0" Text="{Binding RatingIncrement}" Watermark="Step"/>
+                <TextBox AutomationProperties.Name="Rating table start" Grid.Column="0" Classes="num" MinWidth="0" Text="{Binding RatingStart}" ToolTip.Tip="{Binding RatingStartLabel}" Watermark="Start"/>
+                <TextBox AutomationProperties.Name="Rating table end" Grid.Column="1" Classes="num" MinWidth="0" Text="{Binding RatingEnd}" ToolTip.Tip="{Binding RatingEndLabel}" Watermark="End"/>
+                <TextBox AutomationProperties.Name="Rating table step" Grid.Column="2" Classes="num" MinWidth="0" Text="{Binding RatingIncrement}" Watermark="Step"/>
               </Grid>
               <TextBlock Text="{Binding RatingStartLabel}" FontSize="11" Opacity="0.6"/>
               <StackPanel Orientation="Horizontal" Spacing="4">

@@ -617,3 +617,22 @@ public class ErrorHandlingTests
         finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
     }
 }
+
+public class AccessibilityTests
+{
+    /// <summary>Every input in the main window has a screen-reader name (roadmap G5).</summary>
+    [Fact]
+    public void EveryInput_HasAnAutomationName()
+    {
+        string? dir = AppContext.BaseDirectory;
+        while (dir is not null && !File.Exists(Path.Combine(dir, "MasterFlow.slnx"))) dir = Path.GetDirectoryName(dir);
+        if (dir is null) return; // not running from the repository
+        var xaml = System.Xml.Linq.XDocument.Load(Path.Combine(dir, "src", "MasterFlow.Desktop", "Views", "MainWindow.axaml"));
+        var unnamed = xaml.Descendants()
+            .Where(e => e.Name.LocalName is "TextBox" or "ComboBox" or "ListBox")
+            .Where(e => e.Attribute("AutomationProperties.Name") is null)
+            .Select(e => e.ToString().Split('\n')[0])
+            .ToList();
+        Assert.Empty(unnamed);
+    }
+}

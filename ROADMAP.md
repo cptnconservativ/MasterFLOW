@@ -61,7 +61,7 @@ Dependencies: B. Risk M (PDF library licensing).
 - G2 Code signing (needs a certificate from Kyle's firm) — 1 d — ⬜
 - G3 Error recovery and local-only logging — 1 d — ✅ v0.10.0 (daily log in %APPDATA%\MasterFlow\logs, 14 days; unexpected errors logged, recovery copy saved, app keeps running)
 - G4 Performance (5000-row table under 1 s) — 0.5 d — ✅ v0.10.0 (Release: 5000-row tables ≈ 0.1 s, 5000-point noisy irregular section ≈ 0.26 s; PDF with 5000 rows ≈ 2 s)
-- G5 Accessibility (keyboard paths, automation names, contrast) — 2 d — ⬜
+- G5 Accessibility (keyboard paths, automation names, contrast) — 2 d — ✅ every input has a screen-reader name (test-enforced); all commands reachable by Tab/Enter and shortcuts; WCAG contrast: solved value 18:1 light / 11.8:1 dark, accent 6.8:1, report muted text 5.7:1 (AA ≥ 4.5:1). A screen-reader walk-through on Windows (Narrator) is still to do
 - G6 User guide — 2 d — ✅ v0.10.0 docs/USER_GUIDE.md (checked against the code)
 - G7 Release checklist — 0.5 d — ⬜
 
