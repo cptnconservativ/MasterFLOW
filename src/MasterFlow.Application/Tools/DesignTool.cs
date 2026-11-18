@@ -110,7 +110,7 @@ public static class DesignTools
 /// <summary>
 /// Parsed tool input. Lines before the first [Section] and "key = value" lines inside sections are
 /// parameters; other lines in a section form a table whose first line is the header. Columns are split on
-/// tabs, or on commas when a line has no tab. Blank lines and lines starting with # are ignored. Keys and
+/// tabs, or on commas when a line has no tab. Blank lines and lines starting with # are ignored, as is " # comment" after a value. Keys and
 /// section names are case-insensitive.
 /// </summary>
 public sealed class ToolInput
@@ -133,7 +133,9 @@ public sealed class ToolInput
             if (eq > 0 && !line.Contains('\t') && (section == "" || !line[..eq].Contains(',')))
             {
                 string key = (section == "" ? "" : section + ".") + line[..eq].Trim();
-                p._values[key] = line[(eq + 1)..].Trim();
+                string value = line[(eq + 1)..];
+                int hash = value.IndexOf(" #", StringComparison.Ordinal);   // trailing comment
+                p._values[key] = (hash >= 0 ? value[..hash] : value).Trim();
                 continue;
             }
             if (section == "") { p.Errors.Add(CalcMessage.Error("E-TL-001", $"\"{line}\" is not a \"key = value\" line and is not under a [Section] heading.")); continue; }

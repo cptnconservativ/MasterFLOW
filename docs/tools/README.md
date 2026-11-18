@@ -18,3 +18,4 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Tool | Source | Doc |
 |---|---|---|
 | Rational method | Rapid City IDCM 2012 §4.2 | [rational-method.md](rational-method.md) |
+| Gutter spread and inlets | IDCM §4.4–4.5, HEC-22 | [gutter-inlets.md](gutter-inlets.md) |
