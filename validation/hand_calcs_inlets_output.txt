@@ -1,0 +1,13 @@
+Case 1  uniform Sx 0.02, n 0.016
+  CB-A T=11.2563 Eo=0.4069 Se=0.05390 LT=21.0086 E=0.68753 Qi=2.75014 bypass=1.24986
+  CB-B Q=3.74986 T=11.4562 V=2.8572 Vo=4.3738 Eo=0.4009 Rf=1.0000 Rs=0.07225 E=0.44415 Qi=1.66550 bypass=2.08436
+  CB-C Q=3.58436 grate depth=0.34880 (weir) depth at curb=0.36880 T=18.4399
+Case 2  composite gutter W 2, Sw 0.0833, Sx 0.02, n 0.016; curb opening on grade Q 4, S 0.015, L 10, no local depression
+  T=10.21886 Eo=0.56816 a=0.1266 Se=0.05596 LT=20.5411 E=0.69907 Qi=2.79626 depth=0.33098
+Case 3  sag curb opening, uniform gutter, undepressed, L 5, h 0.5
+  Q=3.0: d=0.34200
+  Q=6.0: d=0.53756
+  Q=12.0: d=1.04762
+Case 4  sag combination, uniform, grate L 3 W 2 A 3.2 (33 % clog), curb opening L 3 h 0.5
+  Q=2.0: depth at curb=0.25086
+  Q=12.0: depth at curb=0.65910
