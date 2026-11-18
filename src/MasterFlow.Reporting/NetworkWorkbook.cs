@@ -51,13 +51,13 @@ public static class NetworkWorkbook
             new object?[]
             {
                 "Structure", "Type", "Outfall", $"Inflow ({c.Discharge})", $"Inflow {n.MinorStormName} ({c.Discharge})", $"Rim ({c.Length})", $"HGL ({c.Length})", $"EGL ({c.Length})", $"Rim − HGL ({c.Length})", $"Required ({c.Length})", "HGL check",
-                $"Rim − EGL ({c.Length})", $"EGL required ({c.Length})", "EGL check", "Loss method", "Equation", $"hj ({c.Length})", $"V2 out ({c.Velocity})", $"V1 in ({c.Velocity})", "Main inflow",
+                $"Rim − EGL ({c.Length})", $"EGL required ({c.Length})", "EGL check", "Loss method", "Equation", $"hj ({c.Length})", $"V2 out ({c.Velocity})", $"V1 in ({c.Velocity})", "Main inflow", "Alignment", $"Station ({c.Length})", $"Offset, right + ({c.Length})",
             },
         };
         foreach (var s in r.Structures)
             st.Add([s.Structure.Name, s.Structure.Kind, s.IsOutfall ? "Yes" : "No", s.Structure.Inflow, s.Structure.MinorInflow, s.Structure.RimElevation, s.Hgl, s.Egl, s.HglClearance, need,
                 Check(need, s.HglClearance), s.EglClearance, needE, Check(needE, s.EglClearance), s.LossMethod, s.LossEquation,
-                s.IsOutfall ? null : s.Loss, s.IsOutfall ? null : s.OutletVelocity, s.InletVelocity, s.MainInflow]);
+                s.IsOutfall ? null : s.Loss, s.IsOutfall ? null : s.OutletVelocity, s.InletVelocity, s.MainInflow, s.Structure.Alignment, s.Structure.Station, s.Structure.Offset]);
         sheets.Add(new XlsxSheet($"{name} structures", st, 2, [12, 14, 8, 10, 10, 10, 12, 12, 10, 12, 12, 10, 26, 30, 10, 11, 11, 12]));
 
         var prof = new List<IReadOnlyList<object?>> { new object?[] { $"{name}: profile points (station 0 at the outfall, increasing upstream)" } };

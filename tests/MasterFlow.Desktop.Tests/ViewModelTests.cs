@@ -962,3 +962,66 @@ public class DesignCheckViewModelTests
         Assert.All(ProjectFile.Deserialize(json).Calculations, x => Assert.Null(x.Criteria));
     }
 }
+
+public class AlignmentImportTests
+{
+    [Fact]
+    public void ApplyAlignments_StationsListedAndNetworkStructures()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "MasterFlow.slnx"))) d = d.Parent;
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(File.ReadAllBytes(Path.Combine(d!.FullName, "docs", "samples", "storm-network.xml")), "storm.xml");
+        // Tangent heading north along E 2010: CB-1 (N 5000, E 2000) is 10 ft left, MH-1 (N 5100, E 2050) 40 ft right.
+        const string xml = """
+            <LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2">
+              <Units><Imperial linearUnit="USSurveyFoot"/></Units>
+              <Alignments><Alignment name="CL" staStart="1000"><CoordGeom>
+                <Line><Start>4900 2010</Start><End>5300 2010</End></Line>
+              </CoordGeom></Alignment></Alignments>
+            </LandXML>
+            """;
+        var status = vm.ImportLandXmlBytes(System.Text.Encoding.UTF8.GetBytes(xml), "cl.xml");
+        Assert.Contains("1 alignment(s) from cl.xml (CL): stationed 3 listed structure(s) and 3 network structure(s).", status);
+        var cb = vm.Structures.Single(s => s.Structure.Name == "CB-1").Structure;
+        Assert.Equal("CL", cb.Alignment);
+        Assert.Equal(1100, cb.Station!.Value, 6);
+        Assert.Equal(-10, cb.Offset!.Value, 6);
+        var mh = vm.SelectedNetwork!.ToModel().Structures.Single(s => s.Name == "MH-1");
+        Assert.Equal(1200, mh.Station!.Value, 6);
+        Assert.Equal(40, mh.Offset!.Value, 6);
+        Assert.Equal("CL", ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject())).Structures.Single(s => s.Name == "CB-1").Alignment);
+    }
+}
+
+public class DesignToolsViewModelTests
+{
+    [Fact]
+    public void RationalMethod_AppliesInflowsToNetwork_AndInputsAreSaved()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "MasterFlow.slnx"))) d = d.Parent;
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(File.ReadAllBytes(Path.Combine(d!.FullName, "docs", "samples", "storm-network.xml")), "storm.xml");
+        var tools = vm.Tools;
+        tools.SelectedTool = MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city");
+        Assert.Contains("CB-1", tools.InputText);             // sample uses the network's structure names
+        tools.Run();
+        Assert.True(tools.Result!.Succeeded, tools.ResultText);
+        Assert.True(tools.CanApply);
+        tools.ApplyToNetwork();
+        var cb = vm.SelectedNetwork!.ToModel().Structures.Single(s => s.Name == "CB-1");
+        Assert.True(cb.Inflow > 0 && cb.MinorInflow > 0 && cb.MinorInflow < cb.Inflow);
+        Assert.True(vm.IsDirty);
+        Assert.Contains("<table>", tools.BuildHtml());
+        Assert.NotNull(tools.BuildWorkbook());
+
+        tools.InputText += "\n# edited";
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        Assert.EndsWith("# edited", back.ToolInputs["rational-rapid-city"]);
+        var vm2 = new MainViewModel();
+        vm2.Tools.LoadInputs(back.ToolInputs);
+        vm2.Tools.SelectedTool = MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city");
+        Assert.EndsWith("# edited", vm2.Tools.InputText);
+    }
+}

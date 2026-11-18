@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MasterFlow.Domain\MasterFlow.Domain.csproj" />
     <ProjectReference Include="..\MasterFlow.Hydraulics\MasterFlow.Hydraulics.csproj" />
+    <ProjectReference Include="..\MasterFlow.Application\MasterFlow.Application.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

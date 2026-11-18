@@ -132,6 +132,12 @@ The same button reads **pipe networks** (export the storm network to LandXML fro
 - Inlets, manholes and outlets appear on the **Structures** tab with northing/easting, rim and sump
   elevations and pipe inverts, and in a *Structures* sheet in the Excel workbook. Importing the same
   network again updates them.
+- **Alignments** in the file (or a separate alignment-only LandXML export) station the structures: each
+  structure with northing/easting gets the nearest alignment's name, station (shown as `12+34.56`, or
+  `1+234.567` in SI) and offset, positive to the right of stationing. They appear on the Structures tab,
+  in the network tables of the PDF/HTML report and in the Excel sheets. Lines, curves and clothoid
+  spirals are read; gaps between elements and unsupported elements are reported. Alignments themselves
+  are not kept: import again after the road changes.
 - Reported, not fixed: missing inverts (no slope), flat or adverse slopes, other pipe shapes (box, egg),
   and sizes that look like inches or millimetres in a feet or metre file.
 - Sample: `docs/samples/storm-network.xml`.
@@ -288,6 +294,14 @@ the HGL in red wherever it is above the limit), **Pipes**, **Structures**
 path and both tables; **Copy tables** puts them on the clipboard; **Excel…** adds sheets for the pipes,
 structures, the 50 ft readings (with limit − HGL and OK/FAILS), every profile point (station, invert, crown, HGL, EGL) and messages. Networks are saved with
 the project.
+
+## 6b. Design tools
+
+**Design tools…** opens drainage design tools that share one window: pick a tool, edit its text input
+(**Sample** fills in an example), press **Run** (F5), then copy, save as HTML/Excel, or **Apply to network**
+where the tool offers it. Inputs are saved with the project. See [docs/tools](tools/README.md) for each tool's
+method and sources. The first tool is the Rapid City rational method, which can fill in the storm network's
+structure inflows for the design and minor storms.
 
 ## 7. Projects, templates and safety nets
 

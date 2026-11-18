@@ -229,6 +229,15 @@ public sealed partial class NetworkViewModel : ObservableObject
         Status = (r.Changes.Count == 0 ? "Sizing: no changes needed or possible. " : $"Sized: {r.Changes.Count} pipe(s) changed (see Sizing). ") + Status;
     }
 
+    /// <summary>Replaces this network with one a design tool produced (e.g. new structure inflows), solves it and keeps the change undoable in the project history.</summary>
+    public void ApplyChanges(StormNetwork n, string status)
+    {
+        Load(n with { Name = Name });
+        Solve();
+        Status = status + " " + Status;
+        Edited?.Invoke(this, EventArgs.Empty);
+    }
+
     [RelayCommand]
     public void UndoSizing()
     {
@@ -239,6 +248,21 @@ public sealed partial class NetworkViewModel : ObservableObject
         SizingReport.Clear();
         Solve();
         Status = "Sizing undone. " + Status;
+    }
+
+    /// <summary>Sets station/offset on every structure with coordinates; returns how many were stationed.</summary>
+    public int ApplyStations(Func<double, double, StationOffset?> project)
+    {
+        var (n, _) = BuildModel();
+        int count = 0;
+        _structures = n.Structures.Select(s =>
+        {
+            if (s.Northing is not { } north || s.Easting is not { } east || project(north, east) is not { } so) return s;
+            count++;
+            return s with { Alignment = so.Alignment, Station = so.Station, Offset = so.Offset };
+        }).ToList();
+        if (count > 0) { Edited?.Invoke(this, EventArgs.Empty); Result = null; }
+        return count;
     }
 
     /// <summary>Tab-separated pipes and structures tables (for pasting into Excel).</summary>
