@@ -318,4 +318,18 @@ public class StormNetworkTests
         Assert.True(double.IsNaN(partial.Pipe("P3")!.MinorDischarge));
         Assert.Contains(partial.Messages, m => m.Code == "W-NW-009" && m.Text.Contains("\"P1\""));
     }
+
+    /// <summary>Review finding: a negative minor-storm Q at a pipe or a junction must stop the solve, not subtract downstream.</summary>
+    [Fact]
+    public void MinorStorm_NegativeFlows_AreRejected()
+    {
+        var atPipe = StormNetworkSolver.Solve(NetB() with { Pipes = NetB().Pipes.Select(p => p.Name == "P2" ? p with { MinorDischarge = -1 } : p).ToList() });
+        Assert.False(atPipe.Succeeded);
+        Assert.Contains(atPipe.Messages, m => m.Code == "E-NW-007" && m.Text.Contains("\"P2\"") && m.Text.Contains("minor-storm"));
+        var atJunction = StormNetworkSolver.Solve(NetB() with { Structures = Structs.Select(s => s.Name switch { "CB-3" => s with { MinorInflow = 2 }, "MH-2" => s with { MinorInflow = -1 }, _ => s }).ToList() });
+        Assert.False(atJunction.Succeeded);
+        Assert.Contains(atJunction.Messages, m => m.Code == "E-NW-014" && m.Text.Contains("MH-2"));
+        var infinite = StormNetworkSolver.Solve(NetB() with { Pipes = NetB().Pipes.Select(p => p.Name == "P1" ? p with { MinorDischarge = double.PositiveInfinity } : p).ToList() });
+        Assert.False(infinite.Succeeded);
+    }
 }

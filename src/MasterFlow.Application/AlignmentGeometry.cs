@@ -16,6 +16,12 @@ public sealed record AlignmentElement(
     double CenterN = 0, double CenterE = 0, bool Clockwise = false,
     double StartBearing = 0, double CurvatureStart = 0, double CurvatureEnd = 0);
 
+/// <summary>
+/// A station equation: from internal (continuous) station <see cref="Internal"/> on, the displayed station is
+/// <see cref="Ahead"/> + (internal − <see cref="Internal"/>). <see cref="Back"/> is the station behind the equation.
+/// </summary>
+public sealed record StationEquation(double Internal, double Back, double Ahead);
+
 /// <summary>Station and offset of a point from an alignment. Offset is positive to the right of the direction of stationing.</summary>
 public sealed record StationOffset(string Alignment, double Station, double Offset, bool BeyondEnds);
 
@@ -34,11 +40,25 @@ public sealed class Alignment
     /// <summary>Gaps or mismatches found between consecutive elements (computed vs. stated end points).</summary>
     public IReadOnlyList<string> Problems { get; }
 
-    public double EndStation => Points.Count == 0 ? StartStation : Points[^1].Sta;
+    /// <summary>Station equations in order of internal station. Stations reported by <see cref="Project"/> and <see cref="EndStation"/> apply them.</summary>
+    public IReadOnlyList<StationEquation> Equations { get; }
 
-    public Alignment(string name, double startStation, IReadOnlyList<AlignmentElement> elements)
+    /// <summary>Displayed end station (station equations applied). <see cref="Points"/> keep internal, continuous stations.</summary>
+    public double EndStation => ToDisplay(Points.Count == 0 ? StartStation : Points[^1].Sta);
+
+    /// <summary>Displayed station for an internal (continuous) station, applying the last equation at or before it.</summary>
+    public double ToDisplay(double internalSta)
+    {
+        double d = internalSta;
+        foreach (var q in Equations)
+            if (internalSta >= q.Internal - 1e-9) d = q.Ahead + (internalSta - q.Internal);
+        return d;
+    }
+
+    public Alignment(string name, double startStation, IReadOnlyList<AlignmentElement> elements, IReadOnlyList<StationEquation>? equations = null)
     {
         Name = name; StartStation = startStation; Elements = elements;
+        Equations = (equations ?? []).OrderBy(q => q.Internal).ToList();
         var pts = new List<(double, double, double)>();
         var problems = new List<string>();
         var parts = new List<(AlignmentElement, double, int, int)>();
@@ -174,7 +194,7 @@ public sealed class Alignment
                 }
             }
         }
-        return new StationOffset(Name, sta, off, beyond);
+        return new StationOffset(Name, ToDisplay(sta), off, beyond);
     }
 
     /// <summary>The nearest alignment (smallest |offset|) for a point, ignoring alignments where the point falls beyond the ends when any other fits.</summary>
