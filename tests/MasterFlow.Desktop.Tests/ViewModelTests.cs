@@ -1,4 +1,4 @@
-using MasterFlow.Application;
+﻿using MasterFlow.Application;
 using MasterFlow.Desktop.ViewModels;
 using MasterFlow.Domain;
 using MasterFlow.Hydraulics;
@@ -885,6 +885,28 @@ public class PipeNetworkImportTests
         n.UndoSizing();
         Assert.Equal(before, n.PipesText);
         Assert.False(n.CanUndoSizing);
+    }
+
+    [Fact]
+    public void Civil3DResults_FromImportedNetwork_MatchPipeNamesAndSolve()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        var n = vm.SelectedNetwork!;
+        n.StructuresText = n.StructuresText.Replace("CB-1\tInlet\t105.2\tAuto\t\t", "CB-1\tInlet\t105.2\tAuto\t\t6");
+        n.Tailwater = TailwaterRule.FreeOutfall;
+        var built = vm.BuildCivil3DResults(n);
+        Assert.NotNull(built);
+        Assert.True(n.HasResult, n.Status);
+        foreach (var p in n.Result!.Pipes)
+            Assert.Contains($"(\"{p.Pipe.Name}\" {Civil3DWriteBack.Real(p.HglUp)} {Civil3DWriteBack.Real(p.HglDown)} ", built.Value.Lisp);
+        Assert.Contains($"(setq mf:network \"{n.Name}\")", built.Value.Lisp);   // the Civil 3D network name, for matching
+        Assert.Equal(1 + n.Result.Pipes.Count + n.Result.Structures.Count, built.Value.Csv.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Length);
+
+        // A network that cannot solve gives no files and says why.
+        n.PipesText = "";
+        Assert.Null(vm.BuildCivil3DResults(n));
+        Assert.Contains("did not solve", n.Status);
     }
 
     [Fact]

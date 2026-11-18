@@ -151,7 +151,7 @@ public static class ToolReport
             c.RotateDegrees(-90);
             fonts.Draw(c, chart.YLabel, 0, 0, fonts.Regular, 7f, PdfStyle.Ink);
             c.Restore();
-            foreach (var l in chart.Lines ?? [])
+            foreach (var l in (chart.Lines ?? []).Where(l => !chart.LogY || l.Y > 0))
             {
                 using var lp = new SKPaint { Color = PdfStyle.Amber, StrokeWidth = 0.8f, PathEffect = SKPathEffect.CreateDash([2f, 2.5f], 0) };
                 var a = P(g.X0, l.Y); var b = P(g.X1, l.Y);
@@ -166,15 +166,21 @@ public static class ToolReport
                 var col = SKColor.Parse(ToolChartLayout.Color(s, i));
                 using var paint = new SKPaint { Color = col, StrokeWidth = 1.2f, IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeJoin = SKStrokeJoin.Round };
                 if (s.Dashed) paint.PathEffect = SKPathEffect.CreateDash([5f, 2.5f], 0);
-                var pts = s.Points.Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y)).ToList();
-                if (pts.Count >= 2)
+                var pts = s.Points.Where(g.Plottable).ToList();
+                if (s.MarkersOnly)
+                {
+                    using var dot = new SKPaint { Color = col, IsAntialias = true, Style = SKPaintStyle.Fill };
+                    foreach (var q in pts) c.DrawCircle(P(q.X, q.Y), 2.5f, dot);
+                    c.DrawCircle(lx + 8, y + 9, 2.5f, dot);
+                }
+                else if (pts.Count >= 2)
                 {
                     using var path = new SKPath();
                     path.MoveTo(P(pts[0].X, pts[0].Y));
                     foreach (var q in pts.Skip(1)) path.LineTo(P(q.X, q.Y));
                     c.DrawPath(path, paint);
                 }
-                c.DrawLine(lx, y + 9, lx + 16, y + 9, paint);
+                if (!s.MarkersOnly) c.DrawLine(lx, y + 9, lx + 16, y + 9, paint);
                 fonts.Draw(c, s.Name, lx + 20, y + 11.5f, fonts.Regular, 7f, PdfStyle.Ink);
                 lx += 20 + fonts.Measure(s.Name, fonts.Regular, 7f) + 12;
             }

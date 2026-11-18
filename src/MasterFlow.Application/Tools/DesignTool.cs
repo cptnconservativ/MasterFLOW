@@ -11,14 +11,19 @@ public sealed record DesignToolContext(UnitSystem Units, StormNetwork? Network =
 /// <summary>A result table: shown in the window, the HTML report and as an Excel sheet. Cells are numbers or text.</summary>
 public sealed record ToolTable(string Title, IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows, IReadOnlyList<string>? Notes = null);
 
-/// <summary>One line on a chart: (x, y) points in order. Dashed lines are drawn dashed in every report.</summary>
-public sealed record ChartSeries(string Name, IReadOnlyList<(double X, double Y)> Points, bool Dashed = false, int Color = -1);
+/// <summary>One line on a chart: (x, y) points in order. Dashed lines are drawn dashed in every report; MarkersOnly draws points without a line.</summary>
+public sealed record ChartSeries(string Name, IReadOnlyList<(double X, double Y)> Points, bool Dashed = false, int Color = -1, bool MarkersOnly = false);
 
 /// <summary>A labelled horizontal reference line (a limit, a crest, the top of berm).</summary>
 public sealed record ChartLine(string Label, double Y);
 
 /// <summary>An x–y line chart drawn in the HTML and PDF reports. Its data also appear in a table, so the Excel export carries the numbers.</summary>
-public sealed record ToolChart(string Title, string XLabel, string YLabel, IReadOnlyList<ChartSeries> Series, IReadOnlyList<ChartLine>? Lines = null);
+public sealed record ToolChart(string Title, string XLabel, string YLabel, IReadOnlyList<ChartSeries> Series, IReadOnlyList<ChartLine>? Lines = null)
+{
+    /// <summary>Logarithmic axes (e.g. IDF curves); points ≤ 0 are left out on a log axis.</summary>
+    public bool LogX { get; init; }
+    public bool LogY { get; init; }
+}
 
 /// <summary>
 /// The outcome of running a tool. Messages carry every error, warning and assumption; a tool with an error
