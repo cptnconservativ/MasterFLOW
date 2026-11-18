@@ -24,7 +24,7 @@ public static class NetworkWorkbook
             new object?[]
             {
                 "Pipe", "From", "To", "Shape", $"Rise ({NetworkText.SizeUnit(n.Units)})", $"Span ({NetworkText.SizeUnit(n.Units)})", $"Length ({c.Length})",
-                $"Inv up ({c.Length})", $"Inv down ({c.Length})", "Slope", "n", $"Q ({c.Discharge})", "Q source", $"Qfull ({c.Discharge})", $"Vfull ({c.Velocity})",
+                $"Inv up ({c.Length})", $"Inv down ({c.Length})", "Slope", "n", $"Q ({c.Discharge})", "Q source", $"Q {n.MinorStormName} ({c.Discharge})", $"V {n.MinorStormName} ({c.Velocity})", $"Qfull ({c.Discharge})", $"Vfull ({c.Velocity})",
                 $"yn ({c.Length})", $"yc ({c.Length})", $"Vn ({c.Velocity})", "Regime", "Condition", "Downstream control",
                 $"Depth down ({c.Length})", $"Depth up ({c.Length})", $"V down ({c.Velocity})", $"V up ({c.Velocity})",
                 $"HGL down ({c.Length})", $"HGL up ({c.Length})", $"EGL down ({c.Length})", $"EGL up ({c.Length})", $"Energy loss ({c.Length})",
@@ -33,7 +33,7 @@ public static class NetworkWorkbook
         };
         foreach (var p in r.Pipes)
             pipes.Add([p.Pipe.Name, p.Pipe.From, p.Pipe.To, p.Pipe.Shape.ToString(), p.Pipe.Rise / k, p.Pipe.Span / k, p.Pipe.Length,
-                p.Pipe.UpstreamInvert, p.Pipe.DownstreamInvert, p.Slope, p.Pipe.ManningN, p.Pipe.Discharge, r.AccumulatedPipes.Contains(p.Pipe.Name) ? "Accumulated" : "Typed", p.FullFlowCapacity, p.FullFlowVelocity,
+                p.Pipe.UpstreamInvert, p.Pipe.DownstreamInvert, p.Slope, p.Pipe.ManningN, p.Pipe.Discharge, r.AccumulatedPipes.Contains(p.Pipe.Name) ? "Accumulated" : "Typed", p.MinorDischarge, p.MinorVelocity, p.FullFlowCapacity, p.FullFlowVelocity,
                 p.NormalDepth, p.CriticalDepth, p.NormalVelocity, p.Regime, p.Condition, p.DownstreamControl,
                 p.DepthDown, p.DepthUp, p.VelocityDown, p.VelocityUp, p.HglDown, p.HglUp, p.EglDown, p.EglUp, p.EnergyLoss,
                 p.FlowsFull ? "Yes" : "No", p.JumpStation]);
@@ -50,12 +50,12 @@ public static class NetworkWorkbook
             new object?[] { $"{name}: structures" },
             new object?[]
             {
-                "Structure", "Type", "Outfall", $"Inflow ({c.Discharge})", $"Rim ({c.Length})", $"HGL ({c.Length})", $"EGL ({c.Length})", $"Rim − HGL ({c.Length})", $"Required ({c.Length})", "HGL check",
+                "Structure", "Type", "Outfall", $"Inflow ({c.Discharge})", $"Inflow {n.MinorStormName} ({c.Discharge})", $"Rim ({c.Length})", $"HGL ({c.Length})", $"EGL ({c.Length})", $"Rim − HGL ({c.Length})", $"Required ({c.Length})", "HGL check",
                 $"Rim − EGL ({c.Length})", $"EGL required ({c.Length})", "EGL check", "Loss method", "Equation", $"hj ({c.Length})", $"V2 out ({c.Velocity})", $"V1 in ({c.Velocity})", "Main inflow",
             },
         };
         foreach (var s in r.Structures)
-            st.Add([s.Structure.Name, s.Structure.Kind, s.IsOutfall ? "Yes" : "No", s.Structure.Inflow, s.Structure.RimElevation, s.Hgl, s.Egl, s.HglClearance, need,
+            st.Add([s.Structure.Name, s.Structure.Kind, s.IsOutfall ? "Yes" : "No", s.Structure.Inflow, s.Structure.MinorInflow, s.Structure.RimElevation, s.Hgl, s.Egl, s.HglClearance, need,
                 Check(need, s.HglClearance), s.EglClearance, needE, Check(needE, s.EglClearance), s.LossMethod, s.LossEquation,
                 s.IsOutfall ? null : s.Loss, s.IsOutfall ? null : s.OutletVelocity, s.InletVelocity, s.MainInflow]);
         sheets.Add(new XlsxSheet($"{name} structures", st, 2, [12, 14, 8, 10, 10, 10, 12, 12, 10, 12, 12, 10, 26, 30, 10, 11, 11, 12]));

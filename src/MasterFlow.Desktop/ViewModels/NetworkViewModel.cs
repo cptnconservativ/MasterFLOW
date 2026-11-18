@@ -37,6 +37,7 @@ public sealed partial class NetworkViewModel : ObservableObject
     [ObservableProperty] private TailwaterRule _tailwater = TailwaterRule.HalfCriticalPlusDiameter;
     [ObservableProperty] private string _tailwaterElevation = "";
     [ObservableProperty] private string _defaultJunctionK = "0.5";
+    [ObservableProperty] private string _minorStormName = "minor storm";
     [ObservableProperty] private string _hglBelowRim = "";
     [ObservableProperty] private string _eglBelowRim = "";
     [ObservableProperty] private string _minVelocity = "";
@@ -105,7 +106,7 @@ public sealed partial class NetworkViewModel : ObservableObject
         PipesText = NetworkText.FormatPipes(n);
         _structures = n.Structures;
         StructuresText = NetworkText.FormatStructures(n);
-        Tailwater = n.Tailwater; TailwaterElevation = S(n.TailwaterElevation); DefaultJunctionK = S(n.DefaultJunctionK);
+        Tailwater = n.Tailwater; TailwaterElevation = S(n.TailwaterElevation); DefaultJunctionK = S(n.DefaultJunctionK); MinorStormName = n.MinorStormName;
         var c = n.Criteria;
         HglBelowRim = S(c.HglBelowRim); EglBelowRim = S(c.EglBelowRim); MinVelocity = S(c.MinVelocity); MaxVelocity = S(c.MaxVelocity);
         AllowSurcharge = c.AllowSurcharge; MinPipeSize = S(c.MinPipeRise / NetworkText.SizeToBase(n.Units)); FlagSupercritical = c.FlagSupercritical; CriteriaSource = c.Source;
@@ -140,6 +141,7 @@ public sealed partial class NetworkViewModel : ObservableObject
             Name = string.IsNullOrWhiteSpace(Name) ? "Storm network" : Name.Trim(), Units = Units, Pipes = pipes, Structures = structs,
             Tailwater = Tailwater, TailwaterElevation = Opt(TailwaterElevation, "Tailwater elevation", errs),
             DefaultJunctionK = Opt(DefaultJunctionK, "Default K", errs) ?? 0.5, Criteria = crit,
+            MinorStormName = string.IsNullOrWhiteSpace(MinorStormName) ? "minor storm" : MinorStormName.Trim(),
         };
         return (n, errs);
     }
@@ -163,7 +165,8 @@ public sealed partial class NetworkViewModel : ObservableObject
         MinPipeSize = si ? "305" : "12";
         FlagSupercritical = c.FlagSupercritical;
         CriteriaSource = c.Source + (si ? " (converted from U.S. customary)" : "");
-        Status = "Rapid City IDCM 2012 criteria set: HGL at least 1 ft below the rim (§4.6.7); minimum 2.5 fps (applies to the 2-year storm Q); " +
+        MinorStormName = "2-yr";
+        Status = "Rapid City IDCM 2012 criteria set: HGL at least 1 ft below the rim (§4.6.7); minimum 2.5 fps at the 2-yr flow (enter 2-yr inflows or Q minor; without them the design flow is used); " +
                  "maximum 20 fps (Table 4-13, collectors and mains; inlet laterals have no limit); 12 in. minimum (18 in. if the pipe has bends); slopes below critical; designed as open channel (no surcharge).";
     }
 

@@ -282,4 +282,54 @@ public class StormNetworkTests
         var neg = StormNetworkSolver.Solve(NetA() with { Structures = Structs.Select(s => s with { Inflow = -1 }).ToList() });
         Assert.Contains(neg.Messages, m => m.Code == "E-NW-014");
     }
+
+    /// <summary>
+    /// Minor-storm velocities against an independent bisection (python, normal depth in a circle, k = 1.486, n = 0.013):
+    /// P1 2 ft, S = 0.002, Q = 3 → 2.806070 fps; P2 1.5 ft, S = 0.35/150, Q = 1 → 2.232566 fps; P3 1.25 ft, S = 0.2/60, Q = 1 → 2.575796 fps.
+    /// </summary>
+    [Fact]
+    public void MinorStorm_Velocity_AccumulatedAndChecked()
+    {
+        var n = NetB() with
+        {
+            MinorStormName = "2-yr", Criteria = NetworkCriteria.RapidCity2012,
+            Structures = Structs.Select(s => s.Name switch { "CB-3" => s with { MinorInflow = 1 }, "CB-4" => s with { MinorInflow = 1 }, "MH-2" => s with { MinorInflow = 1 }, _ => s }).ToList(),
+        };
+        var r = StormNetworkSolver.Solve(n);
+        Assert.True(r.Succeeded);
+        Assert.Equal(3, r.Pipe("P1")!.MinorDischarge, 12);
+        Assert.Equal(2.806070, r.Pipe("P1")!.MinorVelocity, 3);
+        Assert.Equal(2.232566, r.Pipe("P2")!.MinorVelocity, 3);
+        Assert.Equal(2.575796, r.Pipe("P3")!.MinorVelocity, 3);
+        var low = Assert.Single(r.Messages, m => m.Code == "W-NW-004");
+        Assert.Contains("\"P2\"", low.Text);
+        Assert.Contains("2-yr", low.Text);
+        // The design-flow HGL is unchanged by the minor storm.
+        Assert.Equal(StormNetworkSolver.Solve(NetB()).Structure("MH-2")!.Hgl, r.Structure("MH-2")!.Hgl, 12);
+    }
+
+    [Fact]
+    public void MinorStorm_Absent_FallsBackToDesignFlow_PartialIsWarned()
+    {
+        var r = StormNetworkSolver.Solve(NetB() with { Criteria = NetworkCriteria.RapidCity2012 });
+        Assert.All(r.Pipes, p => Assert.True(double.IsNaN(p.MinorDischarge)));
+        var partial = StormNetworkSolver.Solve(NetB() with { Structures = Structs.Select(s => s.Name == "CB-3" ? s with { MinorInflow = 1 } : s).ToList() });
+        Assert.Equal(1, partial.Pipe("P1")!.MinorDischarge, 12);
+        Assert.True(double.IsNaN(partial.Pipe("P3")!.MinorDischarge));
+        Assert.Contains(partial.Messages, m => m.Code == "W-NW-009" && m.Text.Contains("\"P1\""));
+    }
+
+    /// <summary>Review finding: a negative minor-storm Q at a pipe or a junction must stop the solve, not subtract downstream.</summary>
+    [Fact]
+    public void MinorStorm_NegativeFlows_AreRejected()
+    {
+        var atPipe = StormNetworkSolver.Solve(NetB() with { Pipes = NetB().Pipes.Select(p => p.Name == "P2" ? p with { MinorDischarge = -1 } : p).ToList() });
+        Assert.False(atPipe.Succeeded);
+        Assert.Contains(atPipe.Messages, m => m.Code == "E-NW-007" && m.Text.Contains("\"P2\"") && m.Text.Contains("minor-storm"));
+        var atJunction = StormNetworkSolver.Solve(NetB() with { Structures = Structs.Select(s => s.Name switch { "CB-3" => s with { MinorInflow = 2 }, "MH-2" => s with { MinorInflow = -1 }, _ => s }).ToList() });
+        Assert.False(atJunction.Succeeded);
+        Assert.Contains(atJunction.Messages, m => m.Code == "E-NW-014" && m.Text.Contains("MH-2"));
+        var infinite = StormNetworkSolver.Solve(NetB() with { Pipes = NetB().Pipes.Select(p => p.Name == "P1" ? p with { MinorDischarge = double.PositiveInfinity } : p).ToList() });
+        Assert.False(infinite.Succeeded);
+    }
 }

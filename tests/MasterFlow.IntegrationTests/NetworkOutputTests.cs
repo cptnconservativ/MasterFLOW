@@ -58,6 +58,11 @@ public class NetworkOutputTests
         Assert.Equal(0.8, structs[1].JunctionK);
         Assert.Equal(106.0, structs[1].RimElevation);
         Assert.Equal(4.5, structs[1].Inflow);
+        var (q2, q2e) = NetworkText.ParsePipes(NetworkText.FormatPipes(n with { Pipes = [n.Pipes[0] with { MinorDischarge = 2.5 }] }), n.Units);
+        Assert.Empty(q2e);
+        Assert.Equal(2.5, q2[0].MinorDischarge);
+        var (s2, _) = NetworkText.ParseStructures("MH\tManhole\t100\t\t\t3\t1.5");
+        Assert.Equal(1.5, s2[0].MinorInflow);
         Assert.Null(structs[0].Inflow);
         // A blank Q means "accumulate".
         var (blank, be) = NetworkText.ParsePipes("P1\tA\tB\tCircular\t24\t\t200\t101\t100\t0.013\t", UnitSystem.USCustomary);
@@ -189,5 +194,6 @@ public class NetworkOutputTests
         Assert.Equal(NetA().Structures, n.Structures);
         Assert.Equal(NetA().Criteria, n.Criteria);
         Assert.Equal(102.5, n.TailwaterElevation);
+        Assert.All(n.Pipes, x => Assert.True(double.IsNaN(x.MinorDischarge)));
     }
 }

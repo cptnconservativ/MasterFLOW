@@ -837,7 +837,7 @@ public class PipeNetworkImportTests
 
         // Enter Q (last column), apply the Rapid City criteria and solve.
         var lines = n.PipesText.Split('\n');
-        n.PipesText = string.Join('\n', lines.Select((l, i) => i == 0 ? l : l + (i == 1 ? "6" : "10")));
+        n.PipesText = string.Join('\n', lines.Select((l, i) => i == 0 ? l : l[..^1] + (i == 1 ? "6" : "10") + "\t"));   // Q is the second-last column
         n.ApplyRapidCityCommand.Execute(null);
         n.Tailwater = TailwaterRule.FreeOutfall;
         n.Solve();

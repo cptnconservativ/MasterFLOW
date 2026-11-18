@@ -17,7 +17,7 @@ public static class NetworkTables
     public static IReadOnlyList<string> PipeHeader(UnitConstants c, UnitSystem u) =>
     [
         "Pipe", "From → To", $"Size ({NetworkText.SizeUnit(u)})", $"L ({c.Length})", "S (%)", "n", $"Q ({c.Discharge})", $"Qfull ({c.Discharge})",
-        $"yn ({c.Length})", $"yc ({c.Length})", "Regime / flow", $"V dn ({c.Velocity})", $"V up ({c.Velocity})",
+        $"Q minor ({c.Discharge})", $"V minor ({c.Velocity})", $"yn ({c.Length})", $"yc ({c.Length})", "Regime / flow", $"V dn ({c.Velocity})", $"V up ({c.Velocity})",
         $"HGL dn", $"HGL up", $"EGL dn", $"EGL up", $"hf ({c.Length})",
     ];
 
@@ -29,7 +29,7 @@ public static class NetworkTables
             p.Pipe.Name, $"{p.Pipe.From} → {p.Pipe.To}",
             p.Pipe.Shape == NetworkPipeShape.Circular ? F(p.Pipe.Rise / k, 0) : $"{F(p.Pipe.Rise / k, 0)}×{F(p.Pipe.Span / k, 0)}",
             F(p.Pipe.Length, 1), F(100 * p.Slope, 3), F(p.Pipe.ManningN, 3), F(p.Pipe.Discharge, 2) + (r.AccumulatedPipes.Contains(p.Pipe.Name) ? " Σ" : ""), F(p.FullFlowCapacity, 2),
-            F(p.NormalDepth, 3), F(p.CriticalDepth, 3), $"{p.Regime}; {p.Condition}", F(p.VelocityDown, 2), F(p.VelocityUp, 2),
+            F(p.MinorDischarge, 2), F(p.MinorVelocity, 2), F(p.NormalDepth, 3), F(p.CriticalDepth, 3), $"{p.Regime}; {p.Condition}", F(p.VelocityDown, 2), F(p.VelocityUp, 2),
             F(p.HglDown, 2), F(p.HglUp, 2), F(p.EglDown, 2), F(p.EglUp, 2), F(p.EnergyLoss, 3),
         ]).ToList();
     }
@@ -59,7 +59,7 @@ public static class NetworkTables
         if (k.HglBelowRim is { } h) parts.Add($"HGL at least {h.ToString("0.##", Inv)} {c.Length} below the rim");
         if (k.EglBelowRim is { } e) parts.Add($"EGL at least {e.ToString("0.##", Inv)} {c.Length} below the rim");
         if (k.MaxVelocity is { } mx) parts.Add($"V ≤ {mx.ToString("0.##", Inv)} {c.Velocity}");
-        if (k.MinVelocity is { } mn) parts.Add($"V ≥ {mn.ToString("0.##", Inv)} {c.Velocity}");
+        if (k.MinVelocity is { } mn) parts.Add($"V ≥ {mn.ToString("0.##", Inv)} {c.Velocity} (at the {n.MinorStormName} flow where entered)");
         if (!k.AllowSurcharge) parts.Add("no pressure flow");
         if (k.MinPipeRise is { } mr) parts.Add($"size ≥ {(mr / NetworkText.SizeToBase(n.Units)).ToString("0", Inv)} {NetworkText.SizeUnit(n.Units)}");
         if (k.FlagSupercritical) parts.Add("slopes below critical");
@@ -116,8 +116,8 @@ public static class NetworkReport
                     pager.Add(block);
                 }
             pager.Heading("Pipes");
-            pager.AddTable(new TableBlock(fonts, [new(0.8f), new(1.5f), new(0.6f, true), new(0.6f, true), new(0.6f, true), new(0.55f, true), new(0.6f, true), new(0.65f, true),
-                new(0.55f, true), new(0.55f, true), new(2.1f), new(0.6f, true), new(0.6f, true), new(0.8f, true), new(0.8f, true), new(0.8f, true), new(0.8f, true), new(0.65f, true)],
+            pager.AddTable(new TableBlock(fonts, [new(0.8f), new(1.5f), new(0.6f, true), new(0.6f, true), new(0.6f, true), new(0.55f, true), new(0.6f, true), new(0.65f, true), new(0.6f, true), new(0.6f, true),
+                new(0.55f, true), new(0.55f, true), new(1.7f), new(0.6f, true), new(0.6f, true), new(0.8f, true), new(0.8f, true), new(0.8f, true), new(0.8f, true), new(0.65f, true)],
                 NetworkTables.PipeHeader(c, r.Network.Units), NetworkTables.PipeRows(r).Select(row => ((IReadOnlyList<PdfCell>)row.Select(x => new PdfCell(x)).ToList(), false)).ToList(), PdfStyle.Small));
             if (r.AccumulatedPipes.Count > 0) pager.Paragraph("Σ: Q accumulated from structure inflows (inflow at the upstream structure plus every pipe into it); see the trace.", size: PdfStyle.Small, color: PdfStyle.Muted);
             pager.Heading("Structures (HGL check against the rim)");
