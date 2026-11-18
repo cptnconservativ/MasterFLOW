@@ -21,3 +21,4 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Gutter spread and inlets | IDCM §4.4–4.5, HEC-22 | [gutter-inlets.md](gutter-inlets.md) |
 | Detention pond routing | IDCM §4.10, modified rational | [detention-routing.md](detention-routing.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
+| Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
