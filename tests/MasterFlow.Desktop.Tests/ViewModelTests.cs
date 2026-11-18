@@ -484,3 +484,61 @@ public class ProjectFeatureTests
         finally { Directory.Delete(dir, true); }
     }
 }
+
+public class TitleExpressionViewModelTests
+{
+    [Fact]
+    public void ListLabel_And_Report_UseEvaluatedTitle_ButFileKeepsTemplate()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.Title = "Ditch Q={Q:F0}";
+        Assert.True(c.TitleHasFields);
+        Assert.Equal("Ditch Q=400", c.ListLabel);
+        Assert.Equal("Ditch Q={Q:F0}", c.ToModel().Title);
+        Assert.Contains("Ditch Q=400", vm.BuildReportHtml(c));
+        c.Discharge = "250";
+        Assert.Equal("Ditch Q=250", c.ListLabel);
+    }
+}
+
+public class TemplateViewModelTests
+{
+    [Fact]
+    public void NewFromTemplate_AddsAndSelectsCalculation()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        int before = vm.Calculations.Count;
+        var t = vm.Templates.First(x => x.BuiltIn);
+        vm.NewFromTemplateCommand.Execute(t);
+        Assert.Equal(before + 1, vm.Calculations.Count);
+        Assert.Equal(t.Name, vm.Selected!.Title);
+        Assert.NotNull(vm.Selected.Result);
+        Assert.True(vm.IsDirty);
+    }
+
+    [Fact]
+    public void SaveAsTemplate_PersistsPerUser_AndCanBeRemoved()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mf-tpl-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var vm = MainViewModel.CreateWithSample();
+            vm.Store = new UserDataStore(dir);
+            int builtIn = vm.Templates.Count;
+            vm.Selected!.Title = "My ditch";
+            vm.SaveAsTemplateCommand.Execute(null);
+            vm.SaveAsTemplateCommand.Execute(null); // same title replaces, not duplicates
+            Assert.Equal(builtIn + 1, vm.Templates.Count);
+
+            var fresh = new MainViewModel { Store = new UserDataStore(dir) };
+            var mine = fresh.Templates.Single(t => !t.BuiltIn);
+            Assert.Equal("My ditch", mine.Name);
+            Assert.Equal(vm.Selected.ToModel().Input, mine.Calculation.Input);
+
+            fresh.DeleteUserTemplateCommand.Execute(mine);
+            Assert.Equal(builtIn, new MainViewModel { Store = new UserDataStore(dir) }.Templates.Count);
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
+    }
+}

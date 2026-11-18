@@ -22,7 +22,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.7.0";
+    public const string AppVersion = "0.8.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
@@ -37,12 +37,27 @@ public sealed partial class MainViewModel : ObservableObject
             _store = value;
             RecentFiles.Clear();
             if (value is not null) foreach (var f in value.LoadSettings().RecentFiles) RecentFiles.Add(f);
+            RefreshTemplates();
         }
+    }
+
+    /// <summary>Built-in templates followed by the user's own (saved per user, not in the project).</summary>
+    public ObservableCollection<CalculationTemplate> Templates { get; } = [];
+    private List<ChannelCalculation> _userTemplates = [];
+
+    private void RefreshTemplates()
+    {
+        _userTemplates = Store?.LoadUserTemplates().ToList() ?? _userTemplates;
+        Templates.Clear();
+        foreach (var t in BuiltInTemplates.All) Templates.Add(t);
+        foreach (var u in _userTemplates)
+            Templates.Add(new CalculationTemplate(u.Title, "My templates", u.Description, u));
     }
     private UserDataStore? _store;
 
     public MainViewModel()
     {
+        RefreshTemplates();
         Calculations.CollectionChanged += (_, _) => { if (!_loading) RefreshComparison(); };
         RecentFiles.CollectionChanged += (_, _) => OnPropertyChanged(nameof(NoRecentFiles));
     }
@@ -352,6 +367,52 @@ public sealed partial class MainViewModel : ObservableObject
         MarkDirty();
     }
 
+    /// <summary>Adds a new calculation copied from a template.</summary>
+    [RelayCommand]
+    private void NewFromTemplate(CalculationTemplate? template)
+    {
+        if (template is null) return;
+        var c = CalculationViewModel.FromModel(BuiltInTemplates.Instantiate(template));
+        Add(c);
+        Selected = c;
+        MarkDirty();
+        StatusMessage = $"Added \"{template.Name}\" from templates.";
+    }
+
+    /// <summary>Saves the selected calculation as a user template (replacing one with the same title).</summary>
+    [RelayCommand]
+    private void SaveAsTemplate()
+    {
+        if (Selected is null) return;
+        var model = Selected.ToModel() with { Folder = "" };
+        _userTemplates.RemoveAll(t => string.Equals(t.Title, model.Title, StringComparison.OrdinalIgnoreCase));
+        _userTemplates.Add(model);
+        if (!PersistUserTemplates()) return;
+        RefreshTemplates();
+        StatusMessage = $"Saved \"{model.Title}\" to My templates.";
+    }
+
+    [RelayCommand]
+    private void DeleteUserTemplate(CalculationTemplate? template)
+    {
+        if (template is null || template.BuiltIn) return;
+        _userTemplates.RemoveAll(t => t.Id == template.Calculation.Id);
+        if (!PersistUserTemplates()) return;
+        RefreshTemplates();
+        StatusMessage = $"Removed \"{template.Name}\" from My templates.";
+    }
+
+    private bool PersistUserTemplates()
+    {
+        if (Store is null) return true; // tests / no user folder: keep in memory only
+        try { Store.SaveUserTemplates(_userTemplates, AppVersion); return true; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusMessage = $"Template could not be saved: {ex.Message}";
+            return false;
+        }
+    }
+
     [RelayCommand]
     private void Duplicate()
     {
@@ -501,7 +562,7 @@ public sealed partial class MainViewModel : ObservableObject
     // ------------------------------------------------------------ report
 
     public string BuildReportHtml(CalculationViewModel calc) =>
-        HtmlReport.Render(ToProject().Info, calc.ToModel(), calc.Result!, new ReportOptions
+        HtmlReport.Render(ToProject().Info, calc.ToModel() with { Title = calc.DisplayTitle }, calc.Result!, new ReportOptions
         {
             SoftwareVersion = AppVersion,
             Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark,
@@ -550,7 +611,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public byte[] BuildWorkbook()
     {
-        var items = Calculations.Where(c => c.Result is not null).Select(c => (c.ToModel(), c.Result!)).ToList();
+        var items = Calculations.Where(c => c.Result is not null).Select(c => (c.ToModel() with { Title = c.DisplayTitle }, c.Result!)).ToList();
         return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, RatingTable, Selected is null ? null : SafeName(Selected.Title) + " rating"));
     }
 

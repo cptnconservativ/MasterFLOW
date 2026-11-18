@@ -37,8 +37,8 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Project tree, folders | Yes (obs.) | Pro | 🟡 | v0.7.0: folder path per calculation ("Ditches/Phase 1"), shown in the list and used by Sort; a collapsible tree view is UI work, deferred |
 | Duplicate / delete / recycle bin | Yes (obs.) | MVP | ✅ | v0.7.0: delete moves to a recycle bin saved with the project; restore any item; empty with confirmation |
 | Sort names / re-sort | Yes (obs.) | Plan | ✅ | v0.7.0: by folder then title, natural number order |
-| Title expressions | Yes (obs.) | Pro | ⬜ | Builder with preview |
-| Templates (factory street sections) | Yes (obs.) | Pro | ⬜ | Original templates; user templates |
+| Title expressions | Yes (obs.) | Pro | ✅ v0.8.0 | {field:format} syntax, live preview, unknown fields shown as {?name} |
+| Templates (factory street sections) | Yes (obs.) | Pro | ✅ v0.8.0 | 10 original generic templates (streets, ditches, flume, pipes, natural channel); user templates per user |
 | Save / open / versioned file | Yes | MVP | ✅ | `.mfproj` schema 1 |
 | Recent files | Yes (obs.) | Pro | ✅ | v0.7.0: last 10, per user, missing files dropped |
 | Backup settings | Yes (obs.) | Plan | 🟡 | Covered by autosave recovery copy; configurable backup folder not planned unless requested |

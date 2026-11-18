@@ -129,7 +129,13 @@ public sealed partial class CalculationViewModel : ObservableObject
     public bool DepthIsInput => SolveFor != SolveFor.NormalDepth;
     public bool SlopeIsInput => SolveFor != SolveFor.Slope;
     public bool RoughnessIsInput => SolveFor != SolveFor.Roughness;
-    public string ListLabel => string.IsNullOrWhiteSpace(Title) ? "(untitled)" : Title;
+    public string ListLabel => string.IsNullOrWhiteSpace(Title) ? "(untitled)" : DisplayTitle;
+
+    /// <summary>The title with any {field} expressions replaced by live values (see <see cref="TitleExpression"/>).</summary>
+    public string DisplayTitle => TitleExpression.Evaluate(Title, Result, NormaliseFolder(Folder));
+    public bool TitleHasFields => TitleExpression.HasFields(Title);
+    public static string TitleFieldHelp { get; } = "Title fields: " + string.Join(", ", TitleExpression.Fields.Select(f => "{" + f.Name + "}")) +
+        ". Add a format after a colon, e.g. {Q:F1}. Use {{ and }} for literal braces.";
     public string ListDetail => (string.IsNullOrWhiteSpace(Folder) ? "" : NormaliseFolder(Folder) + " · ") + (HasResult && Result is { } r
         ? $"{Shape} · Q {r.Discharge.ToString("F2", CultureInfo.CurrentCulture)} {DischargeUnit} · yn {r.Normal.Depth.ToString("F3", CultureInfo.CurrentCulture)} {LengthUnit}"
         : $"{Shape} · check inputs");
@@ -314,6 +320,9 @@ public sealed partial class CalculationViewModel : ObservableObject
             : $"No result · {r.Errors.Count()} input error(s)";
         OnPropertyChanged(nameof(ListDetail));
         OnPropertyChanged(nameof(SolvedValueText));
+        OnPropertyChanged(nameof(DisplayTitle));
+        OnPropertyChanged(nameof(ListLabel));
+        OnPropertyChanged(nameof(TitleHasFields));
     }
 
     // ------------------------------------------------------------ undo / redo

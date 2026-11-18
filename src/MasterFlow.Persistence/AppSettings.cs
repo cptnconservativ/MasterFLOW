@@ -67,6 +67,21 @@ public sealed class UserDataStore(string directory)
 
     public Domain.Project LoadRecovery() => ProjectFile.Load(RecoveryPath);
 
+    private string TemplatesPath => Path.Combine(Directory, "templates" + ProjectFile.Extension);
+
+    /// <summary>User templates are stored as an ordinary project file (one calculation per template; title = template name).</summary>
+    public IReadOnlyList<Domain.ChannelCalculation> LoadUserTemplates()
+    {
+        try { return File.Exists(TemplatesPath) ? ProjectFile.Load(TemplatesPath).Calculations : []; }
+        catch (ProjectFileException) { return []; }
+    }
+
+    public void SaveUserTemplates(IReadOnlyList<Domain.ChannelCalculation> templates, string appVersion)
+    {
+        System.IO.Directory.CreateDirectory(Directory);
+        ProjectFile.Save(new Domain.Project { Info = new Domain.ProjectInfo { Name = "MasterFlow user templates" }, Calculations = templates }, TemplatesPath, appVersion);
+    }
+
     public void ClearRecovery()
     {
         foreach (var p in new[] { RecoveryPath, RecoveryInfoPath })

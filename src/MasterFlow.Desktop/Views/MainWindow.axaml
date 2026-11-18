@@ -86,7 +86,30 @@
         </Expander>
         <WrapPanel DockPanel.Dock="Top" ItemSpacing="4" LineSpacing="4" Margin="0,0,0,6">
           <Button Content="+ Channel" Command="{Binding AddCalculationCommand}" ToolTip.Tip="Add calculation (Ctrl+T)"/>
+          <Button Content="From template ▾" ToolTip.Tip="Add a calculation from a template">
+            <Button.Flyout>
+              <Flyout>
+                <ScrollViewer MaxHeight="420">
+                  <ItemsControl ItemsSource="{Binding Templates}" MinWidth="340">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="app:CalculationTemplate">
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" Content="✕" IsVisible="{Binding !BuiltIn}" ToolTip.Tip="Remove from My templates" Background="Transparent"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DeleteUserTemplateCommand}" CommandParameter="{Binding}"/>
+                          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" ToolTip.Tip="{Binding Description}"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).NewFromTemplateCommand}" CommandParameter="{Binding}">
+                            <TextBlock><Run Text="{Binding Category}" Foreground="Gray"/><Run Text="  "/><Run Text="{Binding Name}"/></TextBlock>
+                          </Button>
+                        </DockPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
           <Button Content="Duplicate" Command="{Binding DuplicateCommand}" ToolTip.Tip="Duplicate (Ctrl+D)"/>
+          <Button Content="Save as template" Command="{Binding SaveAsTemplateCommand}" ToolTip.Tip="Keep the selected calculation in My templates (per user, all projects)"/>
           <Button Content="Delete" Command="{Binding DeleteCommand}" ToolTip.Tip="Move to the recycle bin"/>
           <Button Content="Sort" Command="{Binding SortCommand}" ToolTip.Tip="Sort by folder, then title (2 before 10)"/>
         </WrapPanel>
@@ -125,7 +148,8 @@
         <StackPanel Margin="8" Spacing="8" DataContext="{Binding Selected}" x:DataType="vm:CalculationViewModel">
           <Border Classes="card">
             <StackPanel Spacing="4">
-              <TextBox Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Watermark="Calculation title"/>
+              <TextBox Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Watermark="Calculation title (may contain fields such as {Q:F1})" ToolTip.Tip="{x:Static vm:CalculationViewModel.TitleFieldHelp}"/>
+              <TextBlock IsVisible="{Binding TitleHasFields}" FontSize="12" Opacity="0.75" TextWrapping="Wrap"><Run Text="Title preview: "/><Run Text="{Binding DisplayTitle}" FontWeight="SemiBold"/></TextBlock>
               <TextBox Text="{Binding Folder}" Watermark="Folder (optional, e.g. Ditches/Phase 1)"/>
               <TextBox Text="{Binding Description}" Watermark="Description (appears on the report)" AcceptsReturn="True" TextWrapping="Wrap"/>
             </StackPanel>

@@ -53,8 +53,8 @@ Dependencies: B. Risk M (PDF library licensing).
 - F2 Autosave and crash recovery — 1.5 d — ✅ v0.7.0
 - F3 Native PDF (decide QuestPDF licence vs. PDFsharp/MigraDoc) — 3 d — ⬜
 - F4 Batch selection, logo picker, footer and watermark settings — 1.5 d — 🟡 v0.7.0 logo picker and persisted report settings; batch selection toggle remains
-- F5 Title expression builder with live preview — 2 d — ⬜
-- F6 Original templates and user templates — 2 d — ⬜
+- F5 Title expression builder with live preview — 2 d — ✅ v0.8.0 ({Q:F1}-style fields, live preview, field list tooltip)
+- F6 Original templates and user templates — 2 d — ✅ v0.8.0 (10 built-in generic templates; per-user "My templates")
 
 ## Phase G — Professional release
 - G1 MSIX package / installer — 2 d — ⬜

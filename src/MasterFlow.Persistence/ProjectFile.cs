@@ -29,7 +29,7 @@ public static class ProjectFile
 
     private sealed record Envelope(string Format, int SchemaVersion, string SavedBy, DateTimeOffset SavedUtc, Project Project);
 
-    public static string Serialize(Project project, string appVersion = "0.7.0") =>
+    public static string Serialize(Project project, string appVersion = "0.8.0") =>
         JsonSerializer.Serialize(new Envelope(FormatId, CurrentSchemaVersion, $"MasterFlow {appVersion}", DateTimeOffset.UtcNow, project), Options);
 
     public static Project Deserialize(string json)
@@ -68,7 +68,7 @@ public static class ProjectFile
         _ => throw new ProjectFileException($"No migration from schema {version}."),
     };
 
-    public static void Save(Project project, string path, string appVersion = "0.7.0")
+    public static void Save(Project project, string path, string appVersion = "0.8.0")
     {
         string full = Path.GetFullPath(path);
         string tmp = full + ".tmp";
