@@ -46,13 +46,13 @@ works in U.S. units only (Table 4-2, weir coefficients and the criteria are U.S.
 
 - D-055: the modified rational method was chosen because §4.10.7 names it and it needs only Table 4-2 and the
   rational inputs MasterFlow already has. HEC-HMS remains the tool for basins where the IDCM requires it (§4.2.1).
-- D-059: entered hydrographs are the hook for other hydrology (the rational-method tool, HEC-HMS output, SCS):
+- D-062: entered hydrographs are the hook for other hydrology (the rational-method tool, HEC-HMS output, SCS):
   a plain Time/flow table rather than a coupling between tools, so any source can be pasted and checked.
-- D-060: the freeboard reference is the greater of the routed 100-yr WSE and the spillway-alone WSE at the
+- D-063: the freeboard reference is the greater of the routed 100-yr WSE and the spillway-alone WSE at the
   spillway design flow, reading §4.10.4(4) "1 ft above the emergency spillway water surface elevation or 1 ft
   above the 100-yr WSE during spill, whichever is greater". The default spillway design flow (100-yr inflow with
   the principal outlet blocked) is conservative; enter `spillway design Q` to use another.
-- D-061: risers take the least of weir and orifice control, then the barrel limits the total; the minimum of
+- D-064: risers take the least of weir and orifice control, then the barrel limits the total; the minimum of
   non-decreasing ratings stays non-decreasing, so routing remains valid.
 
 ## Validation
