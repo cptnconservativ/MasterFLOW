@@ -6,9 +6,9 @@ Run 2026-11-18, .NET 10.0.115, Linux x64. Command: `dotnet test MasterFlow.slnx`
 |---|---|---|
 | MasterFlow.Hydraulics.Tests | 107 | 0 |
 | MasterFlow.Application.Tests | 38 | 0 |
-| MasterFlow.IntegrationTests | 28 | 0 |
+| MasterFlow.IntegrationTests | 29 | 0 |
 | MasterFlow.Desktop.Tests | 37 | 0 |
-| **Total** | **210** | **0** |
+| **Total** | **211** | **0** |
 
 (Updated for v0.10.0: local log and error recovery; performance budgets. `dotnet test -c Release --filter PerformanceTests`: 5000-row rating table (depth → Q) 97 ms incl. warm-up, (Q → depth) 110 ms, 5000-point noisy irregular section with overbank n 717 ms incl. warm-up (≈ 255 ms per solve measured separately), PDF with a 5000-row table ≈ 2 s; all within budget (1 s, 1 s, 1 s, 5 s). v0.9.1: batch selection. v0.9.0: native PDF reports. PDFs read back independently with pypdf 6.17.0, validation/check_pdf.py: every page carries "Page n of N", fonts embedded, engine values (yn = 3.361 ft, yc = 2.148 ft, creek yn = 6.893 ft, rating Q = 828.544 cfs) present as extractable text; letter portrait 612 × 792 pt, comparison landscape. v0.8.0: title expressions and templates; every built-in template is solved by a test and must succeed. v0.7.0 added project features: recycle bin, sort, recent files, autosave recovery, report settings. v0.6.0 added comparison and Excel export; .xlsx independently read back with openpyxl 3.1.5,
 validation/check_xlsx.py: yn = 3.360967840282236 ft at full precision. v0.5.0 was 165/165; v0.4.0 was 159/159, v0.3.0 129/129, v0.2.0 91/91, the first slice 72/72.)

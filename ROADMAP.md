@@ -63,7 +63,7 @@ Dependencies: B. Risk M (PDF library licensing).
 - G4 Performance (5000-row table under 1 s) — 0.5 d — ✅ v0.10.0 (Release: 5000-row tables ≈ 0.1 s, 5000-point noisy irregular section ≈ 0.26 s; PDF with 5000 rows ≈ 2 s)
 - G5 Accessibility (keyboard paths, automation names, contrast) — 2 d — ✅ every input has a screen-reader name (test-enforced); all commands reachable by Tab/Enter and shortcuts; WCAG contrast: solved value 18:1 light / 11.8:1 dark, accent 6.8:1, report muted text 5.7:1 (AA ≥ 4.5:1). A screen-reader walk-through on Windows (Narrator) is still to do
 - G6 User guide — 2 d — ✅ v0.10.0 docs/USER_GUIDE.md (checked against the code)
-- G7 Release checklist — 0.5 d — ⬜
+- G7 Release checklist — 0.5 d — ✅ docs/RELEASE_CHECKLIST.md + scripts/publish-win.sh (tests, Release performance, independent read-back, publish, zip, SHA-256); version now set only in Directory.Build.props
 
 Every item's acceptance includes: clean build, tests passing, equations documented, failure modes
 tested, independent verification, UI inspected, save/load and report checked, this file and the
