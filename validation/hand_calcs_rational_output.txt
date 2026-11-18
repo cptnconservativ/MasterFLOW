@@ -1,0 +1,26 @@
+Basin A1 (CB-3): SFR 2.4 ac + paved 0.6 ac; flow path overland, shallow unpaved, gutter, pipe
+  C5 = 0.536000  t_overland = 8.390364  V_shallow = 1.976065 t = 2.108568
+  V_gutter = 1.852423 t = 3.598891  V_pipe = 4.708188 t = 0.530990
+  ti + tt = 14.628813  cap L/180+10 = 15.000000  tc = 14.628813
+Basin A2 (CB-4): commercial 1.1 + lawn clay 0.3, overland 80 ft @ 1.5 %, tt 2.5, L 600
+  ti = 5.779278  tc = 8.279278
+Basin A3 (MH-2): paved 0.4, sheet 60 ft @ 2 % n 0.011 P2 = 2.00, shallow paved 200 ft @ 1 %
+  t_sheet = 1.018492  t_shallow = 1.639758  tc = 5.000000
+
+10-yr storm
+  A1: C = 0.580000  CA = 1.740000  i = 4.200474  Q = 7.308825
+  A2: C = 0.734286  CA = 1.028000  i = 5.233894  Q = 5.380443
+  A3: C = 0.900000  CA = 0.360000  i = 6.360000  Q = 2.289600
+  P2: Q = 7.308825  V = 4.604388  travel = 0.542960
+  P3: Q = 5.380443  V = 4.805274  travel = 0.208105
+  P1: sumCA = 3.128000  tc = max(5.0000, 15.1718, 8.4874) = 15.171773  i = 4.132587  Q = 12.926733
+      (sum of peaks would be 14.978868)
+
+2-yr storm
+  A1: C = 0.494000  CA = 1.482000  i = 2.788348  Q = 4.132331
+  A2: C = 0.694286  CA = 0.972000  i = 3.516934  Q = 3.418460
+  A3: C = 0.870000  CA = 0.348000  i = 4.320000  Q = 1.503360
+  P2: Q = 4.132331  V = 4.604388  travel = 0.542960
+  P3: Q = 3.418460  V = 4.805274  travel = 0.208105
+  P1: sumCA = 2.802000  tc = max(5.0000, 15.1718, 8.4874) = 15.171773  i = 2.738178  Q = 7.672375
+      (sum of peaks would be 9.054152)

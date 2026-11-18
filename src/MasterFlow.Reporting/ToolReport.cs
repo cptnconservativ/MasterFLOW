@@ -33,6 +33,7 @@ public static class ToolReport
             sb.Append("</table>");
             foreach (var n in t.Notes ?? []) sb.Append($"<div class=\"note\">{E(n)}</div>");
         }
+        foreach (var ch in r.Charts) sb.Append($"<h2>{E(ch.Title)}</h2>").Append(ChartSvg(ch));
         if (r.Messages.Count > 0)
         {
             sb.Append("<h2>Messages</h2>");
@@ -41,6 +42,73 @@ public static class ToolReport
         sb.Append($"<h2>Input</h2><pre>{E(input)}</pre>");
         sb.Append("<p class=\"note\">Computed by MasterFlow. The responsible engineer must review inputs, assumptions and results before use.</p></body></html>");
         return sb.ToString();
+    }
+
+    private static readonly string[] Palette = ["#1f5f8b", "#b7791f", "#2f855a", "#9b2c2c", "#6b46c1", "#4a5568"];
+
+    /// <summary>An inline SVG line chart (linear or log axes; log axes use 1-2-5 gridlines).</summary>
+    public static string ChartSvg(ToolChart ch)
+    {
+        static string N(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var pts = ch.Series.SelectMany(s => s.Points).Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y) && (!ch.LogX || p.X > 0) && (!ch.LogY || p.Y > 0)).ToList();
+        if (pts.Count == 0) return "";
+        const double W = 680, H = 380, L = 64, R = 150, T = 14, B = 46;
+        var (xs, x0, x1) = Axis(pts.Select(p => p.X), ch.LogX);
+        var (ys, y0, y1) = Axis(pts.Select(p => p.Y), ch.LogY);
+        double Tx(double v) => ch.LogX ? Math.Log10(v) : v;
+        double Ty(double v) => ch.LogY ? Math.Log10(v) : v;
+        double Px(double v) => L + (Tx(v) - Tx(x0)) / (Tx(x1) - Tx(x0)) * (W - L - R);
+        double Py(double v) => H - B - (Ty(v) - Ty(y0)) / (Ty(y1) - Ty(y0)) * (H - T - B);
+        var sb = new StringBuilder();
+        sb.Append($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{N(W)}\" height=\"{N(H)}\" viewBox=\"0 0 {N(W)} {N(H)}\" font-family=\"Segoe UI,Arial,sans-serif\" font-size=\"11\">");
+        sb.Append($"<rect x=\"{N(L)}\" y=\"{N(T)}\" width=\"{N(W - L - R)}\" height=\"{N(H - T - B)}\" fill=\"#fff\" stroke=\"#9aa7b4\"/>");
+        foreach (var tx in xs)
+        {
+            double px = Px(tx); if (px < L - 0.5 || px > W - R + 0.5) continue;
+            sb.Append($"<line x1=\"{N(px)}\" y1=\"{N(T)}\" x2=\"{N(px)}\" y2=\"{N(H - B)}\" stroke=\"#e3e8ee\"/><text x=\"{N(px)}\" y=\"{N(H - B + 14)}\" text-anchor=\"middle\" fill=\"#5b6876\">{N(tx)}</text>");
+        }
+        foreach (var ty in ys)
+        {
+            double py = Py(ty); if (py < T - 0.5 || py > H - B + 0.5) continue;
+            sb.Append($"<line x1=\"{N(L)}\" y1=\"{N(py)}\" x2=\"{N(W - R)}\" y2=\"{N(py)}\" stroke=\"#e3e8ee\"/><text x=\"{N(L - 5)}\" y=\"{N(py + 4)}\" text-anchor=\"end\" fill=\"#5b6876\">{N(ty)}</text>");
+        }
+        sb.Append($"<text x=\"{N(L + (W - L - R) / 2)}\" y=\"{N(H - 8)}\" text-anchor=\"middle\">{WebUtility.HtmlEncode(ch.XLabel)}</text>");
+        sb.Append($"<text transform=\"translate(14 {N(T + (H - T - B) / 2)}) rotate(-90)\" text-anchor=\"middle\">{WebUtility.HtmlEncode(ch.YLabel)}</text>");
+        int k = 0;
+        foreach (var s in ch.Series)
+        {
+            string col = Palette[k % Palette.Length];
+            var sp = s.Points.Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y) && (!ch.LogX || p.X > 0) && (!ch.LogY || p.Y > 0)).ToList();
+            if (s.MarkersOnly) foreach (var p in sp) sb.Append($"<circle cx=\"{N(Px(p.X))}\" cy=\"{N(Py(p.Y))}\" r=\"3.5\" fill=\"{col}\"/>");
+            else if (sp.Count > 1) sb.Append($"<polyline fill=\"none\" stroke=\"{col}\" stroke-width=\"2\" points=\"{string.Join(" ", sp.Select(p => $"{N(Px(p.X))},{N(Py(p.Y))}"))}\"/>");
+            double ly = T + 12 + 18 * k;
+            sb.Append(s.MarkersOnly ? $"<circle cx=\"{N(W - R + 18)}\" cy=\"{N(ly - 4)}\" r=\"3.5\" fill=\"{col}\"/>" : $"<line x1=\"{N(W - R + 10)}\" y1=\"{N(ly - 4)}\" x2=\"{N(W - R + 26)}\" y2=\"{N(ly - 4)}\" stroke=\"{col}\" stroke-width=\"2\"/>");
+            sb.Append($"<text x=\"{N(W - R + 32)}\" y=\"{N(ly)}\">{WebUtility.HtmlEncode(s.Name)}</text>");
+            k++;
+        }
+        return sb.Append("</svg>").ToString();
+    }
+
+    /// <summary>Gridline values and axis range: 1-2-5 per decade on a log axis (range = the data); about 6 round steps from zero on a linear axis.</summary>
+    private static (List<double> Ticks, double Lo, double Hi) Axis(IEnumerable<double> values, bool log)
+    {
+        var v = values.ToList();
+        double lo = v.Min(), hi = v.Max();
+        var ticks = new List<double>();
+        if (log)
+        {
+            if (hi <= lo) { lo /= 2; hi *= 2; }
+            for (int e = (int)Math.Floor(Math.Log10(lo)) - 1; e <= (int)Math.Ceiling(Math.Log10(hi)); e++)
+                foreach (var m in new[] { 1.0, 2, 5 }) { double t = m * Math.Pow(10, e); if (t >= lo * (1 - 1e-9) && t <= hi * (1 + 1e-9)) ticks.Add(t); }
+            return (ticks, lo, hi);
+        }
+        lo = Math.Min(0, lo);
+        if (hi <= lo) hi = lo + 1;
+        double step = Math.Pow(10, Math.Floor(Math.Log10((hi - lo) / 6)));
+        foreach (var m in new[] { 1.0, 2, 5, 10 }) if ((hi - lo) / (step * m) <= 7) { step *= m; break; }
+        hi = Math.Ceiling(hi / step) * step;
+        for (double t = Math.Ceiling(lo / step) * step; t <= hi + 1e-9 * step; t += step) ticks.Add(Math.Round(t, 10));
+        return (ticks, lo, hi);
     }
 
     /// <summary>One sheet per table (names made unique and kept within Excel's 31 characters), then a messages sheet.</summary>
