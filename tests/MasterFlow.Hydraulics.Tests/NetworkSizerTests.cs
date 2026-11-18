@@ -87,4 +87,21 @@ public class NetworkSizerTests
         Assert.Equal(2.806070, NetworkSizer.NormalVelocity(2.0, 0.013, 0.002, 3, c), 4);
         Assert.Equal(QFull(2, 0.002), NetworkSizer.QFull(2, 0.013, 0.002, c), 9);
     }
+
+    /// <summary>Review finding: a flat pipe whose existing size crosses the rim must not keep that size.</summary>
+    [Fact]
+    public void FlatPipe_WithLowRim_PicksAFeasibleSize()
+    {
+        var net = new StormNetwork
+        {
+            Tailwater = TailwaterRule.HalfCriticalPlusDiameter, Criteria = NetworkCriteria.RapidCity2012,
+            Structures = [new() { Name = "A", Kind = "Inlet", RimElevation = 102 }, new() { Name = "OUT", Kind = "Outlet", RimElevation = 102 }],
+            Pipes = [Pipe("P", "A", "OUT", 3.0, 100, 100.0, 100.0, 2)],
+        };
+        var r = NetworkSizer.Size(net, [18, 36], hglPass: false);
+        var p = Assert.Single(r.Network.Pipes);
+        Assert.Equal(1.5, p.Rise, 9);
+        Assert.True(p.UpstreamInvert + p.Rise <= 102 + 1e-9);
+        Assert.Contains(r.Notes, n => n.Contains("reduced"));
+    }
 }

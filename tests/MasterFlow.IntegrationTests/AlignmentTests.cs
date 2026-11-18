@@ -110,4 +110,30 @@ public class AlignmentTests
     [InlineData(1234.5678, UnitSystem.SI, "1+234.568")]
     public void FormatStation_CivilText(double sta, UnitSystem u, string expected) =>
         Assert.Equal(expected, Alignment.FormatStation(sta, u));
+
+    /// <summary>Review finding: a +100 ft station equation at 1+00 on a 200 ft tangent must end at 3+00, not 2+00.</summary>
+    [Fact]
+    public void Reader_AppliesStationEquations()
+    {
+        const string body = """
+            <LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2">
+              <Units><Imperial linearUnit="foot"/></Units>
+              <Alignments><Alignment name="EQ" staStart="0"><CoordGeom>
+                <Line><Start>0 0</Start><End>0 200</End></Line>
+              </CoordGeom>EQUATION</Alignment></Alignments>
+            </LandXML>
+            """;
+        var r = Read(body.Replace("EQUATION", """<StaEquation staInternal="100" staBack="100" staAhead="200"/>"""));
+        var a = Assert.Single(r.Alignments);
+        Assert.Equal(300, a.EndStation, 6);
+        Assert.Equal(50, a.Project(0, 50).Station, 6);    // before the equation: unchanged
+        Assert.Equal(250, a.Project(0, 150).Station, 6);  // past it: ahead station
+        Assert.Contains(r.Problems, p => p.Contains("station equation"));
+        // staInternal missing: recovered from staBack.
+        Assert.Equal(300, Assert.Single(Read(body.Replace("EQUATION", """<StaEquation staBack="100" staAhead="200"/>""")).Alignments).EndStation, 6);
+        // An equation without staAhead cannot be placed: the alignment is rejected, not stationed wrongly.
+        var bad = Read(body.Replace("EQUATION", """<StaEquation staBack="100"/>"""));
+        Assert.Empty(bad.Alignments);
+        Assert.Contains(bad.Problems, p => p.Contains("skipped"));
+    }
 }

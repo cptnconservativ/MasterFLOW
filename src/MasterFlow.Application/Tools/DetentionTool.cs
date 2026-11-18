@@ -30,15 +30,52 @@ public sealed record PondOutlet(string Name, string Type, double Invert, double 
     }
 
     /// <summary>
-    /// Outlet pipe (barrel) full-flow capacity, free outfall: Q = A √(2g H / (1 + Ke + Kf)), H = WSE − (outlet invert + D),
-    /// Ke = Coefficient (entrance loss), Kf = 29 n² L / R^(4/3) (U.S.) or 19.6 n² L / R^(4/3) (SI), R = D/4. Infinite below the crown.
+    /// Outlet pipe (barrel) capacity, continuous and non-decreasing in stage so that storage-indication routing stays valid.
+    /// At and above the barrel's inlet crown: outlet control with a free outfall (HDS-5 form), Q = A √(2g H / (1 + Ke + Kf)),
+    /// H = WSE − (outlet invert + ho), ho = (dc + D)/2 with dc the critical depth of Q in the pipe (solved together with Q);
+    /// Ke = Coefficient, Kf = 29 n² L / R^(4/3) (U.S.) or 19.6 n² L / R^(4/3) (SI), R = D/4.
+    /// Below the inlet crown the entrance is unsubmerged; the capacity is taken as Qcrown·(h/D)^1.5, h = WSE − inlet invert,
+    /// a weir-type curve that meets the outlet-control value at the crown (an approximation, stated in the report).
     /// </summary>
     public double BarrelCapacity(double wse, double g, bool us)
     {
-        double outInv = double.IsNaN(OutletInvert) ? Invert : OutletInvert, head = wse - (outInv + Size);
-        if (!(head > 0)) return double.PositiveInfinity;
-        double a = Math.PI * Size * Size / 4, r = Size / 4, kf = (us ? 29.0 : 19.6) * N * N * Length / Math.Pow(r, 4.0 / 3.0);
-        return a * Math.Sqrt(2 * g * head / (1 + Coefficient + kf));
+        double h = wse - Invert;
+        if (!(h > 0)) return 0;
+        if (h < Size) return OutletControl(Invert + Size, g, us) * Math.Pow(h / Size, 1.5);
+        return OutletControl(wse, g, us);
+    }
+
+    private double OutletControl(double wse, double g, bool us)
+    {
+        double outInv = double.IsNaN(OutletInvert) ? Invert : OutletInvert;
+        double a = Math.PI * Size * Size / 4, r = Size / 4, k = 1 + Coefficient + (us ? 29.0 : 19.6) * N * N * Length / Math.Pow(r, 4.0 / 3.0);
+        double Head(double q) => wse - (outInv + (CircularCriticalDepth(q, Size, g) + Size) / 2);
+        // f(q) = A √(2g H(q) / k) − q decreases in q (dc grows with q), so bisection finds the unique root.
+        double hiQ = a * Math.Sqrt(2 * g * Math.Max(0, wse - outInv - Size / 2) / k);
+        if (!(hiQ > 0)) return 0;
+        double lo = 0, hi = hiQ;
+        for (int i = 0; i < 50; i++)
+        {
+            double m = 0.5 * (lo + hi), hm = Head(m);
+            double f = (hm > 0 ? a * Math.Sqrt(2 * g * hm / k) : 0) - m;
+            if (f > 0) lo = m; else hi = m;
+        }
+        return 0.5 * (lo + hi);
+    }
+
+    /// <summary>Critical depth of <paramref name="q"/> in a circular pipe of diameter <paramref name="d"/> (Q²/g = A³/T), capped at D.</summary>
+    public static double CircularCriticalDepth(double q, double d, double g)
+    {
+        if (!(q > 0)) return 0;
+        double F(double y)
+        {
+            double th = 2 * Math.Acos(1 - 2 * y / d), area = d * d / 8 * (th - Math.Sin(th)), top = d * Math.Sin(th / 2);
+            return area * area * area / top - q * q / g;
+        }
+        double lo = 1e-9 * d, hi = d * (1 - 1e-9);
+        if (F(hi) < 0) return d;
+        for (int i = 0; i < 45; i++) { double m = 0.5 * (lo + hi); if (F(m) < 0) lo = m; else hi = m; }
+        return 0.5 * (lo + hi);
     }
 }
 
@@ -61,6 +98,28 @@ public sealed class Pond
             double h = stages[i].Elev - stages[i - 1].Elev, a1 = stages[i - 1].Area, a2 = stages[i].Area;
             _vol[i] = _vol[i - 1] + h / 3 * (a1 + a2 + Math.Sqrt(a1 * a2));   // frustum (conic) method
         }
+        // The barrel rating needs nested solves; tabulate it once over the pond's range. Linear interpolation between
+        // samples of a continuous, rising rating stays continuous and rising.
+        if (Barrel is { } b && stages.Count > 0)
+        {
+            _bLo = Math.Min(b.Invert, stages[0].Elev);
+            double hiE = Math.Max(stages[^1].Elev, b.Invert + b.Size);
+            _bStep = Math.Max(1e-4, (hiE - _bLo) / 2000);
+            _bTable = Enumerable.Range(0, (int)Math.Ceiling((hiE - _bLo) / _bStep) + 3).Select(i => b.BarrelCapacity(_bLo + i * _bStep, g, us)).ToArray();
+        }
+    }
+
+    private readonly double[]? _bTable;
+    private readonly double _bLo, _bStep;
+
+    private double BarrelAt(double e)
+    {
+        if (_bTable is null || Barrel is not { } b) return double.PositiveInfinity;
+        double x = (e - _bLo) / _bStep;
+        if (x <= 0) return _bTable[0];
+        int i = (int)x;
+        if (i >= _bTable.Length - 1) return b.BarrelCapacity(e, _g, _us);
+        return _bTable[i] + (x - i) * (_bTable[i + 1] - _bTable[i]);
     }
 
     public double Bottom => Stages[0].Elev;
@@ -85,7 +144,7 @@ public sealed class Pond
     public double Outflow(double e)
     {
         double q = Outlets.Sum(o => o.Flow(e, _g));
-        return Barrel is { } b ? Math.Min(q, b.BarrelCapacity(e, _g, _us)) : q;
+        return Barrel is not null ? Math.Min(q, BarrelAt(e)) : q;
     }
 
     /// <summary>Elevation where 2S/dt + O equals <paramref name="target"/> (bisection; NaN above the top stage).</summary>
@@ -259,6 +318,7 @@ public sealed class DetentionTool : IDesignTool
             else msgs.Add(CalcMessage.Info("I-DT-002", $"Freeboard at the 100-yr level: {fb:F2} ft (≥ 1 ft, §4.10.3(2))."));
         }
         else if (berm is null) msgs.Add(CalcMessage.Info("I-DT-003", "Enter top of berm to check the 1 ft freeboard."));
+        if (pond.Barrel is not null) msgs.Add(CalcMessage.Info("I-DT-002", "Outlet pipe capacity: outlet control with a free outfall, ho = (dc + D)/2 (HDS-5), at and above the barrel's inlet crown; below the crown, Qcrown·(h/D)^1.5, an approximation that keeps the rating continuous and rising so that routing is valid."));
         if (pond.Barrel is { } pipe && pipe.Size < 1.5 - 1e-9) msgs.Add(CalcMessage.Warning("W-DT-005", $"Outlet pipe {pipe.Size * 12:F0} in. is below the 18 in. minimum (§4.10.5)."));
         if (outlets.Where(o => o.Type != "pipe").Min(o => o.Invert) > pond.Bottom + 1e-9)
             msgs.Add(CalcMessage.Warning("W-DT-006", "The lowest orifice or weir is above the pond bottom: the storage below it does not drain by gravity."));

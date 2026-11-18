@@ -125,6 +125,9 @@ public sealed class RationalMethodTool : IDesignTool
             if (r.Length < 6 || string.IsNullOrWhiteSpace(r[0])) { msgs.Add(CalcMessage.Error("E-RM-003", $"Land use row \"{string.Join(", ", r)}\" needs a name, impervious % and C2, C5, C10, C100.")); continue; }
             var v = Enumerable.Range(1, 5).Select(i => p.Cell(r, i, "value", $"Land use {r[0]}")).ToArray();
             if (v.Any(x => x is null)) continue;
+            if (!(v[0] >= 0 && v[0] <= 100)) { msgs.Add(CalcMessage.Error("E-RM-007", $"Land use \"{r[0]}\": impervious {v[0]:G4} % must be from 0 to 100.")); continue; }
+            var badC = v.Skip(1).Select((x, i) => (x!.Value, Storm: new[] { 2, 5, 10, 100 }[i])).Where(t => !(t.Value >= 0 && t.Value <= 1)).ToList();
+            if (badC.Count > 0) { msgs.Add(CalcMessage.Error("E-RM-007", $"Land use \"{r[0]}\": runoff coefficients must be from 0 to 1 ({string.Join(", ", badC.Select(t => $"C{t.Storm} = {t.Value:G4}"))}).")); continue; }
             uses[Norm(r[0])] = new LandUse(r[0], v[0]!.Value, v[1]!.Value, v[2]!.Value, v[3]!.Value, v[4]!.Value);
         }
 
