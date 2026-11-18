@@ -5,8 +5,6 @@ using static MasterFlow.Persistence.LandXmlFile;
 
 namespace MasterFlow.Persistence;
 
-/// <summary>Pipe shapes MasterFlow can solve.</summary>
-public enum NetworkPipeShape { Circular, Elliptical }
 
 /// <summary>
 /// One pipe from a LandXML pipe network, in the file's units. Inverts come from the start and end

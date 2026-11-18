@@ -10,8 +10,8 @@ public static class ProjectWorkbook
     public static IReadOnlyList<XlsxSheet> Build(ProjectInfo info, IReadOnlyList<(ChannelCalculation Calc, UniformFlowResult Result)> items, RatingTable? rating = null, string? ratingTitle = null)
         => Build(info, items, rating is null ? [] : [(ratingTitle ?? "Rating table", rating)]);
 
-    /// <summary>Comparison sheet, one sheet per calculation, then one sheet per rating table.</summary>
-    public static IReadOnlyList<XlsxSheet> Build(ProjectInfo info, IReadOnlyList<(ChannelCalculation Calc, UniformFlowResult Result)> items, IReadOnlyList<(string Title, RatingTable Table)> ratings, IReadOnlyList<DrainageStructure>? structures = null)
+    /// <summary>Comparison sheet, one sheet per calculation, one sheet per rating table, imported structures, then the storm network sheets.</summary>
+    public static IReadOnlyList<XlsxSheet> Build(ProjectInfo info, IReadOnlyList<(ChannelCalculation Calc, UniformFlowResult Result)> items, IReadOnlyList<(string Title, RatingTable Table)> ratings, IReadOnlyList<DrainageStructure>? structures = null, IReadOnlyList<StormNetworkResult>? networks = null)
     {
         var sheets = new List<XlsxSheet>();
         var cmp = Comparison.Build(items.Select(i => (i.Calc.Title, i.Result)).ToList());
@@ -82,6 +82,7 @@ public static class ProjectWorkbook
                     string.Join("; ", st.Inverts.Select(v => $"{v.Pipe} {v.FlowDirection} {v.Elevation.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}")), st.Description]);
             sheets.Add(new XlsxSheet("Structures", t, 2, [14, 16, 18, 14, 14, 11, 11, 44, 24]));
         }
+        foreach (var n in networks ?? []) sheets.AddRange(NetworkWorkbook.Sheets(n));
         return sheets;
     }
 }

@@ -209,10 +209,62 @@ point elevation) and ignored, with a trace note.
 Each row is a full call to the same calculator (same validation, convergence and acceptance checks).
 Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
 
+## 10. Storm sewer HGL and EGL (H11)
+
+Steady flow through a tree-shaped network of circular and elliptical pipes draining to one or more
+outfalls. Each pipe carries its own design Q (the user enters it; no hydrology is computed).
+
+**Outfall.** Tailwater rule per network: free outfall (depth = yc), a known tailwater elevation, (yc + D)/2
+above the outlet invert (the HEC-22 convention) or the outlet crown. The depth at any pipe outlet is never
+taken below critical depth: if the downstream water level is lower, the pipe starts at yc and the structure
+level is reported as not controlling (I-NW messages).
+
+**Pipes.** The energy equation is integrated upstream by the standard step,
+z₁ + y₁ + V₁²/2g = z₂ + y₂ + V₂²/2g + S̄f·Δx, with Sf = (Q·n / (k·A·R^⅔))² and S̄f the average of the
+two ends; steps are L/(0.25·D), between 40 and 2000 per pipe. Each step's depth is found by bisection on
+a bracket, never by an unbracketed Newton step; a step with no root stops the solve with E-NW-020 rather
+than returning a number. Above the crown A and P stay at the full-pipe values, so the same equation
+carries pressure (surcharged) flow and the HGL rises above the crown at the full-flow friction slope.
+
+**Steep pipes.** When no subcritical profile exists from the outlet, the pipe is computed supercritical
+from yc at the entrance (S2/S3 profile). If the outlet water level is high enough, a hydraulic jump is
+placed where the momentum function M = Q²/(gA) + A·ȳ of the supercritical and subcritical profiles are
+equal; above the crown M carries the extra pressure term A_full·(y − D). If the subcritical depth is
+below the sequent depth everywhere the jump is swept out of the pipe and reported.
+
+**Structures.** The structure water level (HGL) is the pipe-outlet HGL of the pipe leaving it plus a loss,
+and it becomes the downstream control for every pipe entering it.
+- Rapid City IDCM (2012) Figs. 4-6 and 4-7 (credited there to the City of Waco):
+  hj = V2²/2g − c·V1²/2g, V2 the outlet pipe velocity, V1 the inflow velocity.
+  c = 0.5 inlet on main line (Case I), 0.25 inlet with branch lateral (II), 0.5 manhole with 45° lateral (III),
+  0.25 manhole with 90° lateral (IV), 0.35 with 60°, 0.75 with 22.5°, 0.75 45° wye or cut-in (V);
+  beginning of line hj = 1.25·V2²/2g (VI); bends with radius = D: 0.50/0.43/0.35/0.20·V2²/2g for 90°/60°/45°/22.5°.
+- Standard method, IDCM Eq. 4-6-1: hs = K·Vo²/2g with K per structure or the network default.
+- *Auto*: no inflow → beginning of line; one inflow → Case I; more → Case II at inlets, Case IV otherwise.
+- A negative hj is taken as 0 and reported (W-NW). V1 is the velocity of the inflow pipe carrying the most
+  flow (decision D-042). The EGL at a structure is the HGL plus the outlet velocity head, and never below
+  the HGL.
+
+**Criteria (optional, per network).** HGL and/or EGL a set distance below the rim, minimum and maximum
+velocity, no pressure flow, minimum pipe size and slopes below critical. The *Rapid City IDCM 2012* preset
+sets HGL ≥ 1 ft below the rim (§4.6.7), 2.5 to 20 fps, 12 in. minimum, slopes below critical and no
+surcharge. A check that fails is a warning (W-NW), shown in red in the tables and on the profile; the
+solve still reports every number so the designer can see by how much.
+
+**Outputs.** Pipes table (size, slope, Q, Qfull, yn, yc, regime, velocities, HGL/EGL at both ends, hf),
+structures table (rim, HGL, EGL, rim − HGL, required, OK/FAILS, loss method and equation, hj, V2, V1), the
+profile of every path from a beginning of line to its outfall (station 0 at the outfall), messages and the
+step-by-step trace. The same numbers go to the app, PDF, HTML and Excel (profile points as numbers).
+
+**Limits.** Tree networks only (no loops, one outlet pipe per structure); no hydrology, routing or
+inlet capacity (H7); no partial-flow correction to junction losses beyond the equations above; no
+gradually varied flow in open channels downstream of the outfall.
+
 ## References
 Chow, V. T. (1959) *Open-Channel Hydraulics*. McGraw-Hill. · Brent, R. P. (1973) *Algorithms for
 Minimization without Derivatives*. · USACE EM 1110-2-1601 (1994) *Hydraulic Design of Flood Control
 Channels*. · FHWA HDS-4 *Introduction to Highway Hydraulics*. · ASTM C507-22 *Reinforced Concrete
 Elliptical Culvert, Storm Drain, and Sewer Pipe*, Fig. 5. · Horton, R. E. (1933) and Einstein, H. A. (1934)
 equal-velocity composite n, as given in Chow (1959) §6-6. · USACE HEC-RAS *Hydraulic Reference Manual*,
-conveyance subdivision.
+conveyance subdivision. · City of Rapid City (2012) *Infrastructure Design Criteria Manual*, Ch. 4 Storm
+Sewer Design, §4.6 (HGL, Figs. 4-6/4-7, Eq. 4-6-1). · FHWA HEC-22 (2009) *Urban Drainage Design Manual*, tailwater convention.

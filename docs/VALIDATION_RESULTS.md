@@ -4,11 +4,20 @@ Run 2026-11-18, .NET 10.0.115, Linux x64. Command: `dotnet test MasterFlow.slnx`
 
 | Test project | Passed | Failed |
 |---|---|---|
-| MasterFlow.Hydraulics.Tests | 107 | 0 |
+| MasterFlow.Hydraulics.Tests | 133 | 0 |
 | MasterFlow.Application.Tests | 50 | 0 |
-| MasterFlow.IntegrationTests | 39 | 0 |
-| MasterFlow.Desktop.Tests | 44 | 0 |
-| **Total** | **240** | **0** |
+| MasterFlow.IntegrationTests | 51 | 0 |
+| MasterFlow.Desktop.Tests | 48 | 0 |
+| **Total** | **282** | **0** |
+
+(Branch feature/storm-sewer-hgl, which includes H4. Storm sewer HGL/EGL: engine against an independent
+implementation, validation/storm_hgl.py (bisection, 10× finer steps; output storm_hgl_output.txt), with
+tolerances fixed before comparing: 0.002 ft for HGL, EGL and losses, 0.001 ft/s for velocities.
+Network A (tailwater 102.50, all pipes under pressure): P1 upstream HGL 104.063193, MH-2 104.513873
+(hj 0.450680), CB-3 107.367201, CB-4 106.259632. Network B ((yc + D)/2, part full): MH-2 101.897080. All
+within tolerance. Also: steep free outfall, jump inside a pipe (tailwater 102.6) and swept-out jump
+(101.6), elliptical pressure flow, every IDCM coefficient, invalid networks refused. The Excel sheets read
+back with openpyxl give the same HGLs at full precision (MH-2 104.51387346698328).)
 
 (v0.11.0: point tools, regular → irregular conversion (rectangle, symmetric and asymmetric trapezoid and triangle reproduce the parametric yn to 1e-9), LandXML import including a DTD/external-entity file that must be refused, saved rating tables, item number. v0.10.0: local log and error recovery; performance budgets. `dotnet test -c Release --filter PerformanceTests`: 5000-row rating table (depth → Q) 97 ms incl. warm-up, (Q → depth) 110 ms, 5000-point noisy irregular section with overbank n 717 ms incl. warm-up (≈ 255 ms per solve measured separately), PDF with a 5000-row table ≈ 2 s; all within budget (1 s, 1 s, 1 s, 5 s). v0.9.1: batch selection. v0.9.0: native PDF reports. PDFs read back independently with pypdf 6.17.0, validation/check_pdf.py: every page carries "Page n of N", fonts embedded, engine values (yn = 3.361 ft, yc = 2.148 ft, creek yn = 6.893 ft, rating Q = 828.544 cfs) present as extractable text; letter portrait 612 × 792 pt, comparison landscape. v0.8.0: title expressions and templates; every built-in template is solved by a test and must succeed. v0.7.0 added project features: recycle bin, sort, recent files, autosave recovery, report settings. v0.6.0 added comparison and Excel export; .xlsx independently read back with openpyxl 3.1.5,
 validation/check_xlsx.py: yn = 3.360967840282236 ft at full precision. v0.5.0 was 165/165; v0.4.0 was 159/159, v0.3.0 129/129, v0.2.0 91/91, the first slice 72/72.)
