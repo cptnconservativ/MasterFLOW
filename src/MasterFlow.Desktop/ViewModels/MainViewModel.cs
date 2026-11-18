@@ -433,6 +433,43 @@ public sealed partial class MainViewModel : ObservableObject
         StatusMessage = n.Status;
     }
 
+    /// <summary>
+    /// Solves the network and builds the Civil 3D write-back files: an AutoLISP command (MFHGL) that sets the
+    /// HGL/EGL and flow rate on the drawing's pipes by name, and a CSV of every pipe and structure result.
+    /// Null (with the reason in Status) when the network does not solve.
+    /// </summary>
+    public (string Lisp, string Csv, IReadOnlyList<string> Warnings)? BuildCivil3DResults(NetworkViewModel n)
+    {
+        n.Solve();
+        if (n.Result is not { Succeeded: true } r)
+        {
+            n.Status = "Civil 3D results not written: the network did not solve. Fix the errors listed and solve again.";
+            return null;
+        }
+        var model = n.ToModel();
+        var (lisp, warnings) = Civil3DWriteBack.AutoLisp(model, r, AppVersion);
+        return (lisp, Civil3DWriteBack.Csv(model, r), warnings);
+    }
+
+    [RelayCommand]
+    private async Task ExportCivil3DResults()
+    {
+        if (SelectedNetwork is not { } n || Dialogs is null) return;
+        if (BuildCivil3DResults(n) is not { } built) { StatusMessage = n.Status; return; }
+        var path = await Dialogs.PickSaveAsync(SafeName(n.Name) + " HGL.lsp", ".lsp", "AutoLISP for Civil 3D (command MFHGL)");
+        if (path is null) return;
+        string csv = Path.ChangeExtension(path, ".csv");
+        try
+        {
+            await File.WriteAllTextAsync(path, built.Lisp, new System.Text.UTF8Encoding(false));
+            await File.WriteAllTextAsync(csv, built.Csv, new System.Text.UTF8Encoding(true));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Civil 3D results not saved: {ex.Message}"; return; }
+        n.Status = $"Saved {Path.GetFileName(path)} and {Path.GetFileName(csv)}. In Civil 3D: APPLOAD the .lsp, then type MFHGL to set HGL/EGL and flow on the pipes by name." +
+                   (built.Warnings.Count > 0 ? $" {built.Warnings.Count} warning(s): {built.Warnings[0]}" : "");
+        StatusMessage = n.Status;
+    }
+
     [RelayCommand]
     private async Task CopyNetworkResults()
     {
