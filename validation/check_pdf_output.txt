@@ -1,0 +1,22 @@
+docs/samples/sample-report.pdf: 6 pages, title='Sample project — calculations', creator='MasterFlow 0.9.0'
+  ok   text 'Trapezoidal ditch'
+  ok   text '3.361'
+  ok   text '2.148'
+  ok   text '400.000'
+  ok   text 'Creek with overbanks'
+  ok   text '6.893'
+  ok   text '3.741'
+  ok   text 'Rating table'
+  ok   text '828.544'
+  ok   text 'Section points'
+  ok   text 'Flow distribution'
+  ok   text 'Calculation trace'
+  ok   text 'SAMPLE'
+  page size 612 x 792 pt
+docs/samples/sample-comparison.pdf: 2 pages, title='Sample project — comparison', creator='MasterFlow 0.9.0'
+  ok   text 'Alternative comparison'
+  ok   text '3.361'
+  ok   text '6.893'
+  ok   text '15811.39'
+  page size 792 x 612 pt
+ALL PASS

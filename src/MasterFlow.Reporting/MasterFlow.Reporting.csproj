@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MasterFlow.Application\MasterFlow.Application.csproj" />
+    <!-- MIT licence; same version Avalonia ships, so the desktop app carries one copy. -->
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
   </ItemGroup>
 
   <PropertyGroup>

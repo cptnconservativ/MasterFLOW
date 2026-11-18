@@ -52,9 +52,9 @@
         <Button Content="Redo" Command="{Binding RedoCommand}" ToolTip.Tip="Redo (Ctrl+Y)"/>
         <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
         <Button Content="Copy results" Command="{Binding CopyResultsCommand}" ToolTip.Tip="Copy results as tab-separated text"/>
-        <Button Content="Report…" Command="{Binding ExportReportCommand}" ToolTip.Tip="Export the selected calculation report (Ctrl+E)"/>
-        <Button Content="Batch report…" Command="{Binding ExportAllReportsCommand}" ToolTip.Tip="One report containing every calculation"/>
-        <Button Content="Compare report…" Command="{Binding ExportComparisonReportCommand}" ToolTip.Tip="Side-by-side table of every calculation"/>
+        <Button Content="Report…" Command="{Binding ExportReportCommand}" ToolTip.Tip="Selected calculation as PDF (or HTML) (Ctrl+E)"/>
+        <Button Content="Batch report…" Command="{Binding ExportAllReportsCommand}" ToolTip.Tip="Every calculation in one PDF (or HTML)"/>
+        <Button Content="Compare report…" Command="{Binding ExportComparisonReportCommand}" ToolTip.Tip="Side-by-side table of every calculation, PDF (or HTML)"/>
         <Button Content="Excel…" Command="{Binding ExportWorkbookCommand}" ToolTip.Tip="Workbook: comparison, one sheet per calculation, rating table"/>
       </StackPanel>
     </Border>

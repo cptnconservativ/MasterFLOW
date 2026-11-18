@@ -157,6 +157,12 @@ public class SampleArtifacts
             HtmlReport.Render(info, creek, rc, new ReportOptions { Watermark = "SAMPLE", FooterText = "MasterFlow sample", Timestamp = new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero) }));
         Assert.True(rc.Succeeded);
 
+        var opts = new ReportOptions { Watermark = "SAMPLE", FooterText = "MasterFlow sample", Timestamp = new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero) };
+        File.WriteAllBytes(Path.Combine(dir, "docs", "samples", "sample-report.pdf"),
+            PdfReport.ToBytes(info, [new PdfReportItem(calc, r, opts with { RatingTable = rt }), new PdfReportItem(creek, rc, opts)]));
+        File.WriteAllBytes(Path.Combine(dir, "docs", "samples", "sample-comparison.pdf"),
+            PdfReport.ComparisonToBytes(info, Comparison.Build([(calc.Title, r), (creek.Title, rc)]), opts));
+
         File.WriteAllBytes(Path.Combine(dir, "docs", "samples", "sample-workbook.xlsx"),
             XlsxWriter.ToBytes(ProjectWorkbook.Build(info, [(calc, r), (creek, rc)], rt, "Ditch rating")));
     }

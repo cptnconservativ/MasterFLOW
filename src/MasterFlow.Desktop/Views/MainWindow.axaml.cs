@@ -56,7 +56,7 @@ public partial class MainWindow : Window, IDialogService
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
-    public async Task<string?> PickSaveAsync(string suggestedName, string extension, string description)
+    public async Task<string?> PickSaveAsync(string suggestedName, string extension, string description, params (string Extension, string Description)[] alternatives)
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -64,7 +64,8 @@ public partial class MainWindow : Window, IDialogService
             SuggestedFileName = suggestedName,
             DefaultExtension = extension,
             ShowOverwritePrompt = true,
-            FileTypeChoices = [new FilePickerFileType(description) { Patterns = ["*" + extension] }],
+            FileTypeChoices = [new FilePickerFileType(description) { Patterns = ["*" + extension] },
+                               .. alternatives.Select(a => new FilePickerFileType(a.Description) { Patterns = ["*" + a.Extension] })],
         });
         return file?.TryGetLocalPath();
     }

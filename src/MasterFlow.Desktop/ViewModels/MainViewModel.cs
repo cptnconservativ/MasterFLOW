@@ -13,7 +13,8 @@ namespace MasterFlow.Desktop.ViewModels;
 public interface IDialogService
 {
     Task<string?> PickOpenProjectAsync();
-    Task<string?> PickSaveAsync(string suggestedName, string extension, string description);
+    /// <summary>Save picker; <paramref name="alternatives"/> are further file types the user may choose (decided by the returned extension).</summary>
+    Task<string?> PickSaveAsync(string suggestedName, string extension, string description, params (string Extension, string Description)[] alternatives);
     Task SetClipboardAsync(string text);
     void OpenWithShell(string path);
     Task<bool> ConfirmDiscardAsync(string message);
@@ -22,7 +23,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.8.0";
+    public const string AppVersion = "0.9.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
@@ -561,41 +562,70 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ------------------------------------------------------------ report
 
+    private ReportOptions ReportOptionsFor(CalculationViewModel calc) => new()
+    {
+        SoftwareVersion = AppVersion,
+        Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark,
+        FooterText = string.IsNullOrWhiteSpace(FooterText) ? null : FooterText,
+        LogoDataUri = LogoDataUri,
+        IncludeCalculationTrace = IncludeCalculationTrace,
+        RatingTable = ReferenceEquals(calc, Selected) ? RatingTable : null,
+    };
+
+    private ChannelCalculation ReportModel(CalculationViewModel calc) => calc.ToModel() with { Title = calc.DisplayTitle };
+
     public string BuildReportHtml(CalculationViewModel calc) =>
-        HtmlReport.Render(ToProject().Info, calc.ToModel() with { Title = calc.DisplayTitle }, calc.Result!, new ReportOptions
-        {
-            SoftwareVersion = AppVersion,
-            Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark,
-            FooterText = string.IsNullOrWhiteSpace(FooterText) ? null : FooterText,
-            LogoDataUri = LogoDataUri,
-            IncludeCalculationTrace = IncludeCalculationTrace,
-            RatingTable = ReferenceEquals(calc, Selected) ? RatingTable : null,
-        });
+        HtmlReport.Render(ToProject().Info, ReportModel(calc), calc.Result!, ReportOptionsFor(calc));
+
+    /// <summary>Native PDF of the given calculations (one document, each starting on a new page).</summary>
+    public byte[] BuildReportPdf(IEnumerable<CalculationViewModel> calcs) =>
+        PdfReport.ToBytes(ToProject().Info, calcs.Where(c => c.Result is not null).Select(c => new PdfReportItem(ReportModel(c), c.Result!, ReportOptionsFor(c))).ToList());
+
+    private static bool IsHtml(string path) => path.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".htm", StringComparison.OrdinalIgnoreCase);
+    private static readonly (string, string) HtmlChoice = (".html", "HTML report (print from a browser)");
+
+    private string LogoNote(string path) =>
+        !IsHtml(path) && !string.IsNullOrWhiteSpace(LogoDataUri) && !PdfReport.LogoSupported(LogoDataUri)
+            ? " The logo is not a PNG or JPEG, so it appears in HTML reports only."
+            : "";
 
     [RelayCommand]
     private async Task ExportReport()
     {
         if (Selected?.Result is null || Dialogs is null) return;
-        var path = await Dialogs.PickSaveAsync(SafeName(Selected.Title) + ".html", ".html", "HTML report");
+        var path = await Dialogs.PickSaveAsync(SafeName(Selected.DisplayTitle) + ".pdf", ".pdf", "PDF report", HtmlChoice);
         if (path is null) return;
-        await File.WriteAllTextAsync(path, BuildReportHtml(Selected));
-        StatusMessage = $"Report saved to {path}. Opening it — use the browser's Print → Save as PDF.";
+        try
+        {
+            if (IsHtml(path)) await File.WriteAllTextAsync(path, BuildReportHtml(Selected));
+            else await File.WriteAllBytesAsync(path, BuildReportPdf([Selected]));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Report not saved: {ex.Message}"; return; }
+        StatusMessage = $"Report saved to {path}.{LogoNote(path)}";
         Dialogs.OpenWithShell(path);
     }
 
     [RelayCommand]
     private async Task ExportAllReports()
     {
-        if (Dialogs is null || Calculations.Count == 0) return;
-        var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + " reports.html", ".html", "HTML report (all calculations)");
+        if (Dialogs is null || !Calculations.Any(c => c.Result is not null)) return;
+        var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + " reports.pdf", ".pdf", "PDF report (all calculations)", HtmlChoice);
         if (path is null) return;
-        // Batch report: each calculation is a full report separated by a page break.
-        var parts = Calculations.Select(c => BuildReportHtml(c)).ToList();
-        string Body(string html) { int s = html.IndexOf("<div class=\"page\">", StringComparison.Ordinal); int e = html.LastIndexOf("</body>", StringComparison.Ordinal); return html[s..e]; }
-        string head = parts[0][..parts[0].IndexOf("<div class=\"page\">", StringComparison.Ordinal)];
-        var all = head + string.Join("<div style=\"page-break-after:always\"></div>", parts.Select(Body)) + "</body></html>";
-        await File.WriteAllTextAsync(path, all);
-        StatusMessage = $"Batch report ({parts.Count} calculations) saved to {path}.";
+        var calcs = Calculations.Where(c => c.Result is not null).ToList();
+        try
+        {
+            if (IsHtml(path))
+            {
+                // Batch report: each calculation is a full report separated by a page break.
+                var parts = calcs.Select(BuildReportHtml).ToList();
+                string Body(string html) { int s = html.IndexOf("<div class=\"page\">", StringComparison.Ordinal); int e = html.LastIndexOf("</body>", StringComparison.Ordinal); return html[s..e]; }
+                string head = parts[0][..parts[0].IndexOf("<div class=\"page\">", StringComparison.Ordinal)];
+                await File.WriteAllTextAsync(path, head + string.Join("<div style=\"page-break-after:always\"></div>", parts.Select(Body)) + "</body></html>");
+            }
+            else await File.WriteAllBytesAsync(path, BuildReportPdf(calcs));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Report not saved: {ex.Message}"; return; }
+        StatusMessage = $"Batch report ({calcs.Count} calculations) saved to {path}.{LogoNote(path)}";
         Dialogs.OpenWithShell(path);
     }
 
@@ -620,9 +650,15 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (Dialogs is null || Calculations.Count == 0) return;
         RefreshComparison();
-        var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + " comparison.html", ".html", "HTML comparison report");
+        var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + " comparison.pdf", ".pdf", "PDF comparison report", (".html", "HTML comparison report"));
         if (path is null) return;
-        await File.WriteAllTextAsync(path, HtmlReport.RenderComparison(ToProject().Info, Comparison!, new ReportOptions { SoftwareVersion = AppVersion }));
+        var options = new ReportOptions { SoftwareVersion = AppVersion, Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark, FooterText = string.IsNullOrWhiteSpace(FooterText) ? null : FooterText };
+        try
+        {
+            if (IsHtml(path)) await File.WriteAllTextAsync(path, HtmlReport.RenderComparison(ToProject().Info, Comparison!, options));
+            else await File.WriteAllBytesAsync(path, PdfReport.ComparisonToBytes(ToProject().Info, Comparison!, options));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Comparison not saved: {ex.Message}"; return; }
         StatusMessage = $"Comparison saved to {path}.";
         Dialogs.OpenWithShell(path);
     }

@@ -45,7 +45,7 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Autosave / recovery | Not seen | Pro | ✅ | v0.7.0: recovery copy every 60 s while unsaved; offered at next start; cleared on save/close |
 | Undo / redo | Not seen | MVP | ✅ | Per calculation |
 | Report | Yes | MVP | ✅ | Original HTML layout |
-| PDF | Yes | MVP | 🟡 | Via browser print; native Phase F |
+| PDF | Yes | MVP | ✅ v0.9.0 | Native PDF (selectable text, embedded fonts, page x of N, logo, watermark); HTML still available |
 | Watermark | Yes | Pro | ✅ | |
 | Logo, footer | Inv | Pro | ✅ | v0.7.0: logo picker (PNG/JPEG/GIF/SVG ≤ 1 MB embedded), watermark, footer and trace option saved with the project |
 | Batch printing | Yes | Pro | 🟡 | Batch HTML report done; selection toggle later |

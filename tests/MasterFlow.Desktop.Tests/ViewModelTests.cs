@@ -542,3 +542,20 @@ public class TemplateViewModelTests
         finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
     }
 }
+
+public class PdfExportViewModelTests
+{
+    [Fact]
+    public void BuildReportPdf_CoversEverySolvedCalculation()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        vm.Watermark = "DRAFT";
+        var pdf = vm.BuildReportPdf(vm.Calculations);
+        Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(pdf, 0, 5));
+        var text = System.Text.Encoding.Latin1.GetString(pdf);
+        int pages = 0;
+        for (int i = text.IndexOf("/Type /Page", StringComparison.Ordinal); i >= 0; i = text.IndexOf("/Type /Page", i + 1, StringComparison.Ordinal))
+            if (text[i + 11] != 's') pages++;
+        Assert.True(pages >= vm.Calculations.Count(c => c.Result is not null));
+    }
+}
