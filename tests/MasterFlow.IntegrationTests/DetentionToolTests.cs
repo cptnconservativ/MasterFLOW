@@ -57,10 +57,10 @@ public class DetentionToolTests
     {
         var tool = new DetentionTool();
         var ctx = DesignToolTests.Ctx();
-        var r = tool.Run(tool.SampleInput(ctx).Replace("area = 12 ", "area = 60 "), ctx);
+        var r = tool.Run(tool.SampleInput(ctx).Replace("area = 12 ", "area = 200 "), ctx);
         Assert.False(r.Succeeded);
         Assert.Contains(r.Messages, m => m.Code == "E-DT-011");
-        r = tool.Run(tool.SampleInput(ctx).Replace("top of berm = 106.5", "top of berm = 104.0"), ctx);
+        r = tool.Run(tool.SampleInput(ctx).Replace("top of berm = 107.0", "top of berm = 104.0"), ctx);
         Assert.Contains(r.Messages, m => m.Code == "W-DT-004");
         r = tool.Run(tool.SampleInput(ctx).Replace("Outlet pipe\tpipe\t99.5\t2.0", "Outlet pipe\tpipe\t99.5\t1.25"), ctx);
         Assert.Contains(r.Messages, m => m.Code == "W-DT-005");

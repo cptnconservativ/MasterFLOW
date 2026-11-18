@@ -1,0 +1,6 @@
+﻿Network,Part,Name,From,To,Kind,Q (cfs),Q full (cfs),Q/Q full,V up (ft/s),V down (ft/s),V full (ft/s),Depth up (ft),Depth down (ft),Normal depth (ft),Critical depth (ft),HGL up (ft),HGL down (ft),EGL up (ft),EGL down (ft),Friction loss (ft),Regime,Flows full,Rim (ft),HGL (ft),EGL (ft),HGL leaving (ft),Structure loss (ft),Loss method,Rim - HGL (ft),Rim - EGL (ft),Check
+Storm A,Pipe,P-1,CB-1,MH-1,,12,10.504338,1.142,6.790611,7.310753,6.790611,1.664725,1.314283,,1.314283,102.164725,100.814283,102.881335,101.644878,1.236457,Pressure,yes,,,,,,,,,W-NW-005
+Storm A,Pipe,P-2,MH-1,OUT-1,,16,33.533917,0.477,5.538455,7.042728,3.417551,1.145417,0.944266,0.941947,1.145417,100.545417,99.344266,101.022114,100.115075,0.907039,Steep,no,,,,,,,,,W-NW-007
+Storm A,Structure,CB-1,,,Inlet,,,,,,,,,,,,,,,,,,105.2,103.060487,103.060487,102.164725,0.895762,"IDCM Fig. 4-7 Case VI, beginning of line",2.139513,2.139513,OK
+Storm A,Structure,MH-1,,,Manhole (circular),,,,,,,,,,,,,,,,,,104.8,100.606817,101.644878,100.545417,0.061399,"IDCM Fig. 4-6 Case I, on main line",4.193183,3.155122,OK
+Storm A,Structure,OUT-1,,,Outlet,,,,,,,,,,,,,,,,,,101,99.344266,100.115075,99.344266,,Outfall,1.655734,0.884925,OK
