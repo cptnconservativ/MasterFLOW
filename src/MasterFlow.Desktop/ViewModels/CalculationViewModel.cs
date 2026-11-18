@@ -94,6 +94,13 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private RatingRange? _rating;
     partial void OnRatingChanged(RatingRange? value) { if (!_restoring) Edited?.Invoke(this, EventArgs.Empty); }
 
+    /// <summary>When true, the report and the workbook include a sensitivity table for this calculation.</summary>
+    [ObservableProperty] private bool _sensitivity;
+    partial void OnSensitivityChanged(bool value) { if (!_restoring) Edited?.Invoke(this, EventArgs.Empty); }
+
+    /// <summary>Sensitivity of the current result to n and slope (null without a successful result).</summary>
+    public SensitivityTable? BuildSensitivity() => Result is { Succeeded: true } r ? SensitivityAnalysis.Build(r.Input) : null;
+
     /// <summary>This calculation's rating table from its saved range and current inputs (null when none is saved or there is no result).</summary>
     public RatingTable? BuildRatingTable() => Rating is { } rr && Result is { Succeeded: true } r ? RatingTableBuilder.Build(r.Input, rr) : null;
     partial void OnIncludeInBatchChanged(bool value) { if (!_restoring) Edited?.Invoke(this, EventArgs.Empty); }
@@ -214,6 +221,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         vm.IncludeInBatch = c.IncludeInBatch;
         vm.ItemNumber = c.ItemNumber;
         vm.Rating = c.Rating;
+        vm.Sensitivity = c.Sensitivity;
         if (c.Criteria is { } dc)
         {
             vm.Lining = dc.Lining;
@@ -277,6 +285,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         IncludeInBatch = IncludeInBatch,
         ItemNumber = ItemNumber.Trim(),
         Rating = Rating,
+        Sensitivity = Sensitivity,
         Criteria = BuildCriteria(out _),
         Input = BuildInput(out _),
     };
