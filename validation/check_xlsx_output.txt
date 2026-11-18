@@ -1,0 +1,4 @@
+sheets: ['Comparison', 'Trapezoidal ditch — normal dept', 'Creek with overbanks — normal d', 'Ditch rating']
+Normal depth row: ('Normal depth', 'yn', 'ft', 3.360967840282236, 6.8934032726960615)
+rating rows: 10 first: (0.5, 15.13848082797298, 10.5, 1.4417600788545695, 22, 0.3679231867755777, 0.2588657107629212)
+OK

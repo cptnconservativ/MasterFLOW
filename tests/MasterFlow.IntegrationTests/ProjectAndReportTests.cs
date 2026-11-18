@@ -156,5 +156,8 @@ public class SampleArtifacts
         File.WriteAllText(Path.Combine(dir, "docs", "samples", "sample-report-irregular.html"),
             HtmlReport.Render(info, creek, rc, new ReportOptions { Watermark = "SAMPLE", FooterText = "MasterFlow sample", Timestamp = new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero) }));
         Assert.True(rc.Succeeded);
+
+        File.WriteAllBytes(Path.Combine(dir, "docs", "samples", "sample-workbook.xlsx"),
+            XlsxWriter.ToBytes(ProjectWorkbook.Build(info, [(calc, r), (creek, rc)], rt, "Ditch rating")));
     }
 }

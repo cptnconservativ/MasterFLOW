@@ -31,9 +31,9 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Rating table Q → depth | Inv | MVP | ✅ | |
 | Rating chart | Inv | Pro | ✅ | v0.5.0: in the rating tab and in reports with a rating table |
 | CSV / clipboard export | "Export calculations" | MVP | ✅ | Rating table and results |
-| Excel (.xlsx) export | Inv | Plan | ⬜ | Tab-separated clipboard already pastes into Excel |
-| Quick calculator | Not found | Plan / Diff | ⬜ | Phase E differentiator |
-| Alternative comparison | Not found | Pro / Diff | ⬜ | Phase E differentiator |
+| Excel (.xlsx) export | Inv | Plan | ✅ | v0.6.0: comparison sheet, one sheet per calculation (inputs, results, points, subareas, messages), rating table; full-precision numbers |
+| Quick calculator | Not found | Plan / Diff | ⬜ | Deferred; calculations already solve live |
+| Alternative comparison | Not found | Pro / Diff | ✅ | v0.6.0: Compare tab, landscape comparison report, Excel sheet; no unit conversion between systems |
 | Project tree, folders | Yes (obs.) | Pro | 🟡 | Flat list now; folders Phase F |
 | Duplicate / delete / recycle bin | Yes (obs.) | MVP | 🟡 | Duplicate + delete; no recycle bin (undo instead, Phase F) |
 | Sort names / re-sort | Yes (obs.) | Plan | ⬜ | |

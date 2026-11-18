@@ -10,7 +10,7 @@ namespace MasterFlow.Reporting;
 /// <summary>Options that control report presentation (not calculation).</summary>
 public sealed record ReportOptions
 {
-    public string SoftwareVersion { get; init; } = "0.5.0";
+    public string SoftwareVersion { get; init; } = "0.6.0";
     public string? Watermark { get; init; }
     public string? FooterText { get; init; }
     /// <summary>Optional company logo as a data: URI (PNG/SVG). Embedded, never fetched.</summary>
@@ -184,6 +184,36 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
         sb.Append("<footer><span>Computed by MasterFlow. The responsible engineer must review inputs, assumptions and results before use.</span>");
         sb.Append($"<span>{E(options.FooterText ?? "")}</span></footer>");
         sb.Append("</div></body></html>");
+        return sb.ToString();
+    }
+
+    /// <summary>Side-by-side comparison of alternatives (landscape-friendly table).</summary>
+    public static string RenderComparison(ProjectInfo project, ComparisonTable table, ReportOptions? options = null)
+    {
+        options ??= new ReportOptions();
+        string E(string s) => WebUtility.HtmlEncode(s);
+        var sb = new StringBuilder("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">");
+        sb.Append($"<title>{E(project.Name)} — comparison</title>");
+        sb.Append("<style>body{font-family:\"Segoe UI\",Arial,sans-serif;color:#1d2733;margin:24px;font-size:10pt}h1{font-size:14pt;margin:0}h2{font-size:10.5pt;color:#1f5f8b;margin:14px 0 4px}" +
+                  "table{border-collapse:collapse;width:100%}td,th{padding:3px 6px;border-bottom:1px solid #c9d1da;text-align:left;vertical-align:top}th{background:#f2f5f8}" +
+                  "td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.sub{color:#5b6876}.note{margin-top:8px;color:#5b6876}@page{size:landscape}</style></head><body>");
+        sb.Append($"<h1>Alternative comparison</h1><div class=\"sub\">{E(project.Name)} {E(project.ProjectNumber)} · Prepared by {E(project.PreparedBy)} · MasterFlow {E(options.SoftwareVersion)} · {(options.Timestamp ?? DateTimeOffset.Now).ToString("yyyy-MM-dd HH:mm", Inv)}</div>");
+        sb.Append("<table><tr><th>Quantity</th><th>Unit</th>");
+        foreach (var t in table.Titles) sb.Append($"<th class=\"num\">{E(t)}</th>");
+        sb.Append("</tr><tr><td class=\"sub\">Status</td><td></td>");
+        foreach (var st in table.Statuses) sb.Append($"<td class=\"sub\">{E(st)}</td>");
+        sb.Append("</tr>");
+        string? group = null;
+        foreach (var r in table.Rows)
+        {
+            if (r.Group != group) { sb.Append($"<tr><td colspan=\"{table.Titles.Count + 2}\"><h2>{E(r.Group)}</h2></td></tr>"); group = r.Group; }
+            sb.Append($"<tr><td>{E(r.Label)} <span class=\"sub\">{E(r.Symbol)}</span></td><td>{E(r.Unit)}</td>");
+            for (int k = 0; k < r.Values.Count; k++) sb.Append($"<td class=\"num\">{E(r.Format(k))}</td>");
+            sb.Append("</tr>");
+        }
+        sb.Append("</table>");
+        foreach (var n in table.Notes) sb.Append($"<div class=\"note\">{E(n)}</div>");
+        sb.Append("<div class=\"note\">Computed by MasterFlow. The responsible engineer must review inputs, assumptions and results before use.</div></body></html>");
         return sb.ToString();
     }
 

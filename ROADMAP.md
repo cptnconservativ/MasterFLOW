@@ -43,9 +43,9 @@ Acceptance: HEC-RAS normal-depth agreement within ±0.01 ft for equivalent subdi
 ## Phase E — Tables and comparison
 Dependencies: B (C, D for pipe/irregular rows). Risk L/L.
 - E1 Rating chart (Q vs y) — 1.5 d — ✅ v0.5.0
-- E2 Alternative comparison, side-by-side inputs and outputs — 3 d — ⬜
-- E3 Quick calculator panel (no project item needed) — 1.5 d — ⬜
-- E4 .xlsx export — 1 d — ⬜
+- E2 Alternative comparison, side-by-side inputs and outputs — 3 d — ✅ v0.6.0 (Compare tab, comparison report, comparison sheet)
+- E3 Quick calculator panel (no project item needed) — 1.5 d — ⬜ deferred: every calculation already solves live; revisit with the UI pass
+- E4 .xlsx export — 1 d — ✅ v0.6.0 (no third-party library; verified with openpyxl)
 
 ## Phase F — Projects and reports
 Dependencies: B. Risk M (PDF library licensing).

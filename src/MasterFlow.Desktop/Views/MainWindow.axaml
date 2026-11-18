@@ -37,6 +37,8 @@
         <Button Content="Copy results" Command="{Binding CopyResultsCommand}" ToolTip.Tip="Copy results as tab-separated text"/>
         <Button Content="Report…" Command="{Binding ExportReportCommand}" ToolTip.Tip="Export the selected calculation report (Ctrl+E)"/>
         <Button Content="Batch report…" Command="{Binding ExportAllReportsCommand}" ToolTip.Tip="One report containing every calculation"/>
+        <Button Content="Compare report…" Command="{Binding ExportComparisonReportCommand}" ToolTip.Tip="Side-by-side table of every calculation"/>
+        <Button Content="Excel…" Command="{Binding ExportWorkbookCommand}" ToolTip.Tip="Workbook: comparison, one sheet per calculation, rating table"/>
       </StackPanel>
     </Border>
 
@@ -247,6 +249,36 @@
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="Compare">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Every calculation in the project, side by side. Values use each calculation's own units." FontSize="11" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Width="150" Text="Quantity" FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding Comparison.Titles, FallbackValue={x:Null}}">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Width="96" Text="{Binding}" FontWeight="SemiBold" TextAlignment="Right" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding Comparison.Rows, FallbackValue={x:Null}}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="app:ComparisonRow">
+                    <StackPanel Orientation="Horizontal" Margin="0,1">
+                      <TextBlock Width="150" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Group}"><Run Text="{Binding Label}"/><Run Text=" "/><Run Text="{Binding Unit}" Foreground="Gray"/></TextBlock>
+                      <ItemsControl ItemsSource="{Binding Cells}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Width="96" Text="{Binding}" TextAlignment="Right"/></DataTemplate></ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ItemsControl ItemsSource="{Binding Comparison.Notes, FallbackValue={x:Null}}">
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" FontSize="11" Opacity="0.7" TextWrapping="Wrap"/></DataTemplate></ItemsControl.ItemTemplate>
               </ItemsControl>
             </StackPanel>
           </ScrollViewer>

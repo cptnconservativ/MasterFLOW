@@ -21,9 +21,11 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.5.0";
+    public const string AppVersion = "0.6.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
+
+    public MainViewModel() => Calculations.CollectionChanged += (_, _) => { if (!_loading) RefreshComparison(); };
 
     [ObservableProperty] private CalculationViewModel? _selected;
     [ObservableProperty] private string? _filePath;
@@ -48,6 +50,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _ratingEnd = "5";
     [ObservableProperty] private string _ratingIncrement = "0.5";
     [ObservableProperty] private RatingTable? _ratingTable;
+    [ObservableProperty] private ComparisonTable? _comparison;
     [ObservableProperty] private string _ratingStatus = "Choose a range and press Generate.";
 
     public IDialogService? Dialogs { get; set; }
@@ -153,6 +156,7 @@ public sealed partial class MainViewModel : ObservableObject
         FilePath = path;
         _loading = false;
         IsDirty = false;
+        RefreshComparison();
     }
 
     private void Add(CalculationViewModel c)
@@ -161,8 +165,13 @@ public sealed partial class MainViewModel : ObservableObject
         Calculations.Add(c);
     }
 
+    /// <summary>Rebuilds the side-by-side comparison of every calculation in the project.</summary>
+    public void RefreshComparison() =>
+        Comparison = Application.Comparison.Build(Calculations.Where(c => c.Result is not null).Select(c => (c.ListLabel, c.Result!)).ToList());
+
     private void OnCalcEdited(object? sender, EventArgs e)
     {
+        RefreshComparison();
         MarkDirty();
         UndoCommand.NotifyCanExecuteChanged();
         RedoCommand.NotifyCanExecuteChanged();
@@ -356,6 +365,34 @@ public sealed partial class MainViewModel : ObservableObject
         var all = head + string.Join("<div style=\"page-break-after:always\"></div>", parts.Select(Body)) + "</body></html>";
         await File.WriteAllTextAsync(path, all);
         StatusMessage = $"Batch report ({parts.Count} calculations) saved to {path}.";
+        Dialogs.OpenWithShell(path);
+    }
+
+    [RelayCommand]
+    private async Task ExportWorkbook()
+    {
+        if (Dialogs is null || Calculations.Count == 0) return;
+        var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + ".xlsx", ".xlsx", "Excel workbook");
+        if (path is null) return;
+        await File.WriteAllBytesAsync(path, BuildWorkbook());
+        StatusMessage = $"Workbook saved to {path} (comparison, one sheet per calculation{(RatingTable is null ? "" : ", rating table")}).";
+    }
+
+    public byte[] BuildWorkbook()
+    {
+        var items = Calculations.Where(c => c.Result is not null).Select(c => (c.ToModel(), c.Result!)).ToList();
+        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, RatingTable, Selected is null ? null : SafeName(Selected.Title) + " rating"));
+    }
+
+    [RelayCommand]
+    private async Task ExportComparisonReport()
+    {
+        if (Dialogs is null || Calculations.Count == 0) return;
+        RefreshComparison();
+        var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + " comparison.html", ".html", "HTML comparison report");
+        if (path is null) return;
+        await File.WriteAllTextAsync(path, HtmlReport.RenderComparison(ToProject().Info, Comparison!, new ReportOptions { SoftwareVersion = AppVersion }));
+        StatusMessage = $"Comparison saved to {path}.";
         Dialogs.OpenWithShell(path);
     }
 

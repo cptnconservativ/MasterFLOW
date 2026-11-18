@@ -338,3 +338,20 @@ public class FlowExtrasViewModelTests
         Assert.True(c.HasResult);
     }
 }
+
+public class ComparisonViewModelTests
+{
+    [Fact]
+    public void Comparison_TracksProject_AndWorkbookBuilds()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        Assert.Equal(vm.Calculations.Count, vm.Comparison!.Titles.Count);
+        vm.DuplicateCommand.Execute(null);
+        Assert.Equal(vm.Calculations.Count, vm.Comparison!.Titles.Count);
+        vm.Selected!.Title = "Renamed alternative";
+        Assert.Contains("Renamed alternative", vm.Comparison!.Titles);
+        var bytes = vm.BuildWorkbook();
+        Assert.True(bytes.Length > 1000);
+        Assert.Equal((byte)'P', bytes[0]); // zip signature "PK"
+    }
+}
