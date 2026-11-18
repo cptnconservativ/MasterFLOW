@@ -8,7 +8,7 @@ namespace MasterFlow.Application.Tools;
 /// Eq. 4-4-2 V = (1.12/n) S^0.5 Sx^0.67 T^0.67 (exponents as printed). Inlets (IDCM §4.5.3 requires HEC-22): curb
 /// opening on grade LT = 0.6 Q^0.42 S^0.3 (1/(n Se))^0.6, E = 1 − (1 − L/LT)^1.8; grate on grade E = Rf Eo + Rs (1 − Eo)
 /// with Eo = 1 − (1 − W/T)^2.67, Rf = 1 − 0.09 (V − Vo), Rs = 1/(1 + 0.15 V^1.8 / (Sx L^2.3)); sag inlets by the lesser of
-/// weir and orifice flow. Clogging per IDCM Table 4-11 (grate 40 %, combination 33 %, curb 0 %) reduces length, perimeter and area.
+/// weir and orifice flow. Clogging per IDCM Table 4-11 (grate 40 %, combination 33 % in a sag but 40 % on grade where it acts as a grate, curb 0 %) reduces length, perimeter and area.
 /// </summary>
 public static class GutterHydraulics
 {
@@ -126,7 +126,8 @@ public sealed class GutterInletTool : IDesignTool
             if (type is not ("curb" or "grate" or "combination")) { msgs.Add(CalcMessage.Error("E-GI-007", $"{where}: type \"{type}\" must be curb, grate or combination.")); continue; }
             if (loc is not ("grade" or "sag")) { msgs.Add(CalcMessage.Error("E-GI-008", $"{where}: location \"{loc}\" must be grade or sag.")); continue; }
             if (l is not > 0) { msgs.Add(CalcMessage.Error("E-GI-009", $"{where}: opening length L is required.")); continue; }
-            double clog = type switch { "grate" => 0.40, "combination" => 0.33, _ => 0 };   // Table 4-11
+            // Table 4-11. A combination (Type B) inlet is a grate on grade (IDCM §4.5.2(2)–(4)), so 40 %; it is a combination only in a sag, 33 %.
+            double clog = type switch { "grate" => 0.40, "combination" => loc == "grade" ? 0.40 : 0.33, _ => 0 };
             double q = qLocal + carry;
             string status;
             double qi, bypass, t, d, v = double.NaN, eff;
@@ -184,7 +185,7 @@ public sealed class GutterInletTool : IDesignTool
             new("Inlets in flow order", ["Inlet", "Type", "Q gutter (cfs)", "Spread T (ft)", "Depth d (ft)", "V (fps)", "L effective (ft)", "E", "Q intercepted (cfs)", "Bypass (cfs)", "Table 4-6 check", "Notes"], rows,
             [
                 $"Street: {c.Text}. Allowed spread = ({width:0.#} − {c.Dry:0}) / 2 = {tAllow:F1} ft each side; curb height {curb:F2} ft; Sx = {sx}; n = {n}.",
-                "Spread from Eq. 4-4-1 (on grade) or ponded depth ÷ Sx (sag). Clogging (Table 4-11) shortens the effective length: grate 40 %, combination 33 %, curb 0 %.",
+                "Spread from Eq. 4-4-1 (on grade) or ponded depth ÷ Sx (sag). Clogging (Table 4-11) shortens the effective length: grate 40 %, combination 33 % in a sag (a combination on grade is a grate, 40 %), curb 0 %.",
             ]),
         };
         var result = new ToolResult(title, [$"{rows.Count} inlet(s); total intercepted {rows.Sum(x => (double)x[8]!):F2} cfs; last bypass {carry:F2} cfs."], tables, msgs);
