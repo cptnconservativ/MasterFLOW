@@ -65,6 +65,38 @@ Dependencies: B. Risk M (PDF library licensing).
 - G6 User guide — 2 d — ✅ v0.10.0 docs/USER_GUIDE.md (checked against the code)
 - G7 Release checklist — 0.5 d — ✅ docs/RELEASE_CHECKLIST.md + scripts/publish-win.sh (tests, Release performance, independent read-back, publish, zip, SHA-256); version now set only in Directory.Build.props
 
+## Phase H — Beyond parity, ranked by gain for effort (2026-11-18)
+
+Kyle asked (2026-11-18) for the highest gain from the least effort, each feature on its own branch with a
+pull request to `main`, and for Civil 3D work to use LandXML for alignments, profiles, corridors and pipe
+networks so inlet locations and data come across. Gain is 1–5 (how much engineering time it saves or
+risk it removes for a drainage/roadway engineer); effort is engineering days; the order is by gain ÷
+effort, adjusted where one item feeds another.
+
+| Rank | Item | Gain | Effort (d) | Gain/effort | Branch | Status |
+|---|---|---|---|---|---|---|
+| 1 | H1 Lining shear and freeboard check (HEC-15 permissible shear, required freeboard, pass/fail in results and report) | 4 | 1.5 | 2.7 | `feature/lining-freeboard-check` | 🟡 PR |
+| 2 | H2 Sensitivity table (yn, V, Fr for n ± 10/20 %, slope range) | 3 | 1 | 3.0 | `feature/sensitivity-table` | ⬜ |
+| 3 | H3 Checker sign-off (prepared/checked by and date per calculation; cleared by any later input edit) | 3 | 1 | 3.0 | `feature/checker-signoff` | ⬜ |
+| 4 | H4 **LandXML pipe networks** → one pipe calculation per pipe (shape, size, n, slope from inverts, length) and a structure list with inlet locations (northing/easting, rim, sump, inverts) | 5 | 2.5 | 2.0 | `feature/landxml-pipe-networks` | 🟡 PR |
+| 5 | H5 **LandXML profiles** → slope for imported cross-sections and pipes from the profile grade at their station | 4 | 2 | 2.0 | `feature/landxml-profiles` | ⬜ |
+| 6 | H6 **LandXML alignments** (lines, arcs, spirals) → station and offset of each inlet/structure along the road | 3 | 2 | 1.5 | `feature/landxml-alignments` | ⬜ |
+| 7 | H7 Gutter spread and inlet capacity (FHWA HEC-22: curb-opening, grate, combination, on grade and sag; bypass carried to the next inlet) | 5 | 4 | 1.3 | `feature/hec22-gutter-inlets` | ⬜ |
+| 8 | H8 **LandXML corridors**: Civil 3D has no corridor element in LandXML; it exports corridor *surfaces* (TIN) and feature lines. Read the gutter flowline feature line for longitudinal slope and cut the corridor surface at each inlet for cross slope, feeding H7 | 4 | 4 | 1.0 | `feature/landxml-corridor-surfaces` | ⬜ |
+| 9 | H9 Batch from spreadsheet (CSV/xlsx of pipes or ditches → calculations) | 3 | 2 | 1.5 | `feature/batch-import` | ⬜ |
+| 10 | H10 Culvert inlet/outlet control (FHWA HDS-5) | 5 | 6 | 0.8 | `feature/hds5-culverts` | ⬜ |
+| 11 | H11 Storm sewer HGL through an imported pipe network (junction losses, tailwater) | 5 | 10 | 0.5 | `feature/storm-sewer-hgl` | ⬜ |
+
+Why this order: H1–H3 use values MasterFlow already computes, so they are almost free. H4–H6 and H8 are
+the Civil 3D chain Kyle asked for; H4 comes first because pipe capacity works with what MasterFlow has
+today, and H5/H6 make imported data complete (slopes, stations). H7 (inlets) is the payoff of the chain
+and needs H6/H8 for best results but can start with typed-in slopes. H10/H11 are big but high value.
+
+**What is inference:** that Civil 3D's LandXML export carries pipe networks as `PipeNetworks/Structs/Pipes`
+and corridors only as surfaces and feature lines comes from the LandXML 1.2 schema and common
+practice, not from a test export from Kyle's Civil 3D. A sample export from Kyle's version is the first
+acceptance test for H4–H8.
+
 Every item's acceptance includes: clean build, tests passing, equations documented, failure modes
 tested, independent verification, UI inspected, save/load and report checked, this file and the
 parity matrix updated.
