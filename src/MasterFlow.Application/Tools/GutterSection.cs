@@ -41,7 +41,9 @@ public sealed record GutterSection(double Sx, double N, double W = 0, double Sw 
         if (!IsComposite) return k * Math.Pow(Sx, Ex) * Math.Pow(t, Et);
         if (t <= W) return k * Math.Pow(Sw, Ex) * Math.Pow(t, Et);
         double qs = k * Math.Pow(Sx, Ex) * Math.Pow(t - W, Et);
-        return qs / (1 - FrontalRatio(t));
+        // Q = Qs / (1 − Eo) with 1 − Eo = r / (u^2.67 − 1 + r), u = 1 + r/(T/W − 1): written this way it stays exact as T → W.
+        double r = Sw / Sx, u = 1 + r / (t / W - 1);
+        return qs * (Math.Pow(u, Et) - 1 + r) / r;
     }
 
     /// <summary>Spread T (ft) that carries Q (cfs) on slope S; Capacity is strictly increasing in T, so bisection is exact to 1e-10 ft.</summary>
