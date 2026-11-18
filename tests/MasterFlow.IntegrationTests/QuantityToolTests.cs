@@ -105,4 +105,45 @@ public class QuantityToolTests
         var r = new QuantityTool().Run(Base, new DesignToolContext(UnitSystem.USCustomary));
         Assert.False(r.Succeeded);
     }
+
+    /// <summary>Review finding: Math.Round(x, −1) threw for every SI network. Circular and elliptical SI pipes must be named to the millimetre.</summary>
+    [Fact]
+    public void SI_Network_CircularAndElliptical_DoNotThrow()
+    {
+        var net = new StormNetwork
+        {
+            Name = "SI", Units = UnitSystem.SI, Tailwater = TailwaterRule.HalfCriticalPlusDiameter,
+            Structures = [new() { Name = "A", Kind = "Inlet", RimElevation = 102 }, new() { Name = "B", Kind = "Manhole", RimElevation = 101.8 }, new() { Name = "OUT", Kind = "Outlet", RimElevation = 101.5 }],
+            Pipes =
+            [
+                new() { Name = "C1", From = "A", To = "B", Rise = 0.375, Span = 0.375, Length = 40, UpstreamInvert = 100.5, DownstreamInvert = 100.3, ManningN = 0.013, Discharge = 0.1 },
+                new() { Name = "E1", From = "B", To = "OUT", Shape = NetworkPipeShape.Elliptical, Rise = 0.48, Span = 0.76, Length = 30, UpstreamInvert = 100.2, DownstreamInvert = 100.0, ManningN = 0.013, Discharge = 0.1 },
+            ],
+        };
+        var tool = new QuantityTool();
+        var r = tool.Run(tool.SampleInput(new DesignToolContext(UnitSystem.SI, net)), new DesignToolContext(UnitSystem.SI, net, StormNetworkSolver.Solve(net)));
+        Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
+        Assert.Equal("Pipe 375 mm RCP", Row(r, 1, "C1")[2]);
+        Assert.Equal("Pipe 480 x 760 mm RCP elliptical", Row(r, 1, "E1")[2]);
+        Assert.Equal(40 * 230.0, (double)Row(r, 0, "Pipe 375 mm RCP")[4]!, 6);
+    }
+
+    /// <summary>Review finding: a price per CF was applied to CY without conversion (27× low). Same-kind units convert; others stay unpriced.</summary>
+    [Fact]
+    public void PriceUnits_ConvertWhenCompatible_OtherwiseUnpriced()
+    {
+        var cy = Run(Base);
+        var cf = Run(Base.Replace("Excavation\tCY\t20", "Excavation\tCF\t" + (20.0 / 27).ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+        Assert.Equal((double)Row(cy, 0, "Excavation")[4]!, (double)Row(cf, 0, "Excavation")[4]!, 2);
+        Assert.Contains(cf.Messages, m => m.Code == "I-QT-002" && m.Text.Contains("Excavation"));
+        Assert.Equal(20 * 27.0, QuantityTool.ConvertPrice(20, "CF", "CY")!.Value, 9);
+        Assert.Equal(100 / 3.280839895, QuantityTool.ConvertPrice(100, "m", "LF")!.Value, 6);
+
+        var bad = Run(Base.Replace("Excavation\tCY\t20", "Excavation\tton\t20"));
+        Assert.Contains(bad.Messages, m => m.Code == "W-QT-003" && m.Text.Contains("Excavation"));
+        Assert.Null(Row(bad, 0, "Excavation")[4]);
+        double sub = bad.Tables[0].Rows.Where(x => x[3] is double).Sum(x => (double)x[4]!);
+        Assert.Equal(sub, (double)Row(bad, 0, "Subtotal")[4]!, 2);
+        Assert.Equal((double)Row(cy, 0, "Subtotal")[4]! - (double)Row(cy, 0, "Excavation")[4]!, sub, 2);
+    }
 }

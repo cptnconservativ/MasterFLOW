@@ -97,10 +97,10 @@ public sealed class QuantityTool : IDesignTool
         {
             if (rims.GetValueOrDefault(x.From) is not { } r1 || rims.GetValueOrDefault(x.To) is not { } r2)
             { msgs.Add(CalcMessage.Warning("W-QT-001", $"Pipe {x.Name}: a rim is missing at {x.From} or {x.To}; trench quantities skipped for it (pipe length still counted).")); }
-            double size = Math.Round(x.Rise * toSize, us ? 0 : -1);
+            double size = Math.Round(x.Rise * toSize);   // nearest inch or millimetre
             // PVC only where IDCM allows it (18 in. / 450 mm and smaller) and the n says plastic; otherwise RCP.
             string material = size <= (us ? 18 : 450) && x.ManningN < 0.013 ? "PVC" : "RCP";
-            string pipeItem = x.Shape == NetworkPipeShape.Elliptical ? $"Pipe {size} x {Math.Round(x.Span * toSize, us ? 0 : -1)} {sizeU} RCP elliptical" : $"Pipe {size} {sizeU} {material}";
+            string pipeItem = x.Shape == NetworkPipeShape.Elliptical ? $"Pipe {size} x {Math.Round(x.Span * toSize)} {sizeU} RCP elliptical" : $"Pipe {size} {sizeU} {material}";
             Q(pipeItem, len, x.Length);
             double wall = wallFixed ?? x.Rise / 12 + (us ? 1.0 / 12 : 0.025);
             double od = x.Span + 2 * wall, odH = x.Rise + 2 * wall, width = od + clear;
@@ -140,10 +140,18 @@ public sealed class QuantityTool : IDesignTool
             double rq = Math.Round(q, unit == "each" ? 0 : 1);
             if (prices.TryGetValue(Norm(item), out var pr))
             {
-                if (!pr.Unit.Equals(unit, StringComparison.OrdinalIgnoreCase)) msgs.Add(CalcMessage.Warning("W-QT-003", $"\"{item}\": the price is per {pr.Unit} but the quantity is in {unit}."));
-                double cost = rq * pr.Price;
+                double? perUnit = ConvertPrice(pr.Price, pr.Unit, unit);
+                if (perUnit is not { } up)
+                {
+                    msgs.Add(CalcMessage.Warning("W-QT-003", $"\"{item}\": the price is per {pr.Unit} but the quantity is in {unit}, and the units do not convert. The line is left unpriced and out of the subtotal."));
+                    costRows.Add([item, unit, rq, null, null]); missing.Add(item);
+                    continue;
+                }
+                if (!pr.Unit.Trim().Equals(unit, StringComparison.OrdinalIgnoreCase))
+                    msgs.Add(CalcMessage.Info("I-QT-002", $"\"{item}\": price {pr.Price:G6} per {pr.Unit} converted to {up:G6} per {unit}."));
+                double cost = rq * up;
                 total += cost;
-                costRows.Add([item, unit, rq, pr.Price, Math.Round(cost, 2)]);
+                costRows.Add([item, unit, rq, Math.Round(up, 4), Math.Round(cost, 2)]);
             }
             else { costRows.Add([item, unit, rq, null, null]); missing.Add(item); }
         }
@@ -169,6 +177,22 @@ public sealed class QuantityTool : IDesignTool
     {
         string k = s.Kind.ToLowerInvariant();
         return k.Contains("out") ? "Outlet" : k.Contains("inlet") || k.Contains("cb") || k.Contains("catch") || k.Contains("grate") || k.Contains("curb") ? "Inlet" : "Manhole";
+    }
+
+    // Unit sizes in a base unit of each kind: length in ft, volume in ft³, count in each.
+    private static readonly Dictionary<string, (string Kind, double Size)> Units = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["LF"] = ("length", 1), ["ft"] = ("length", 1), ["VF"] = ("length", 1), ["m"] = ("length", 1 / 0.3048),
+        ["CY"] = ("volume", 27), ["CF"] = ("volume", 1), ["ft3"] = ("volume", 1), ["m3"] = ("volume", 1 / Math.Pow(0.3048, 3)),
+        ["each"] = ("count", 1), ["EA"] = ("count", 1),
+    };
+
+    /// <summary>Price per <paramref name="qtyUnit"/> from a price per <paramref name="priceUnit"/>; null when they are not the same kind of unit.</summary>
+    public static double? ConvertPrice(double price, string priceUnit, string qtyUnit)
+    {
+        if (priceUnit.Trim().Equals(qtyUnit, StringComparison.OrdinalIgnoreCase)) return price;
+        if (!Units.TryGetValue(priceUnit.Trim(), out var a) || !Units.TryGetValue(qtyUnit, out var b) || a.Kind != b.Kind) return null;
+        return price * b.Size / a.Size;
     }
 
     private static int Order(string item) => item.StartsWith("Pipe", StringComparison.OrdinalIgnoreCase) ? 0 : item is "Excavation" or "Bedding" or "Backfill" ? 2 : 1;

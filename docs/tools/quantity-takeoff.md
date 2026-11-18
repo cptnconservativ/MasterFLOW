@@ -11,15 +11,15 @@ Takes the selected storm network and produces three tables:
 
 | Quantity | Rule |
 |---|---|
-| Pipe item | `Pipe <size> in <material>` (SI: mm). PVC where the size is 18 in. / 450 mm or smaller **and** n < 0.013 (IDCM §4.6.2(2) allows PVC only there); RCP otherwise. Elliptical pipes are `Pipe <rise> x <span> in RCP elliptical`. |
+| Pipe item | `Pipe <size> in <material>` (SI: mm, to the nearest millimetre). PVC where the size is 18 in. / 450 mm or smaller **and** n < 0.013 (IDCM §4.6.2(2) allows PVC only there); RCP otherwise. Elliptical pipes are `Pipe <rise> x <span> in RCP elliptical`. |
 | Wall | `wall = auto` uses D/12 + 1 in. (an approximation of RCP Wall B); enter a number to override. |
 | Trench | Vertical walls. Width = OD + `side clearance`. Depth at each end = rim − (invert − wall − `bedding depth`); the two ends are averaged. Ground is the straight line between the two rims. |
 | Volumes | Excavation = width × average depth × length; bedding = width × bedding depth × length; backfill = excavation − bedding − pipe volume. CY in U.S. units, m³ in SI. |
 | Structures | Kind from the structure's Kind text (outlet / inlet, CB, catch, grate, curb / otherwise manhole). Depth = rim − lowest connected invert + `structure base depth`. `<Kind> extra depth` = depth over `base structure depth`, per VF (m); outlets get none. |
-| Prices | `[Unit prices]` table: Item, Unit, Price. Item names are matched without regard to case or extra spaces; a unit that differs from the quantity's unit is warned (W-QT-003). |
+| Prices | `[Unit prices]` table: Item, Unit, Price. Item names are matched without regard to case or extra spaces; a price in a different unit of the same kind is converted (LF/ft/VF/m; CY/CF/ft3/m3; each/EA) and noted (I-QT-002). A unit that cannot be converted leaves the line unpriced and out of the subtotal (W-QT-003). |
 
 Messages: E-QT-001 no network; W-QT-001 a rim is missing (trench skipped); W-QT-002 structure depth unknown;
-W-QT-003 unit mismatch; W-QT-004 unpriced items; I-QT-001 the assumptions used.
+W-QT-003 unit that does not convert (line left unpriced); I-QT-002 price converted; W-QT-004 unpriced items; I-QT-001 the assumptions used.
 
 **The sample prices are examples only.** They are not Rapid City or any agency's bid prices; replace them with
 your own bid tabulations.
