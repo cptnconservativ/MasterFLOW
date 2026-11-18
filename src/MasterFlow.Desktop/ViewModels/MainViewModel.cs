@@ -372,7 +372,7 @@ public sealed partial class MainViewModel : ObservableObject
         return count;
     }
 
-    private ReportOptions NetworkReportOptions() => new()
+    internal ReportOptions NetworkReportOptions() => new()
     {
         SoftwareVersion = AppVersion,
         Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark,
