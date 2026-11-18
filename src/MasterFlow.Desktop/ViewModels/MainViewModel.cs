@@ -346,6 +346,7 @@ public sealed partial class MainViewModel : ObservableObject
             var structs = read.Structures.Where(s => s.Network == g.Key).Select(s => new NetworkStructure
             {
                 Name = s.Name, Kind = s.Kind, RimElevation = s.RimElevation, Northing = s.Northing, Easting = s.Easting,
+                Alignment = s.Alignment, Station = s.Station, Offset = s.Offset,
             }).ToList();
             var pipes = g.Select(p => new NetworkPipe
             {
@@ -970,13 +971,38 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var sections = LandXmlCrossSections.Read(new MemoryStream(bytes));
         var networks = LandXmlPipeNetworks.Read(new MemoryStream(bytes));
-        bool hasSections = sections.Sections.Count > 0, hasNetworks = networks.Pipes.Count > 0 || networks.Structures.Count > 0;
-        if (!hasSections && !hasNetworks)
-            return $"Nothing imported from {fileName}: it has no cross-sections or pipe networks. " + (sections.Problems.FirstOrDefault(p => !p.Contains("no cross-sections")) ?? "");
+        var alignments = LandXmlAlignments.Read(new MemoryStream(bytes));
+        bool hasSections = sections.Sections.Count > 0, hasNetworks = networks.Pipes.Count > 0 || networks.Structures.Count > 0, hasAlignments = alignments.Alignments.Count > 0;
+        if (!hasSections && !hasNetworks && !hasAlignments)
+            return $"Nothing imported from {fileName}: it has no cross-sections, pipe networks or alignments. " + (sections.Problems.FirstOrDefault(p => !p.Contains("no cross-sections")) ?? "");
         var parts = new List<string>();
         if (hasSections) parts.Add(ImportCrossSections(sections, fileName));
         if (hasNetworks) parts.Add(ImportPipeNetwork(networks, fileName));
+        if (hasAlignments || alignments.Problems.Count > 0) parts.Add(ApplyAlignments(alignments, fileName));
         return string.Join(" ", parts);
+    }
+
+    /// <summary>
+    /// Stations every structure with coordinates (imported list and storm networks) on the nearest alignment in
+    /// the file; returns the status text. Alignments are not kept; import again after they change. Public for tests.
+    /// </summary>
+    public string ApplyAlignments(LandXmlAlignmentReadResult read, string fileName)
+    {
+        if (read.Alignments.Count == 0)
+            return "No alignments imported. " + (read.Problems.FirstOrDefault() ?? "");
+        int n = 0;
+        for (int i = 0; i < Structures.Count; i++)
+        {
+            var s = Structures[i].Structure;
+            if (s.Northing is not { } north || s.Easting is not { } east) continue;
+            if (Alignment.Nearest(read.Alignments, north, east) is not { } so) continue;
+            Structures[i] = new StructureRow(s with { Alignment = so.Alignment, Station = so.Station, Offset = so.Offset });
+            n++;
+        }
+        int m = Networks.Sum(net => net.ApplyStations((north, east) => Alignment.Nearest(read.Alignments, north, east)));
+        if (n + m > 0) MarkDirty();
+        string probs = read.Problems.Count > 0 ? $" {read.Problems.Count} alignment problem(s), first: {read.Problems[0]}" : "";
+        return $"{read.Alignments.Count} alignment(s) from {fileName} ({string.Join(", ", read.Alignments.Select(a => a.Name))}): stationed {n} listed structure(s) and {m} network structure(s).{probs}";
     }
 
     /// <summary>
@@ -1082,4 +1108,6 @@ public sealed record StructureRow(DrainageStructure Structure)
     public string Location => Structure.Northing is null ? "—" : $"N {F(Structure.Northing)}  E {F(Structure.Easting)}";
     public string Elevations => $"Rim {F(Structure.RimElevation)} · Sump {F(Structure.SumpElevation)}";
     public string Inverts => string.Join("; ", Structure.Inverts.Select(i => $"{i.Pipe} {i.FlowDirection} {F(i.Elevation)}"));
+    public string StationText => Structure.Station is { } st ? $"{Structure.Alignment}  station {F(st)}  offset {F(Structure.Offset)} {(Structure.Offset >= 0 ? "R" : "L")}" : "";
+    public bool HasStation => Structure.Station is not null;
 }

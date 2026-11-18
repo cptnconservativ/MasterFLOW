@@ -89,6 +89,10 @@ public sealed record DrainageStructure
     public double? RimElevation { get; init; }
     public double? SumpElevation { get; init; }
     public IReadOnlyList<StructureInvert> Inverts { get; init; } = [];
+    /// <summary>Station and offset (right positive) on the nearest imported alignment, when one was imported.</summary>
+    public string? Alignment { get; init; }
+    public double? Station { get; init; }
+    public double? Offset { get; init; }
 }
 
 /// <summary>One pipe connection at a structure: pipe name, "in" or "out", and invert elevation.</summary>

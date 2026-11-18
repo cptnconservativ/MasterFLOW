@@ -82,11 +82,11 @@ public static class ProjectWorkbook
             var t = new List<IReadOnlyList<object?>>
             {
                 new object?[] { "Drainage structures (values as in the imported file; no unit conversion)" },
-                new object?[] { "Network", "Structure", "Type", "Northing", "Easting", "Rim elev.", "Sump elev.", "Inverts (pipe, in/out, elevation)", "Description" },
+                new object?[] { "Network", "Structure", "Type", "Northing", "Easting", "Rim elev.", "Sump elev.", "Inverts (pipe, in/out, elevation)", "Description", "Alignment", "Station", "Offset (right +)" },
             };
             foreach (var st in structures)
                 t.Add([st.Network, st.Name, st.Kind, st.Northing, st.Easting, st.RimElevation, st.SumpElevation,
-                    string.Join("; ", st.Inverts.Select(v => $"{v.Pipe} {v.FlowDirection} {v.Elevation.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}")), st.Description]);
+                    string.Join("; ", st.Inverts.Select(v => $"{v.Pipe} {v.FlowDirection} {v.Elevation.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}")), st.Description, st.Alignment, st.Station, st.Offset]);
             sheets.Add(new XlsxSheet("Structures", t, 2, [14, 16, 18, 14, 14, 11, 11, 44, 24]));
         }
         foreach (var n in networks ?? []) sheets.AddRange(NetworkWorkbook.Sheets(n));

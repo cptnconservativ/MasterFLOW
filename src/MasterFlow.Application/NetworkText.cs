@@ -96,7 +96,7 @@ public static class NetworkText
             if (Cell(3).Length > 0 && !Enum.TryParse(Cell(3), true, out method))
                 errs.Add($"Line {line}: loss method \"{Cell(3)}\" is not one of {string.Join(", ", Enum.GetNames<StructureLossMethod>())}.");
             var old = previous?.FirstOrDefault(s => s.Name == c[0]);
-            list.Add(new NetworkStructure { Name = c[0], Kind = Cell(1), RimElevation = rim, LossMethod = method, JunctionK = kk, Inflow = qin, MinorInflow = q2in, Northing = old?.Northing, Easting = old?.Easting });
+            list.Add(new NetworkStructure { Name = c[0], Kind = Cell(1), RimElevation = rim, LossMethod = method, JunctionK = kk, Inflow = qin, MinorInflow = q2in, Northing = old?.Northing, Easting = old?.Easting, Alignment = old?.Alignment, Station = old?.Station, Offset = old?.Offset });
         }
         return (list, errs);
     }

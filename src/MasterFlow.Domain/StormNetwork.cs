@@ -118,6 +118,10 @@ public sealed record NetworkStructure
     public double? MinorInflow { get; init; }
     public double? Northing { get; init; }
     public double? Easting { get; init; }
+    /// <summary>Station and offset (right positive) on the nearest imported alignment.</summary>
+    public string? Alignment { get; init; }
+    public double? Station { get; init; }
+    public double? Offset { get; init; }
 }
 
 public enum NetworkPipeShape { Circular, Elliptical }
