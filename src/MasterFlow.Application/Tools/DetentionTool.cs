@@ -215,7 +215,7 @@ public sealed partial class DetentionTool : IDesignTool
             bool ok = pipe.Size >= 1.5 - 1e-9;
             Check("Outlet pipe diameter", "≥ 18 in.", Math.Round(pipe.Size * 12, 1), ok ? "OK" : "FAILS", "§4.10.5");
             if (!ok) msgs.Add(CalcMessage.Warning("W-DT-005", $"Outlet pipe {pipe.Size * 12:F0} in. is below the 18 in. minimum (§4.10.5)."));
-            msgs.Add(CalcMessage.Info("I-DT-002", "Outlet pipe capacity: outlet control with a free outfall, ho = (dc + D)/2 (HDS-5), at and above the barrel's inlet crown; below the crown, Qcrown·(h/D)^1.5, an approximation that keeps the rating continuous and rising so that routing is valid. Orifices, weirs and risers are taken as free-discharging (no tailwater)."));
+            msgs.Add(CalcMessage.Info("I-DT-002", "Outlet pipe capacity: FHWA HDS-5 controlling headwater, the larger of inlet control (concrete pipe, square edge with headwall: unsubmerged, transition and submerged equations) and outlet control with a free outfall (ho = (dc + D)/2). The same engine as the Culvert analysis tool. Orifices, weirs and risers are taken as free-discharging (no tailwater)."));
         }
         else Check("Outlet pipe diameter", "≥ 18 in.", null, "NOT CHECKED (no pipe outlet)", "§4.10.5");
         foreach (var riser in outlets.Where(o => o.Type == "riser"))
