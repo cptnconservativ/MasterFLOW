@@ -23,7 +23,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.9.1";
+    public const string AppVersion = "0.10.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
@@ -69,6 +69,30 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string? _filePath;
     [ObservableProperty] private bool _isDirty;
     [ObservableProperty] private string _statusMessage = "Ready";
+
+    /// <summary>Local-only activity and error log; null in tests.</summary>
+    public LocalLog? Log { get; set; }
+
+    // Status messages double as the activity trail (saves, exports and failures) in the local log.
+    partial void OnStatusMessageChanged(string value) => Log?.Info(value);
+
+    /// <summary>Last-resort handling for an unexpected error: log it, save a recovery copy, tell the user.</summary>
+    public void ReportUnexpectedError(Exception ex, string where)
+    {
+        Log?.Error($"Unexpected error ({where}).", ex);
+        bool saved = false;
+        try { saved = Autosave(); } catch (Exception inner) { Log?.Error("Recovery save after the error also failed.", inner); }
+        StatusMessage = $"Unexpected error: {ex.Message}" + (saved ? " Unsaved work was copied for recovery." : "") +
+                        (Log is null ? "" : $" Details are in {Log.CurrentFile}.");
+    }
+
+    [RelayCommand]
+    private void OpenLogFolder()
+    {
+        if (Log is null || Dialogs is null) return;
+        try { Directory.CreateDirectory(Log.Directory); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return; }
+        Dialogs.OpenWithShell(Log.Directory);
+    }
 
     // Project information (appears on reports)
     [ObservableProperty] private string _projectName = "Untitled project";

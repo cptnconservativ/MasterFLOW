@@ -15,8 +15,23 @@ public partial class App : Avalonia.Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var vm = MainViewModel.CreateWithSample();
-            try { vm.Store = new Persistence.UserDataStore(Persistence.UserDataStore.DefaultDirectory); }
+            try
+            {
+                vm.Store = new Persistence.UserDataStore(Persistence.UserDataStore.DefaultDirectory);
+                vm.Log = new Persistence.LocalLog(vm.Store.LogDirectory);
+                vm.Log.Info($"MasterFlow {MainViewModel.AppVersion} started on {System.Runtime.InteropServices.RuntimeInformation.OSDescription}, .NET {Environment.Version}.");
+            }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException) { /* run without settings */ }
+
+            // Unexpected errors: keep the app running where possible, log locally, save a recovery copy.
+            Avalonia.Threading.Dispatcher.UIThread.UnhandledException += (_, e) => { vm.ReportUnexpectedError(e.Exception, "user interface"); e.Handled = true; };
+            TaskScheduler.UnobservedTaskException += (_, e) => { vm.Log?.Error("Unobserved background task error.", e.Exception); e.SetObserved(); };
+            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            {
+                vm.Log?.Error("Fatal error; MasterFlow is closing.", e.ExceptionObject as Exception);
+                try { vm.Autosave(); } catch { /* nothing more can be done */ }
+            };
+            desktop.Exit += (_, _) => vm.Log?.Info("MasterFlow closed.");
             var window = new MainWindow { DataContext = vm };
             bool opened = false;
             if (desktop.Args is { Length: > 0 } args && File.Exists(args[0]))

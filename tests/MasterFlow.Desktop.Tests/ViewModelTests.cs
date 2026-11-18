@@ -589,3 +589,31 @@ public class BatchSelectionTests
         Assert.All(ProjectFile.Deserialize(json).Calculations, c => Assert.True(c.IncludeInBatch));
     }
 }
+
+public class ErrorHandlingTests
+{
+    [Fact]
+    public void UnexpectedError_IsLogged_AndUnsavedWorkIsCopiedForRecovery()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mf-err-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var vm = MainViewModel.CreateWithSample();
+            vm.Store = new UserDataStore(dir);
+            vm.Log = new LocalLog(vm.Store.LogDirectory);
+            vm.Selected!.Title = "Edited before the crash";
+            Assert.True(vm.IsDirty);
+
+            vm.ReportUnexpectedError(new InvalidOperationException("simulated"), "test");
+
+            Assert.Contains("simulated", vm.StatusMessage);
+            Assert.Contains("recovery", vm.StatusMessage);
+            Assert.NotNull(vm.Store.FindRecovery());
+            Assert.Contains("Edited before the crash", vm.Store.LoadRecovery().Calculations.Select(c => c.Title));
+            var log = File.ReadAllText(vm.Log.CurrentFile);
+            Assert.Contains("ERROR Unexpected error (test).", log);
+            Assert.Contains("simulated", log);
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
+    }
+}

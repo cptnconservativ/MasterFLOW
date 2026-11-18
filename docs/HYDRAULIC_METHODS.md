@@ -185,7 +185,9 @@ MasterFlow has no bank stations and breaks at every n change, which is the same 
 has one n.
 
 **Solving.** Q(y) and Z(y) = A√(A/T) are not monotonic for compound sections (they step down when a flat
-overbank wets). The solver samples each interval between point elevations in 16 steps, refines every
+overbank wets). The solver samples each interval between point elevations in 16 steps (with a budget of
+2048 samples in total: a section with more than 128 distinct elevations gets fewer steps per interval, at
+least one, because its intervals are already short; D-034), refines every
 sign change with Brent's method, and uses upward expansion above the highest point (where both are
 monotonic). Sign changes caused by a step rather than a root are recognised (residual stays large at a
 point elevation) and ignored, with a trace note.

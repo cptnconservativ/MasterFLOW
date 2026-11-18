@@ -157,13 +157,20 @@ public static class RootFinder
     /// ascending order with the direction of each crossing (+1 rising, −1 falling). A non-converged
     /// refinement is returned as-is so the caller can refuse it.
     /// </summary>
+    /// <summary>Target number of scan samples across all breakpoint intervals.</summary>
+    public const int ScanBudget = 2048;
+
     public static IReadOnlyList<(RootResult Root, int Direction)> AllRoots(
         Func<double, double> f, IReadOnlyList<double> breakpoints, double maxHigh, int subdivisions = 16, double xTolerance = 1e-12)
     {
-        var grid = new List<double>();
+        // Sample budget: small sections get the full subdivision; large surveyed sections (thousands of
+        // breakpoints, already finely spaced) get at least one sample per interval so cost stays linear.
+        int intervals = Math.Max(1, breakpoints.Count - 1);
+        int perInterval = Math.Clamp(ScanBudget / intervals, 1, Math.Max(1, subdivisions));
+        var grid = new List<double>(intervals * perInterval + 1);
         for (int i = 0; i + 1 < breakpoints.Count; i++)
-            for (int j = 0; j < subdivisions; j++)
-                grid.Add(breakpoints[i] + (breakpoints[i + 1] - breakpoints[i]) * j / subdivisions);
+            for (int j = 0; j < perInterval; j++)
+                grid.Add(breakpoints[i] + (breakpoints[i + 1] - breakpoints[i]) * j / perInterval);
         double top = breakpoints[^1];
         grid.Add(top);
         var roots = new List<(RootResult, int)>();

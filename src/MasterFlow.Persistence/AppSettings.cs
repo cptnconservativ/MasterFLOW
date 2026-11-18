@@ -32,6 +32,7 @@ public sealed class UserDataStore(string directory)
 
     public string Directory { get; } = directory;
     private string SettingsPath => Path.Combine(Directory, "settings.json");
+    public string LogDirectory => Path.Combine(Directory, "logs");
     private string RecoveryPath => Path.Combine(Directory, "recovery" + ProjectFile.Extension);
     private string RecoveryInfoPath => Path.Combine(Directory, "recovery.json");
 
