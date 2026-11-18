@@ -12,7 +12,7 @@ inlet above.
 | Grate on grade | E = Rf Eo + Rs (1 − Eo), Rf = 1 − 0.09 (V − Vo), Rs = 1 / (1 + 0.15 V^1.8 / (Sx L^2.3)). Vo (splash-over) must be entered from HEC-22 for the grate type |
 | Combination on grade | Taken as the grate (IDCM §4.5.2: Type B is a grate for continuous-grade capacity) |
 | Sag | Ponded depth d where capacity = gutter Q: curb weir Cw (L + 1.8W) d^1.5 (Cw 2.3 depressed, 3.0 otherwise) or orifice 0.67 h L √(2g(d − h/2)); grate weir 3.0 (L + 2W) d^1.5 or orifice 0.67 A √(2gd); the lesser governs. Combination = grate + curb opening |
-| Clogging | IDCM Table 4-11: grate 40 %, combination 33 %, curb 0 %. Applied by reducing L (and W and A for sag grates) |
+| Clogging | IDCM Table 4-11: grate 40 %, combination 33 %, curb 0 %. A combination (Type B) inlet on grade is a grate (§4.5.2), so 40 % on grade and 33 % only in a sag. Applied by reducing L (and W and A for sag grates) |
 
 **Apply to network** sets each named structure's inflow to the flow it intercepts.
 

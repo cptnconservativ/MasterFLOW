@@ -117,4 +117,20 @@ public class DesignToolTests
         Assert.Contains(r.Messages, m => m.Code == "E-RM-002");
         Assert.Null(r.UpdatedNetwork);
     }
+
+    /// <summary>Review finding: C10 = −0.5 offered −3.03 cfs to the network. Coefficients must be 0–1 and imperviousness 0–100 %.</summary>
+    [Theory]
+    [InlineData("Bad\t50\t0.3\t0.35\t-0.5\t0.6", "C10 = -0.5")]
+    [InlineData("Bad\t50\t0.3\t1.2\t0.4\t0.6", "C5 = 1.2")]
+    [InlineData("Bad\t120\t0.3\t0.35\t0.4\t0.6", "impervious")]
+    [InlineData("Bad\t-5\t0.3\t0.35\t0.4\t0.6", "impervious")]
+    public void CustomLandUse_OutOfRange_IsRejected_AndNotApplied(string row, string expect)
+    {
+        string input = $"[Land uses]\nName\tImp\tC2\tC5\tC10\tC100\n{row}\n[Basins]\nBasin\tStructure\tUse\tL\tS\nX\tCB-3\tBad: 1\t100\t1";
+        var r = new RationalMethodTool().Run(input, Ctx());
+        Assert.False(r.Succeeded);
+        Assert.Contains(r.Messages, m => m.Code == "E-RM-007" && m.Text.Contains(expect));
+        Assert.Null(r.UpdatedNetwork);
+        Assert.DoesNotContain(r.Tables.SelectMany(t => t.Rows).SelectMany(x => x), c => c is double d && d < 0);
+    }
 }

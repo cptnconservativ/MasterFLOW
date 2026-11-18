@@ -135,6 +135,7 @@ public static class StormNetworkSolver
             if (!(p.Length > 0) || !double.IsFinite(p.Length)) messages.Add(CalcMessage.Error("E-NW-005", $"{w}: length must be a positive number."));
             if (!(p.ManningN > 0) || !double.IsFinite(p.ManningN)) messages.Add(CalcMessage.Error("E-NW-006", $"{w}: Manning's n must be a positive number."));
             if (double.IsFinite(p.Discharge) && !(p.Discharge >= 0)) messages.Add(CalcMessage.Error("E-NW-007", $"{w}: design discharge must be zero or more."));
+            if (!double.IsNaN(p.MinorDischarge) && !(double.IsFinite(p.MinorDischarge) && p.MinorDischarge >= 0)) messages.Add(CalcMessage.Error("E-NW-007", $"{w}: minor-storm discharge must be zero or more."));
             if (!double.IsFinite(p.UpstreamInvert) || !double.IsFinite(p.DownstreamInvert)) messages.Add(CalcMessage.Error("E-NW-008", $"{w}: both inverts are required."));
         }
         if (messages.Any(m => m.Severity == MessageSeverity.Error)) return Fail();
@@ -159,7 +160,10 @@ public static class StormNetworkSolver
         if (net.Tailwater == TailwaterRule.Elevation && net.TailwaterElevation is not { } twe0)
             messages.Add(CalcMessage.Error("E-NW-013", "Tailwater rule is a known elevation, but no tailwater elevation is entered."));
         foreach (var s in net.Structures)
+        {
             if (s.Inflow is { } qi && (!double.IsFinite(qi) || qi < 0)) messages.Add(CalcMessage.Error("E-NW-014", $"Structure \"{s.Name}\": inflow must be zero or more."));
+            if (s.MinorInflow is { } q2i && (!double.IsFinite(q2i) || q2i < 0)) messages.Add(CalcMessage.Error("E-NW-014", $"Structure \"{s.Name}\": minor-storm inflow must be zero or more."));
+        }
         if (messages.Any(m => m.Severity == MessageSeverity.Error)) return Fail();
 
         // ---- flow accumulation: a pipe without a typed Q carries its upstream structure's inflow plus every pipe into that structure

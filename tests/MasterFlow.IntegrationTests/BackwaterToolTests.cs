@@ -77,4 +77,22 @@ public class BackwaterToolTests
         Assert.Contains(r.Messages, m => m.Code == "W-BW-002");
         Assert.Equal(Yc, (double)r.Tables[0].Rows[0][1]!, 6);
     }
+
+    /// <summary>Review finding: a 4 ft control in a 3 ft pipe was returned as an open-channel profile. At or above the crown it must fail.</summary>
+    [Theory]
+    [InlineData(4.0, false)]
+    [InlineData(3.0, false)]
+    [InlineData(2.5, true)]
+    public void CircularConduit_ControlAtOrAboveCrown_IsRejected(double control, bool ok)
+    {
+        string input = $"section = circular\nD = 3\nn = 0.013\nslope = 0.002\nQ = 20\nlength = 300\ncontrol depth = {control}\ninvert at control = 100\nbank depth = 3\nfreeboard = 0";
+        var r = new BackwaterTool().Run(input, DesignToolTests.Ctx());
+        Assert.Equal(ok, r.Succeeded);
+        if (!ok)
+        {
+            Assert.Contains(r.Messages, m => m.Code == "E-BW-008");
+            Assert.Empty(r.Tables);
+        }
+        else Assert.All(r.Tables[0].Rows, row => Assert.True((double)row[1]! < 3));
+    }
 }
