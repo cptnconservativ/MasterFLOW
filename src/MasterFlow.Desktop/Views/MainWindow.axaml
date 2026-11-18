@@ -461,6 +461,7 @@
                         <TextBlock FontWeight="SemiBold"><Run Text="{Binding Name}"/><Run Text="  ·  "/><Run Text="{Binding Kind}"/><Run Text="  ·  " Foreground="Gray"/><Run Text="{Binding Network}" Foreground="Gray"/></TextBlock>
                         <SelectableTextBlock Text="{Binding Location}" FontSize="12"/>
                         <TextBlock Text="{Binding Elevations}" FontSize="12"/>
+                        <TextBlock Text="{Binding StationText}" FontSize="12" IsVisible="{Binding HasStation}"/>
                         <TextBlock Text="{Binding Inverts}" FontSize="12" Opacity="0.75" TextWrapping="Wrap"/>
                       </StackPanel>
                     </Border>

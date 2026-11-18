@@ -38,7 +38,7 @@ public static class NetworkTables
     public const int StructureCheckColumn = 8;
 
     public static IReadOnlyList<string> StructureHeader(UnitConstants c) =>
-        ["Structure", "Type", $"Inflow ({c.Discharge})", "Rim", "HGL", "EGL", $"Rim − HGL ({c.Length})", $"Required ({c.Length})", "Check", "Loss method", "Equation", $"hj ({c.Length})", $"V2 out ({c.Velocity})", $"V1 in ({c.Velocity})"];
+        ["Structure", "Type", $"Inflow ({c.Discharge})", "Rim", "HGL", "EGL", $"Rim − HGL ({c.Length})", $"Required ({c.Length})", "Check", "Loss method", "Equation", $"hj ({c.Length})", $"V2 out ({c.Velocity})", $"V1 in ({c.Velocity})", "Station / offset"];
 
     public static IReadOnlyList<IReadOnlyList<string>> StructureRows(StormNetworkResult r)
     {
@@ -49,6 +49,7 @@ public static class NetworkTables
             s.HglClearance is { } cl ? F(cl, 2) : "—", need is { } n ? F(n, 2) : "—",
             need is null || s.HglClearance is null ? "—" : s.HglClearance >= need ? "OK" : "FAILS",
             s.LossMethod, s.LossEquation, s.IsOutfall ? "—" : F(s.Loss, 3), s.IsOutfall ? "—" : F(s.OutletVelocity, 2), double.IsFinite(s.InletVelocity) ? F(s.InletVelocity, 2) : "—",
+            s.Structure.Station is { } sta ? $"{Alignment.FormatStation(sta, r.Network.Units)} {Math.Abs(s.Structure.Offset ?? 0).ToString("0.0", Inv)} {(s.Structure.Offset >= 0 ? "R" : "L")}" : "—",
         ]).ToList();
     }
 
@@ -122,7 +123,7 @@ public static class NetworkReport
             if (r.AccumulatedPipes.Count > 0) pager.Paragraph("Σ: Q accumulated from structure inflows (inflow at the upstream structure plus every pipe into it); see the trace.", size: PdfStyle.Small, color: PdfStyle.Muted);
             pager.Heading("Structures (HGL check against the rim)");
             var srows = NetworkTables.StructureRows(r);
-            pager.AddTable(new TableBlock(fonts, [new(0.9f), new(1f), new(0.6f, true), new(0.7f, true), new(0.7f, true), new(0.7f, true), new(0.8f, true), new(0.8f, true), new(0.6f), new(2.2f), new(1.7f), new(0.6f, true), new(0.7f, true), new(0.7f, true)],
+            pager.AddTable(new TableBlock(fonts, [new(0.9f), new(1f), new(0.6f, true), new(0.7f, true), new(0.7f, true), new(0.7f, true), new(0.8f, true), new(0.8f, true), new(0.6f), new(2.2f), new(1.7f), new(0.6f, true), new(0.7f, true), new(0.7f, true), new(1.1f)],
                 NetworkTables.StructureHeader(c), srows.Select(row => ((IReadOnlyList<PdfCell>)row.Select(x => new PdfCell(x)).ToList(), row[NetworkTables.StructureCheckColumn] == "FAILS")).ToList(), PdfStyle.Small));
         }
         pager.Heading("Warnings and notes");

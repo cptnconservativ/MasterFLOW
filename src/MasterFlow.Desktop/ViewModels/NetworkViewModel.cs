@@ -241,6 +241,21 @@ public sealed partial class NetworkViewModel : ObservableObject
         Status = "Sizing undone. " + Status;
     }
 
+    /// <summary>Sets station/offset on every structure with coordinates; returns how many were stationed.</summary>
+    public int ApplyStations(Func<double, double, StationOffset?> project)
+    {
+        var (n, _) = BuildModel();
+        int count = 0;
+        _structures = n.Structures.Select(s =>
+        {
+            if (s.Northing is not { } north || s.Easting is not { } east || project(north, east) is not { } so) return s;
+            count++;
+            return s with { Alignment = so.Alignment, Station = so.Station, Offset = so.Offset };
+        }).ToList();
+        if (count > 0) { Edited?.Invoke(this, EventArgs.Empty); Result = null; }
+        return count;
+    }
+
     /// <summary>Tab-separated pipes and structures tables (for pasting into Excel).</summary>
     public string ResultsText()
     {
