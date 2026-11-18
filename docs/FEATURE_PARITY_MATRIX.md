@@ -41,6 +41,7 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Duplicate / delete / recycle bin | Yes (obs.) | MVP | ✅ | v0.7.0: delete moves to a recycle bin saved with the project; restore any item; empty with confirmation |
 | Sort names / re-sort | Yes (obs.) | Plan | ✅ | v0.7.0: by folder then title, natural number order |
 | Title expressions | Yes (obs.) | Pro | ✅ v0.8.0 | {field:format} syntax, live preview, unknown fields shown as {?name} |
+| Design checks: lining shear, freeboard, velocity limits | Not seen | Diff | ✅ H1 | Engineer-entered limits; HEC-15 eq. 2.3 shear; pass/fail in results, report and Excel |
 | Item number | Yes (obs. field) | Pro | ✅ v0.11.0 | Per calculation; shown in the list, report header and as `{item}` in titles |
 | Templates (factory street sections) | Yes (obs.) | Pro | ✅ v0.8.0 | 10 original generic templates (streets, ditches, flume, pipes, natural channel); user templates per user |
 | Save / open / versioned file | Yes | MVP | ✅ | `.mfproj` schema 1 |

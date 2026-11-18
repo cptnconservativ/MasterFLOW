@@ -31,6 +31,7 @@ public static class HtmlReport
     public static string Render(ProjectInfo project, ChannelCalculation calc, UniformFlowResult result, ReportOptions? options = null)
     {
         options ??= new ReportOptions();
+        var checks = DesignChecks.Evaluate(calc.Criteria, result);
         var sb = new StringBuilder();
         string E(string s) => WebUtility.HtmlEncode(s);
         string date = (options.Timestamp ?? DateTimeOffset.Now).ToString("yyyy-MM-dd HH:mm", Inv);
@@ -124,6 +125,15 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
             }
             sb.Append("</div>");
             ResultTable(sb, "Critical flow (same discharge)", ResultSummary.Lines(result).Where(l => l.Group == "Critical flow"));
+            if (checks.Count > 0)
+            {
+                sb.Append("<h2>Design checks</h2>");
+                if (calc.Criteria is { Lining.Length: > 0 } dc) sb.Append($"<p>Lining: <strong>{E(dc.Lining)}</strong></p>");
+                sb.Append("<table><tr><th>Check</th><th>Criterion</th><th>Computed</th><th>Limit</th><th>Unit</th><th>Result</th><th>Basis</th></tr>");
+                foreach (var k in checks)
+                    sb.Append($"<tr{(k.Status == CheckStatus.Fail ? " class=\"solved\"" : "")}><td>{E(k.Name)}</td><td>{E(k.Symbol)}</td><td class=\"num\">{(double.IsFinite(k.Actual) ? k.Actual.ToString("F3", Inv) : "—")}</td><td class=\"num\">{k.Limit.ToString("F3", Inv)}</td><td>{E(k.Unit)}</td><td><strong>{E(k.StatusText)}</strong></td><td>{E(k.Basis)}</td></tr>");
+                sb.Append("</table>");
+            }
             var subs = ResultSummary.Subareas(result);
             if (subs.Count > 0)
             {
@@ -153,7 +163,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
 
         // Messages
         sb.Append("<h2>Warnings, notes and assumptions</h2>");
-        foreach (var m in result.Messages)
+        foreach (var m in result.Messages.Concat(DesignChecks.Messages(checks)))
             sb.Append($"<div class=\"msg {m.Severity}\"><strong>{m.Severity}</strong> [{E(m.Code)}] {E(m.Text)}</div>");
         sb.Append(result.Input.Section is IrregularSection { HasPointRoughness: true }
             ? "<div class=\"msg Info\">Assumes a prismatic channel, small slope (depth measured vertically) and hydrostatic pressure. Roughness varies across the section and is combined as stated in the input; the velocity head uses the mean velocity (α = 1). Manning's n values are the engineer's selection; results are only as reliable as n.</div>"
