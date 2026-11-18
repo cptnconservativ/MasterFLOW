@@ -70,8 +70,14 @@ public static class NetworkSizer
             if (candidates.Count == 0) { notes.Add($"Pipe {name}: no standard size is at least the minimum/upstream size and fits below the rims (inverts kept); left at {Fmt(p.Rise, toBase)}."); continue; }
             if (!(s > 0))
             {
-                Set(name, Math.Max(p.Rise, candidates[0]), "minimum or upstream size (flat/adverse pipe: capacity not checked)");
+                // Keep the existing size only when it is itself feasible (fits below the rims and meets the minimum/upstream
+                // size); otherwise pick from the feasible candidates: the smallest not below the existing size, or the largest that fits.
+                bool keepOk = p.Rise >= floor && Fits(p, p.Rise);
+                double pick = keepOk ? Math.Max(p.Rise, candidates[0]) : candidates.FirstOrDefault(d => d >= p.Rise - 1e-9, candidates[^1]);
+                Set(name, pick, "minimum or upstream size (flat/adverse pipe: capacity not checked)");
                 notes.Add($"Pipe {name} is flat or adverse; only the minimum/upstream size rule was applied.");
+                if (pick < p.Rise - 1e-9)
+                    notes.Add($"Pipe {name}: the existing {Fmt(p.Rise, toBase)} crown is above a rim; reduced to {Fmt(pick, toBase)}, the largest standard size that fits. Capacity is not checked on a flat/adverse pipe: confirm it.");
                 continue;
             }
             double chosen = double.NaN; string why = "";
