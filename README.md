@@ -3,7 +3,7 @@
 MasterFlow is a Windows desktop application for steady, uniform open-channel flow calculations
 (Manning's equation), built for practising civil engineers who need fast answers they can audit.
 
-**Status (2026-11-18): v0.11.0.** Rectangular, trapezoidal and triangular channels, irregular station/elevation sections
+**Status (2026-11-18): v0.12.0.** Rectangular, trapezoidal and triangular channels, irregular station/elevation sections
 (per-segment n, conveyance subdivision or equal-velocity composite n), circular pipes and elliptical pipes
 (ASTM C507 HE/VE standard sizes or a custom true ellipse; partly full, both normal depths, full-flow and maximum capacity);
 solve for discharge, normal depth, slope or Manning's n; critical depth/velocity/slope,
@@ -11,7 +11,7 @@ Froude number and regime; rating tables; versioned project files; printable HTML
 v0.5.0 adds V·y, boundary shear, HGL/EGL elevations, a Manning n reference list and rating curves.
 v0.6.0 adds side-by-side alternative comparison and Excel (.xlsx) export; v0.7.0 adds folders, sorting,
 a recycle bin, recent files, autosave with crash recovery and a report logo; v0.8.0 adds live title
-expressions such as "{shape}, Q = {Q:F1} {Qunit}" and built-in and user templates. v0.9.0 writes reports directly as PDF (single, batch and comparison); v0.9.1 adds a per-calculation tick for what goes into batch outputs; v0.10.0 adds a local-only error log with crash recovery and performance budgets (5000-row tables, 5000-point sections); v0.10.1 adds the user guide, screen-reader names and a scripted release (docs/RELEASE_CHECKLIST.md); v0.11.0 closes the remaining Flow Calc gaps: point-grid tools, regular → irregular conversion, LandXML (Civil 3D) cross-section import, rating tables saved per calculation and item numbers. Ideas beyond parity: [docs/FEATURE_IDEAS.md](docs/FEATURE_IDEAS.md). Next: Phase G packaging and release work (see [ROADMAP.md](ROADMAP.md)).
+expressions such as "{shape}, Q = {Q:F1} {Qunit}" and built-in and user templates. v0.9.0 writes reports directly as PDF (single, batch and comparison); v0.9.1 adds a per-calculation tick for what goes into batch outputs; v0.10.0 adds a local-only error log with crash recovery and performance budgets (5000-row tables, 5000-point sections); v0.10.1 adds the user guide, screen-reader names and a scripted release (docs/RELEASE_CHECKLIST.md); v0.11.0 closes the remaining Flow Calc gaps: point-grid tools, regular → irregular conversion, LandXML (Civil 3D) cross-section import, rating tables saved per calculation and item numbers; v0.12.0 adds lining/freeboard checks, Civil 3D pipe-network import and export (LandXML), storm sewer HGL/EGL against Rapid City IDCM 2012, flow accumulation, minor-storm velocity, automatic pipe sizing, alignment stationing, the sensitivity table and the Design tools window (rational method, gutters and inlets, detention routing, backwater, plan review, quantity takeoff). Ideas beyond parity: [docs/FEATURE_IDEAS.md](docs/FEATURE_IDEAS.md). Next: Phase G packaging and release work (see [ROADMAP.md](ROADMAP.md)).
 
 See the [user guide](docs/USER_GUIDE.md) for how to use it.
 
