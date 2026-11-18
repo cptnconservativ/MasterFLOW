@@ -863,6 +863,31 @@ public class PipeNetworkImportTests
     }
 
     [Fact]
+    public void SizePipes_ThenExportLandXml_ForCivil3D()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        var n = vm.SelectedNetwork!;
+        // Inflows at the inlet (CB-1) and the manhole; Rapid City criteria; free outfall.
+        n.StructuresText = n.StructuresText.Replace("CB-1\tInlet\t105.2\tAuto\t\t", "CB-1\tInlet\t105.2\tAuto\t\t12").Replace("MH-1\tManhole (circular)\t104.8\tAuto\t\t", "MH-1\tManhole (circular)\t104.8\tAuto\t\t4");
+        n.ApplyRapidCityCommand.Execute(null);
+        n.Tailwater = TailwaterRule.FreeOutfall;
+        string before = n.PipesText;
+        n.SizePipes();
+        Assert.True(n.HasResult, n.Status);
+        Assert.NotEmpty(n.SizingReport);
+        Assert.Contains(n.SizingReport, x => x.StartsWith("P-1: 18 → 21 in"));   // Qfull(18 in., 1 %) = 10.5 cfs < 12
+        Assert.True(n.CanUndoSizing);
+        var (xml, warnings) = vm.BuildNetworkLandXml(n);
+        Assert.Empty(warnings);                                   // imported structures carry coordinates
+        var back = LandXmlPipeNetworks.Read(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml)));
+        Assert.Equal(n.ToModel().Pipes.Single(p => p.Name == "P-1").Rise, back.Pipes.Single(p => p.Name == "P-1").Rise, 6);
+        n.UndoSizing();
+        Assert.Equal(before, n.PipesText);
+        Assert.False(n.CanUndoSizing);
+    }
+
+    [Fact]
     public void NewNetwork_EditMarksDirty_DeleteRemoves()
     {
         var vm = MainViewModel.CreateWithSample();

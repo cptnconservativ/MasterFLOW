@@ -35,6 +35,17 @@ public static class LandXmlPipeNetworks
     {
         if (!TryLoad(stream, out var root, out var error)) return new([], [], null, null, [error]);
         var (units, linear) = UnitsOf(root);
+        // Pipe sizes follow the Units element's diameterUnit when it is stated (explicit in the file, so not a
+        // hidden conversion); otherwise the linear unit, as the schema says.
+        var unitEl = root.Elements().FirstOrDefault(e => e.Name.LocalName == "Units")?.Elements().FirstOrDefault(e => e.Name.LocalName is "Imperial" or "Metric");
+        string? diaUnit = (string?)unitEl?.Attribute("diameterUnit");
+        double diaFactor = (units, diaUnit) switch
+        {
+            (UnitSystem.USCustomary, "inch") => 1.0 / 12.0,
+            (UnitSystem.SI, "millimeter") => 0.001,
+            (UnitSystem.SI, "centimeter") => 0.01,
+            _ => 1.0,
+        };
         var problems = new List<string>();
         if (units is null) problems.Add(UnitProblem(linear));
 
@@ -87,9 +98,9 @@ public static class LandXmlPipeNetworks
                 string where = $"{netName} pipe \"{name}\"";
                 NetworkPipeShape shape; double rise, span; string material;
                 if (Kid(p, "CircPipe") is { } cp && Num(cp, "diameter") is { } d && d > 0)
-                    (shape, rise, span, material) = (NetworkPipeShape.Circular, d, d, (string?)cp.Attribute("material") ?? "");
+                    (shape, rise, span, material) = (NetworkPipeShape.Circular, d * diaFactor, d * diaFactor, (string?)cp.Attribute("material") ?? "");
                 else if (Kid(p, "EllipPipe") is { } ep && Num(ep, "height") is { } h && h > 0 && Num(ep, "span") is { } sp && sp > 0)
-                    (shape, rise, span, material) = (NetworkPipeShape.Elliptical, h, sp, (string?)ep.Attribute("material") ?? "");
+                    (shape, rise, span, material) = (NetworkPipeShape.Elliptical, h * diaFactor, sp * diaFactor, (string?)ep.Attribute("material") ?? "");
                 else
                 {
                     var kind = p.Elements().Select(x => x.Name.LocalName).FirstOrDefault(x => x.EndsWith("Pipe") || x == "Channel") ?? "no shape";

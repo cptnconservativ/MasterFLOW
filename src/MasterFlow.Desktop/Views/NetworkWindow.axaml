@@ -26,6 +26,10 @@
         <Button Content="Solve" Command="{Binding SelectedNetwork.SolveCommand, FallbackValue={x:Null}}" ToolTip.Tip="Compute the HGL and EGL (F5)" FontWeight="SemiBold"/>
         <Button Content="Report…" Command="{Binding ExportNetworkReportCommand}" ToolTip.Tip="Profiles and tables as PDF (or HTML)"/>
         <Button Content="Copy tables" Command="{Binding CopyNetworkResultsCommand}" ToolTip.Tip="Pipes and structures tables, tab-separated"/>
+        <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
+        <Button Content="Size pipes" Command="{Binding SelectedNetwork.SizePipesCommand, FallbackValue={x:Null}}" ToolTip.Tip="Smallest standard circular sizes that meet the criteria (inverts kept); changes listed on the Sizing tab"/>
+        <Button Content="Undo sizing" Command="{Binding SelectedNetwork.UndoSizingCommand, FallbackValue={x:Null}}" IsEnabled="{Binding SelectedNetwork.CanUndoSizing, FallbackValue=False}"/>
+        <Button Content="LandXML…" Command="{Binding ExportNetworkLandXmlCommand}" ToolTip.Tip="Export the pipe network to LandXML for Civil 3D (Insert → LandXML)"/>
         <Button Content="Excel…" Command="{Binding ExportWorkbookCommand}" ToolTip.Tip="Project workbook including network pipes, structures and profile points"/>
       </StackPanel>
     </Border>
@@ -149,6 +153,16 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
               <TextBlock Text="{Binding CriteriaSummary}" FontSize="11" Opacity="0.75" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="Sizing">
+          <ScrollViewer>
+            <StackPanel>
+              <TextBlock Text="Size pipes: smallest standard circular size carrying the design Q part full (when pressure flow is not allowed) within the velocity limits, never smaller than a pipe upstream, then larger pipes where the HGL is too close to a rim. Inverts, n, lengths and elliptical pipes are kept; no crown is put above a rim." TextWrapping="Wrap" FontSize="11" Opacity="0.75" Margin="0,0,0,6"/>
+              <ItemsControl ItemsSource="{Binding SizingReport}">
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2"/></DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
           </ScrollViewer>
         </TabItem>

@@ -404,6 +404,27 @@ public sealed partial class MainViewModel : ObservableObject
         Dialogs.OpenWithShell(path);
     }
 
+    /// <summary>LandXML pipe network for Civil 3D (sizes, inverts, structures; HGL/EGL as Feature properties). Public for tests.</summary>
+    public (string Xml, IReadOnlyList<string> Warnings) BuildNetworkLandXml(NetworkViewModel n)
+    {
+        n.Solve();
+        return LandXmlPipeNetworkWriter.Write(n.ToModel(), n.Result is { Succeeded: true } r ? r : null, AppVersion);
+    }
+
+    [RelayCommand]
+    private async Task ExportNetworkLandXml()
+    {
+        if (SelectedNetwork is not { } n || Dialogs is null) return;
+        var path = await Dialogs.PickSaveAsync(SafeName(n.Name) + ".xml", ".xml", "LandXML pipe network (Civil 3D)");
+        if (path is null) return;
+        var (xml, warnings) = BuildNetworkLandXml(n);
+        try { await File.WriteAllTextAsync(path, xml, new System.Text.UTF8Encoding(false)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"LandXML not saved: {ex.Message}"; return; }
+        n.Status = $"LandXML saved to {path}. In Civil 3D: Insert → LandXML, then choose a parts list with these sizes." +
+                   (warnings.Count > 0 ? $" {warnings.Count} warning(s): {warnings[0]}" : "");
+        StatusMessage = n.Status;
+    }
+
     [RelayCommand]
     private async Task CopyNetworkResults()
     {
