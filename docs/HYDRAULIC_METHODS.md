@@ -260,7 +260,8 @@ and it becomes the downstream control for every pipe entering it.
 - Standard method, IDCM Eq. 4-6-1: hs = K·Vo²/2g with K per structure or the network default.
 - *Auto*: no inflow → beginning of line; one inflow → Case I; more → Case II at inlets, Case IV otherwise.
 - A negative hj is taken as 0 and reported (W-NW). V1 is the velocity of the inflow pipe carrying the most
-  flow (decision D-042). The EGL at a structure is the HGL plus the outlet velocity head, and never below
+  flow (decision D-042; the IDCM does not say which inflow to use, and this reading was confirmed by the
+  project engineer on 2026-11-18). The EGL at a structure is the HGL plus the outlet velocity head, and never below
   the HGL.
 
 **Criteria (optional, per network).** HGL and/or EGL a set distance below the rim, minimum and maximum
