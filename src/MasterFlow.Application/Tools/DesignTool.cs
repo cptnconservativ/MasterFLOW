@@ -11,6 +11,12 @@ public sealed record DesignToolContext(UnitSystem Units, StormNetwork? Network =
 /// <summary>A result table: shown in the window, the HTML report and as an Excel sheet. Cells are numbers or text.</summary>
 public sealed record ToolTable(string Title, IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows, IReadOnlyList<string>? Notes = null);
 
+/// <summary>A line series of a chart: (x, y) points in drawing order.</summary>
+public sealed record ToolSeries(string Name, IReadOnlyList<(double X, double Y)> Points, bool MarkersOnly = false);
+
+/// <summary>A line chart drawn in the HTML report (e.g. IDF curves). Log axes need positive values.</summary>
+public sealed record ToolChart(string Title, string XLabel, string YLabel, IReadOnlyList<ToolSeries> Series, bool LogX = false, bool LogY = false);
+
 /// <summary>
 /// The outcome of running a tool. Messages carry every error, warning and assumption; a tool with an error
 /// returns no numbers for the failed part. A tool that can change the selected network returns it in
@@ -20,6 +26,8 @@ public sealed record ToolResult(string Title, IReadOnlyList<string> Summary, IRe
 {
     public StormNetwork? UpdatedNetwork { get; init; }
     public string? UpdateDescription { get; init; }
+    /// <summary>Charts drawn in the HTML report after the tables.</summary>
+    public IReadOnlyList<ToolChart> Charts { get; init; } = [];
     public bool Succeeded => Messages.All(m => m.Severity != MessageSeverity.Error);
 
     public static ToolResult Failed(string title, params CalcMessage[] errors) => new(title, [], [], errors);
