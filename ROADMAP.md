@@ -57,7 +57,7 @@ Dependencies: B. Risk M (PDF library licensing).
 - F6 Original templates and user templates — 2 d — ✅ v0.8.0 (10 built-in generic templates; per-user "My templates")
 
 ## Phase G — Professional release
-- G1 MSIX package / installer — 2 d — 🟡 per-user Setup.exe (NSIS, no admin rights, Start menu, .mfproj association, uninstall keeps user data) built by scripts/publish-win.sh; awaiting Kyle's choice of installer type and a Windows install test
+- G1 MSIX package / installer — 2 d — 🟡 per-user Setup.exe (NSIS, no admin rights, Start menu, .mfproj association, uninstall keeps user data) built by scripts/publish-win.sh; Kyle chose Setup.exe (D-035); Windows install test pending
 - G2 Code signing (needs a certificate from Kyle's firm) — 1 d — ⬜
 - G3 Error recovery and local-only logging — 1 d — ✅ v0.10.0 (daily log in %APPDATA%\MasterFlow\logs, 14 days; unexpected errors logged, recovery copy saved, app keeps running)
 - G4 Performance (5000-row table under 1 s) — 0.5 d — ✅ v0.10.0 (Release: 5000-row tables ≈ 0.1 s, 5000-point noisy irregular section ≈ 0.26 s; PDF with 5000 rows ≈ 2 s)
