@@ -62,7 +62,7 @@ Dependencies: B. Risk M (PDF library licensing).
 - G3 Error recovery and local-only logging — 1 d — ✅ v0.10.0 (daily log in %APPDATA%\MasterFlow\logs, 14 days; unexpected errors logged, recovery copy saved, app keeps running)
 - G4 Performance (5000-row table under 1 s) — 0.5 d — ✅ v0.10.0 (Release: 5000-row tables ≈ 0.1 s, 5000-point noisy irregular section ≈ 0.26 s; PDF with 5000 rows ≈ 2 s)
 - G5 Accessibility (keyboard paths, automation names, contrast) — 2 d — ⬜
-- G6 User guide — 2 d — ⬜
+- G6 User guide — 2 d — ✅ v0.10.0 docs/USER_GUIDE.md (checked against the code)
 - G7 Release checklist — 0.5 d — ⬜
 
 Every item's acceptance includes: clean build, tests passing, equations documented, failure modes

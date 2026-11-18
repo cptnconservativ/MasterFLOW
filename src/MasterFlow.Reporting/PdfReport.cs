@@ -214,7 +214,7 @@ public static class PdfReport
             lines.Select(l => ((IReadOnlyList<PdfCell>)[new PdfCell(l.Label, l.Symbol), new PdfCell(l.Formatted), new PdfCell(l.Unit)], l.IsSolved)).ToList(),
             caption: title);
 
-    /// <summary>PNG or JPEG data URI → image; anything else (including SVG) is not drawn in PDF.</summary>
+    /// <summary>Raster data URI (PNG, JPEG, GIF) → image; SVG and anything undecodable is not drawn in PDF.</summary>
     internal static SKImage? DecodeLogo(string? dataUri)
     {
         if (string.IsNullOrWhiteSpace(dataUri) || !dataUri.StartsWith("data:image/", StringComparison.Ordinal)) return null;

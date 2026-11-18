@@ -1,0 +1,247 @@
+# MasterFlow user guide
+
+MasterFlow 0.10 · Windows desktop · steady, uniform open-channel flow by Manning's equation.
+
+MasterFlow is a calculator for engineers. It gives a fast, traceable answer for one cross-section at
+uniform flow. It does not model gradually varied, unsteady or pressurised flow, and it does not choose
+Manning's n for you. The responsible engineer reviews the inputs, assumptions and results before use.
+
+---
+
+## 1. Getting started
+
+1. Unzip `MasterFlow-x.y.z-win-x64.zip` and run `MasterFlow.exe`. It needs no installation, no
+   administrator rights and no internet connection. It sends nothing anywhere.
+2. MasterFlow opens with a sample project. Click a calculation in the list on the left to see it.
+3. Change any input. The results update as you type. There is no Calculate button.
+4. **File → Save** (Ctrl+S) writes a `.mfproj` project file.
+
+The window has three parts:
+
+| Area | What it holds |
+|---|---|
+| Left: project | Project information (shown on reports), the list of calculations, template and recycle-bin controls |
+| Middle: calculation | Title, folder, description, section, flow inputs, cross-section drawing |
+| Right: tabs | **Results**, **Compare** (all ticked calculations side by side), **Rating table** |
+
+## 2. A calculation
+
+### 2.1 Section shapes
+
+| Shape | Inputs | Notes |
+|---|---|---|
+| Rectangular | Bottom width b | |
+| Trapezoidal | Bottom width b, left and right side slopes zL, zR (H:1V) | |
+| Triangular | Left and right side slopes zL, zR (H:1V) | Use for V-ditches and gutters |
+| Circular | Diameter (in or mm) | Partly full flow; reports full-flow and maximum capacity |
+| Elliptical | ASTM C507 standard size (HE or VE), or a custom rise and span | Standard sizes use the C507 four-centred shape; custom is a true ellipse |
+| Irregular | Station/elevation points, optional n per point | Surveyed or LiDAR sections, streets, compound channels |
+
+**Channel depth** (open shapes) is optional. When the water is above it, warning W-G-001 says the
+channel overtops; the result is still calculated as if the walls continued.
+
+### 2.2 Units
+
+Choose **U.S. customary** (ft, cfs; pipe sizes in inches) or **SI** (m, m³/s; pipe sizes in mm) per
+calculation. MasterFlow never converts between them behind your back: the engine computes in the units
+you enter (k = 1.486 and g = 32.174 ft/s² for U.S.; k = 1 and g = 9.80665 m/s² for SI). Changing the
+unit system does not convert the numbers already entered.
+
+### 2.3 Solve for
+
+Pick the unknown in **Solve for**. Its field turns grey and shows the solved value; the others are inputs.
+
+| Solve for | You enter |
+|---|---|
+| Normal depth yn | n, slope, discharge |
+| Discharge Q | n, slope, depth |
+| Slope S | n, discharge, depth |
+| Manning's n | slope, discharge, depth |
+
+Slope is entered in **percent** (0.5 % = 0.005 ft/ft).
+
+**Manning's n.** The **n reference** list offers typical values from Chow (1959), Table 5-6 (minimum,
+normal, maximum). Picking one fills in the normal value. It is a starting point only.
+
+**Invert elevation** (optional). Enter it to have water-surface, energy-grade and critical water-surface
+elevations reported. Irregular sections always report elevations from their own points.
+
+### 2.4 Irregular sections
+
+Type or paste points into the box, one point per line:
+
+```
+station, elevation [, n [, description]]
+```
+
+- Separators: tab (a paste from Excel), semicolon, comma or spaces.
+- A first line that is not numeric is treated as a header and skipped. Lines starting with `#` are ignored.
+- Stations may use surveyor notation: `1+25.50` means 125.50.
+- **n on a point applies to the segment from that point to the next one.** A blank n uses the
+  calculation's Manning's n. The last point's n is not used.
+- Every line that cannot be read is listed with its line number; nothing is guessed.
+
+**Composite n** (when n varies across the section):
+
+- *Conveyance subdivision* (default; the HEC-RAS approach): the area is split at each change in n, the
+  conveyance of each part is summed, and the report shows the flow, area and velocity of each part.
+- *Equal velocity* (Horton–Einstein): one composite n for the whole wetted perimeter.
+
+What MasterFlow does with awkward sections, and tells you about:
+
+| Situation | What happens | Message |
+|---|---|---|
+| Water above an end point | A vertical wall is added at that end (counted as wetted perimeter) | W-I-003 |
+| Separate pools below the water surface | All of them carry flow | W-I-002 |
+| Several depths carry the same Q (flat overbanks) | All are listed; the **highest** is reported | W-I-001 |
+| Several specific-energy minima | All are listed; the one with the lowest energy is critical depth | W-I-004 |
+| Solve for n with n on points | Not possible (n would be ambiguous) | E-N-002 |
+
+Up to 5000 points are accepted; a 5000-point section solves in well under a second.
+
+### 2.5 Pipes
+
+- **Circular**: enter the diameter in inches (U.S.) or mm (SI). Above about 94 % full, the same Q can
+  occur at two depths; the lower one is reported and the upper one is listed (W-P-001). Discharge above
+  the maximum free-surface capacity is an error (E-P-001), never a made-up depth.
+- **Elliptical**: tick *ASTM C507 standard size* and pick a size (tick *Vertical (VE)* for vertical
+  ellipses), or untick it and enter rise and span for a true ellipse.
+- Pipe drawings are always to true scale.
+
+### 2.6 Title, folder and description
+
+- **Folder** organises the project list, for example `Ditches/Phase 1`. Use **Sort** to order the list by
+  folder and then title (natural order: "Ditch 2" before "Ditch 10").
+- **Title fields.** A title can contain live values in braces. They update as the inputs change and
+  appear in the list, in reports and in Excel. The file keeps the template as typed.
+
+  `{shape} — {D} in pipe, Q = {Q:F1} {Qunit}` → `Circular — 36 in pipe, Q = 71.4 cfs`
+
+  | Field | Meaning | Field | Meaning |
+  |---|---|---|---|
+  | `{shape}` | Section shape | `{units}` | U.S. or SI |
+  | `{folder}` | Folder path | `{Q}` `{Qunit}` | Discharge and its unit |
+  | `{yn}` `{yc}` `{unit}` | Normal and critical depth, length unit | `{S}` | Slope in % |
+  | `{n}` | Manning's n | `{V}` `{Fr}` `{regime}` | Velocity, Froude number, regime |
+  | `{A}` `{T}` | Flow area, top width | `{b}` `{zL}` `{zR}` | Bottom width, side slopes |
+  | `{D}` `{rise}` `{span}` | Pipe sizes in in/mm | `{WSE}` | Water-surface elevation |
+  | `{pctfull}` | Conduit percent full | | |
+
+  Add a .NET number format after a colon: `{Q:F1}`, `{yn:F3}`, `{Q:N0}`. Type `{{` or `}}` for a literal
+  brace. A misspelt field shows as `{?name}` so it cannot go unnoticed; result fields show "—" when there
+  is no valid result. Hover over the title box for the field list.
+
+## 3. Results
+
+The **Results** tab lists every quantity with its symbol and unit; values in bold were solved for.
+Groups: governing values, normal flow (area, wetted perimeter, hydraulic radius, top width, velocity,
+velocity head, specific energy, Froude number, conveyance, section factor, V·y, mean and maximum
+boundary shear), critical flow at the same discharge, elevations (when known), and for irregular
+sections the composite n, energy coefficient α and number of wetted areas.
+
+**Messages** appear under the results with a code. E codes are errors (no result is shown), W codes are
+warnings, I codes are information. The full list with thresholds is in
+[HYDRAULIC_METHODS.md](HYDRAULIC_METHODS.md). Examples: W-N-001 (n outside 0.008–0.20), W-S-001 (slope
+above 10 %), W-F-001 (near-critical flow, 0.86 ≤ Fr ≤ 1.13).
+
+**Copy results** puts the results on the clipboard as tab-separated text for Excel.
+
+If a calculation cannot be solved, MasterFlow shows the error and **no numbers**. It never reports a
+value from a solver that did not converge.
+
+## 4. Rating tables
+
+On the **Rating table** tab choose a mode (depth → discharge, or discharge → depth), start, end and
+step, then **Generate**. Up to 5000 rows. **Copy** puts the table on the clipboard; **CSV…** saves it.
+The rating curve is drawn above the table. The table of the selected calculation is also included in
+its report and in the Excel workbook.
+
+## 5. Comparing alternatives
+
+Every calculation in the list has a tick box. Ticked, solved calculations appear side by side on the
+**Compare** tab, in the **Batch report**, the **Compare report** and the **Excel** workbook. Untick a
+calculation to leave it out. The tick is saved with the project.
+
+Calculations in different unit systems are not converted; the comparison says so.
+
+## 6. Reports and exports
+
+| Button | Output |
+|---|---|
+| **Report…** (Ctrl+E) | The selected calculation |
+| **Batch report…** | Every ticked calculation, each starting on a new page |
+| **Compare report…** | The side-by-side comparison, landscape |
+| **Excel…** | Workbook: comparison sheet, one sheet per ticked calculation, rating table |
+
+Reports are saved as **PDF** by default. Choose *HTML report* in the save dialog's file type list for an
+HTML file instead (open it in a browser to print). Reports contain the project information, method,
+inputs, cross-section, results, warnings and assumptions, the rating table when generated, notes and
+(optionally) the full calculation trace.
+
+**Report settings** live in *Project information* and are saved with the project:
+
+- **Watermark** (for example PRELIMINARY) and **footer text**.
+- **Logo…** embeds a company logo in the project file (PNG, JPEG, GIF or SVG, up to 1 MB). PDF reports
+  show PNG, JPEG and GIF logos; an SVG logo appears in HTML reports only.
+- **Include calculation trace in reports**: the solver's step-by-step record (brackets, iterations,
+  residuals). Leave it on for review copies.
+
+Numbers in Excel are stored at full precision; non-finite values are left empty rather than written
+as text.
+
+## 7. Projects, templates and safety nets
+
+| Task | How |
+|---|---|
+| New calculation | **+ Channel** (Ctrl+T) |
+| From a template | **From template ▾**: built-in generic starting points (street half-section, full street, V-ditch, grass swale, concrete trapezoid, flume, RCP, CMP, HE pipe, natural channel) and your own. Dimensions are generic; edit them to the governing standard detail |
+| Save your own template | Select a calculation, **Save as template**. Templates are kept for your Windows user, available in every project. Remove one with ✕ in the template list |
+| Duplicate | **Duplicate** (Ctrl+D) |
+| Delete | **Delete** moves the calculation to the **recycle bin** (saved with the project). **Restore** brings it back; **Empty recycle bin** removes it for good |
+| Undo / redo | Ctrl+Z / Ctrl+Y, per calculation |
+| Recent projects | **Recent ▾** |
+
+**Autosave and recovery.** Every minute, unsaved work is copied to a recovery file in your user folder
+(never over your own project file). If MasterFlow closes unexpectedly, it offers to restore that copy
+the next time it starts. Saving or closing normally removes the recovery copy.
+
+**Unexpected errors.** If something goes wrong inside MasterFlow, it keeps running where it can,
+saves a recovery copy and says so in the status bar.
+
+**Log folder.** MasterFlow keeps a plain-text log of what it did (saves, exports, errors) on your
+computer only, one file per day, for 14 days. Use **Log folder** to open it, for example to send a file
+with a problem report.
+
+### Where MasterFlow keeps things
+
+| What | Where |
+|---|---|
+| Projects | Wherever you save them (`.mfproj`, readable JSON with a schema version) |
+| Recent files, user templates, recovery copy | `%APPDATA%\MasterFlow` |
+| Log | `%APPDATA%\MasterFlow\logs` |
+
+Project files from newer MasterFlow versions with a newer schema are refused rather than misread.
+
+## 8. Keyboard shortcuts
+
+| Keys | Action |
+|---|---|
+| Ctrl+N | New project |
+| Ctrl+O | Open project |
+| Ctrl+S / Ctrl+Shift+S | Save / Save as |
+| Ctrl+Z / Ctrl+Y | Undo / Redo |
+| Ctrl+T | New calculation |
+| Ctrl+D | Duplicate calculation |
+| Ctrl+E | Report of the selected calculation |
+| Tab / Shift+Tab | Next / previous field |
+
+## 9. Method in brief
+
+Q = (k/n)·A·R^(2/3)·S^(1/2), R = A/P. Critical depth satisfies Q²T/(gA³) = 1; Fr = V/√(gD), D = A/T.
+Unknown depths are found with Brent's bracketed method (no Newton iterations), with a relative depth
+tolerance of 1×10⁻¹² and a check that the discharge residual is at most 1×10⁻⁸. Results are checked
+against independent hand calculations and published examples; see
+[HYDRAULIC_METHODS.md](HYDRAULIC_METHODS.md) and [VALIDATION_RESULTS.md](VALIDATION_RESULTS.md).
+
+Assumptions: prismatic channel, small slope (depth measured vertically), hydrostatic pressure, uniform
+roughness unless n is given per segment, velocity head with α = 1.

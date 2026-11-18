@@ -613,7 +613,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private string LogoNote(string path) =>
         !IsHtml(path) && !string.IsNullOrWhiteSpace(LogoDataUri) && !PdfReport.LogoSupported(LogoDataUri)
-            ? " The logo is not a PNG or JPEG, so it appears in HTML reports only."
+            ? " The logo (SVG) cannot be drawn in PDF; it appears in HTML reports only. Use PNG or JPEG for PDF."
             : "";
 
     [RelayCommand]
