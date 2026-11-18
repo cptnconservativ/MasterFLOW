@@ -28,21 +28,24 @@ public static class NetworkTables
         [
             p.Pipe.Name, $"{p.Pipe.From} → {p.Pipe.To}",
             p.Pipe.Shape == NetworkPipeShape.Circular ? F(p.Pipe.Rise / k, 0) : $"{F(p.Pipe.Rise / k, 0)}×{F(p.Pipe.Span / k, 0)}",
-            F(p.Pipe.Length, 1), F(100 * p.Slope, 3), F(p.Pipe.ManningN, 3), F(p.Pipe.Discharge, 2), F(p.FullFlowCapacity, 2),
+            F(p.Pipe.Length, 1), F(100 * p.Slope, 3), F(p.Pipe.ManningN, 3), F(p.Pipe.Discharge, 2) + (r.AccumulatedPipes.Contains(p.Pipe.Name) ? " Σ" : ""), F(p.FullFlowCapacity, 2),
             F(p.NormalDepth, 3), F(p.CriticalDepth, 3), $"{p.Regime}; {p.Condition}", F(p.VelocityDown, 2), F(p.VelocityUp, 2),
             F(p.HglDown, 2), F(p.HglUp, 2), F(p.EglDown, 2), F(p.EglUp, 2), F(p.EnergyLoss, 3),
         ]).ToList();
     }
 
+    /// <summary>Index of the OK/FAILS column in <see cref="StructureRows"/>.</summary>
+    public const int StructureCheckColumn = 8;
+
     public static IReadOnlyList<string> StructureHeader(UnitConstants c) =>
-        ["Structure", "Type", "Rim", "HGL", "EGL", $"Rim − HGL ({c.Length})", $"Required ({c.Length})", "Check", "Loss method", "Equation", $"hj ({c.Length})", $"V2 out ({c.Velocity})", $"V1 in ({c.Velocity})"];
+        ["Structure", "Type", $"Inflow ({c.Discharge})", "Rim", "HGL", "EGL", $"Rim − HGL ({c.Length})", $"Required ({c.Length})", "Check", "Loss method", "Equation", $"hj ({c.Length})", $"V2 out ({c.Velocity})", $"V1 in ({c.Velocity})"];
 
     public static IReadOnlyList<IReadOnlyList<string>> StructureRows(StormNetworkResult r)
     {
         var need = r.Network.Criteria.HglBelowRim;
         return r.Structures.Select(s => (IReadOnlyList<string>)
         [
-            s.Structure.Name, s.Structure.Kind, s.Structure.RimElevation is { } rim ? F(rim, 2) : "—", F(s.Hgl, 2), F(s.Egl, 2),
+            s.Structure.Name, s.Structure.Kind, s.Structure.Inflow is { } qi ? F(qi, 2) : "—", s.Structure.RimElevation is { } rim ? F(rim, 2) : "—", F(s.Hgl, 2), F(s.Egl, 2),
             s.HglClearance is { } cl ? F(cl, 2) : "—", need is { } n ? F(n, 2) : "—",
             need is null || s.HglClearance is null ? "—" : s.HglClearance >= need ? "OK" : "FAILS",
             s.LossMethod, s.LossEquation, s.IsOutfall ? "—" : F(s.Loss, 3), s.IsOutfall ? "—" : F(s.OutletVelocity, 2), double.IsFinite(s.InletVelocity) ? F(s.InletVelocity, 2) : "—",
@@ -116,10 +119,11 @@ public static class NetworkReport
             pager.AddTable(new TableBlock(fonts, [new(0.8f), new(1.5f), new(0.6f, true), new(0.6f, true), new(0.6f, true), new(0.55f, true), new(0.6f, true), new(0.65f, true),
                 new(0.55f, true), new(0.55f, true), new(2.1f), new(0.6f, true), new(0.6f, true), new(0.8f, true), new(0.8f, true), new(0.8f, true), new(0.8f, true), new(0.65f, true)],
                 NetworkTables.PipeHeader(c, r.Network.Units), NetworkTables.PipeRows(r).Select(row => ((IReadOnlyList<PdfCell>)row.Select(x => new PdfCell(x)).ToList(), false)).ToList(), PdfStyle.Small));
+            if (r.AccumulatedPipes.Count > 0) pager.Paragraph("Σ: Q accumulated from structure inflows (inflow at the upstream structure plus every pipe into it); see the trace.", size: PdfStyle.Small, color: PdfStyle.Muted);
             pager.Heading("Structures (HGL check against the rim)");
             var srows = NetworkTables.StructureRows(r);
-            pager.AddTable(new TableBlock(fonts, [new(0.9f), new(1f), new(0.7f, true), new(0.7f, true), new(0.7f, true), new(0.8f, true), new(0.8f, true), new(0.6f), new(2.2f), new(1.7f), new(0.6f, true), new(0.7f, true), new(0.7f, true)],
-                NetworkTables.StructureHeader(c), srows.Select(row => ((IReadOnlyList<PdfCell>)row.Select(x => new PdfCell(x)).ToList(), row[7] == "FAILS")).ToList(), PdfStyle.Small));
+            pager.AddTable(new TableBlock(fonts, [new(0.9f), new(1f), new(0.6f, true), new(0.7f, true), new(0.7f, true), new(0.7f, true), new(0.8f, true), new(0.8f, true), new(0.6f), new(2.2f), new(1.7f), new(0.6f, true), new(0.7f, true), new(0.7f, true)],
+                NetworkTables.StructureHeader(c), srows.Select(row => ((IReadOnlyList<PdfCell>)row.Select(x => new PdfCell(x)).ToList(), row[NetworkTables.StructureCheckColumn] == "FAILS")).ToList(), PdfStyle.Small));
         }
         pager.Heading("Warnings and notes");
         if (r.Messages.Count == 0) pager.Paragraph("None.");
@@ -183,7 +187,8 @@ public static class NetworkReport
                 sb.Append("</table>");
             }
             sb.Append("<h2>Pipes</h2>"); Table(NetworkTables.PipeHeader(c, r.Network.Units), NetworkTables.PipeRows(r), -1);
-            sb.Append("<h2>Structures (HGL check against the rim)</h2>"); Table(NetworkTables.StructureHeader(c), NetworkTables.StructureRows(r), 7);
+            if (r.AccumulatedPipes.Count > 0) sb.Append("<p class=\"sub\">Σ: Q accumulated from structure inflows (inflow at the upstream structure plus every pipe into it).</p>");
+            sb.Append("<h2>Structures (HGL check against the rim)</h2>"); Table(NetworkTables.StructureHeader(c), NetworkTables.StructureRows(r), NetworkTables.StructureCheckColumn);
         }
         else sb.Append("<p><strong>No results: the network could not be computed.</strong></p>");
         sb.Append("<h2>Warnings and notes</h2>");

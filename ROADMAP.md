@@ -97,6 +97,32 @@ and corridors only as surfaces and feature lines comes from the LandXML 1.2 sche
 practice, not from a test export from Kyle's Civil 3D. A sample export from Kyle's version is the first
 acceptance test for H4–H8.
 
+### Phase H, re-ranked after the storm sewer HGL (2026-11-18, late)
+
+Kyle made HGL/EGL checked against the Rapid City IDCM the priority, then asked for an updated roadmap
+and the top five built. With H1 merged and H4/H11 in review, the biggest remaining time sinks for a
+storm sewer designer are typing a Q into every pipe, resizing pipes by hand until the HGL passes, and the
+2-year minimum-velocity check that needs a second flow. Those come first, then the next Civil 3D piece.
+
+| Rank | Item | Gain | Effort (d) | Gain/effort | Branch | Status |
+|---|---|---|---|---|---|---|
+| 1 | R1 **Flow accumulation**: inflow Q at each structure (inlet captured flow), pipe Q = inflow + all upstream pipes unless typed; shown in tables, reports, Excel | 5 | 1 | 5.0 | `feature/network-flow-accumulation` | 🟡 PR |
+| 2 | R2 **Minor-storm check flow**: a second inflow (2-yr in Rapid City) accumulated the same way; the minimum-velocity check uses it (IDCM 4.6: 2.5 fps for the 2-year storm) | 4 | 1 | 4.0 | `feature/minor-storm-velocity` | ⬜ |
+| 3 | R3 **Automatic pipe sizing** to the criteria: smallest standard size that carries Q open-channel within the velocity limits, never smaller than upstream, then upsizes along any path where the HGL is too close to the rim; inverts kept | 5 | 2 | 2.5 | `feature/network-pipe-sizing` | ⬜ |
+| 4 | H6 **LandXML alignments** (lines, curves, spirals) → station and offset of every structure | 4 | 2 | 2.0 | `feature/landxml-alignments` | ⬜ |
+| 5 | H2 **Sensitivity table** for single calculations (yn, V, Fr, Q for n ± 10/20 % and slope ± 25/50 %) | 3 | 1 | 3.0 | `feature/sensitivity-table` | ⬜ |
+| 6 | H5 LandXML profiles → real ground line under the HGL band (replacing the straight line between rims) and slopes for imported sections | 4 | 2.5 | 1.6 | `feature/landxml-profiles` | ⬜ |
+| 7 | H7 Gutter spread and inlet capacity (HEC-22; Rapid City street spread limits), bypass carried to the next inlet and into R1 inflows | 5 | 4 | 1.3 | `feature/hec22-gutter-inlets` | ⬜ |
+| 8 | Rational method inflows (C, i from Rapid City IDF, A; Tc along the network) feeding R1/R2 | 4 | 3 | 1.3 | `feature/rational-method` | ⬜ |
+| 9 | H8 Corridor surfaces/feature lines → inlet cross and longitudinal slopes for H7 | 4 | 4 | 1.0 | `feature/landxml-corridor-surfaces` | ⬜ |
+| 10 | H10 Culverts (HDS-5 inlet/outlet control) | 5 | 6 | 0.8 | `feature/hds5-culverts` | ⬜ |
+| 11 | H9 Batch import of calculations from CSV/xlsx (networks already paste from Excel) | 2 | 2 | 1.0 | `feature/batch-import` | ⬜ |
+
+Why this order: R1–R3 remove most of the hand work in a storm sewer design that MasterFlow can now
+check; R2 is what the IDCM minimum velocity actually asks for. H6 puts structures on road stations,
+which reviewers use to find them. H2 is cheap. H5 needs H6's stationing to be useful for the HGL band.
+Rational method and H7 are larger and need decisions about Rapid City IDF data, so they follow.
+
 Every item's acceptance includes: clean build, tests passing, equations documented, failure modes
 tested, independent verification, UI inspected, save/load and report checked, this file and the
 parity matrix updated.

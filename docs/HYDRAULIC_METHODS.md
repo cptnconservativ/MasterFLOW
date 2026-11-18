@@ -228,7 +228,9 @@ Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
 ## 10. Storm sewer HGL and EGL (H11)
 
 Steady flow through a tree-shaped network of circular and elliptical pipes draining to one or more
-outfalls. Each pipe carries its own design Q (the user enters it; no hydrology is computed).
+outfalls. Each pipe carries a design Q: typed, or accumulated as Qpipe = Qinflow(upstream structure) +
+Σ Q(pipes into that structure), using typed values where given. No hydrology or routing is computed (peak
+flows are added as entered, a conservative simplification the user should be aware of).
 
 **Outfall.** Tailwater rule per network: free outfall (depth = yc), a known tailwater elevation, (yc + D)/2
 above the outlet invert (the HEC-22 convention) or the outlet crown. The depth at any pipe outlet is never

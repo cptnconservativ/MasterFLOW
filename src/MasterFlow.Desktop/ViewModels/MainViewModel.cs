@@ -1007,7 +1007,7 @@ public sealed partial class MainViewModel : ObservableObject
         string unitNote = read.Units is null ? $" Unit system not stated in the file; set to {(units == UnitSystem.SI ? "SI" : "U.S. customary")}, please check." : "";
         var other = read.Problems.Where(p => !p.StartsWith("The file does not state") && !p.StartsWith("Linear unit")).ToList();
         string probNote = other.Count > 0 ? $" {other.Count} problem(s), first: {other[0]}" : "";
-        string netNote = nets > 0 ? $" {nets} storm network(s) set up for HGL/EGL (Storm networks window; enter the design Q for each pipe)." : "";
+        string netNote = nets > 0 ? $" {nets} storm network(s) set up for HGL/EGL (Storm networks window; enter the inflow at each inlet, or a Q for each pipe)." : "";
         return $"Imported {read.Pipes.Count} pipe(s) and {read.Structures.Count} structure(s) ({inlets} inlet(s)) from {fileName}.{netNote}{unitNote}{probNote}";
     }
 

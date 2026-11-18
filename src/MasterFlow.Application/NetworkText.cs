@@ -17,7 +17,7 @@ public static class NetworkText
 
     public static string PipeHeader(UnitSystem u) =>
         $"Pipe\tFrom (upstream)\tTo (downstream)\tShape\tSize/rise ({SizeUnit(u)})\tSpan ({SizeUnit(u)})\tLength\tInvert up\tInvert down\tn\tQ ({UnitConstants.For(u).Discharge})";
-    public const string StructureHeader = "Structure\tType\tRim\tLoss method\tK";
+    public const string StructureHeader = "Structure\tType\tRim\tLoss method\tK\tInflow Q";
 
     public static string FormatPipes(StormNetwork n)
     {
@@ -33,7 +33,7 @@ public static class NetworkText
     {
         var sb = new StringBuilder(StructureHeader).Append('\n');
         foreach (var s in n.Structures)
-            sb.Append(string.Join('\t', s.Name, s.Kind, s.RimElevation is { } r ? N(r) : "", s.LossMethod, s.JunctionK is { } kk ? N(kk) : "")).Append('\n');
+            sb.Append(string.Join('\t', s.Name, s.Kind, s.RimElevation is { } r ? N(r) : "", s.LossMethod, s.JunctionK is { } kk ? N(kk) : "", s.Inflow is { } qi ? N(qi) : "")).Append('\n');
         return sb.ToString().TrimEnd('\n');
     }
 
@@ -86,14 +86,15 @@ public static class NetworkText
         {
             if (c.Length >= 1 && c[0].Equals("Structure", StringComparison.OrdinalIgnoreCase)) continue;
             string Cell(int i) => i < c.Length ? c[i] : "";
-            double? rim = null, kk = null;
+            double? rim = null, kk = null, qin = null;
+            if (Cell(5).Length > 0) { if (Num(Cell(5), out double qv) && qv >= 0) qin = qv; else errs.Add($"Line {line}: inflow Q \"{Cell(5)}\" is not a number of zero or more."); }
             if (Cell(2).Length > 0) { if (Num(Cell(2), out double r)) rim = r; else errs.Add($"Line {line}: rim \"{Cell(2)}\" is not a number."); }
             if (Cell(4).Length > 0) { if (Num(Cell(4), out double kv) && kv >= 0) kk = kv; else errs.Add($"Line {line}: K \"{Cell(4)}\" is not a number of zero or more."); }
             var method = StructureLossMethod.Auto;
             if (Cell(3).Length > 0 && !Enum.TryParse(Cell(3), true, out method))
                 errs.Add($"Line {line}: loss method \"{Cell(3)}\" is not one of {string.Join(", ", Enum.GetNames<StructureLossMethod>())}.");
             var old = previous?.FirstOrDefault(s => s.Name == c[0]);
-            list.Add(new NetworkStructure { Name = c[0], Kind = Cell(1), RimElevation = rim, LossMethod = method, JunctionK = kk, Northing = old?.Northing, Easting = old?.Easting });
+            list.Add(new NetworkStructure { Name = c[0], Kind = Cell(1), RimElevation = rim, LossMethod = method, JunctionK = kk, Inflow = qin, Northing = old?.Northing, Easting = old?.Easting });
         }
         return (list, errs);
     }
