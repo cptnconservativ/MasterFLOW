@@ -23,7 +23,9 @@ Run `scripts/publish-win.sh`. It stops on the first failure. It:
 2. runs the performance tests in Release (5000-row tables and 5000-point sections under 1 s; a PDF with
    a 5000-row table under 5 s);
 3. re-runs the independent read-back checks of the sample PDF and Excel files (pypdf, openpyxl);
-4. publishes a self-contained single-file `MasterFlow.exe` for win-x64, zips it and writes the SHA-256.
+4. publishes a self-contained single-file `MasterFlow.exe` for win-x64, zips it, builds the per-user
+   installer `MasterFlow-x.y.z-setup.exe` from the same exe (needs NSIS: `apt install nsis`), and writes
+   SHA-256 files for both.
 
 Then:
 
@@ -54,7 +56,12 @@ Then:
       (`signtool sign /fd SHA256 /tr <timestamp URL> /td SHA256 MasterFlow.exe`), then
       `signtool verify /pa MasterFlow.exe`.
 - [ ] Re-zip the signed exe and regenerate the SHA-256.
-- [ ] Installer (roadmap G1), once chosen: build, sign, install, start, uninstall on a clean machine.
+- [ ] Sign the installer the same way (sign `MasterFlow.exe` first, then rebuild the installer from it,
+      then sign `MasterFlow-x.y.z-setup.exe`).
+- [ ] Installer on a clean account: installs without an admin prompt to `%LOCALAPPDATA%\Programs\MasterFlow`;
+      Start menu entry works; double-clicking a `.mfproj` opens it; *Apps & features* shows MasterFlow
+      with the right version; uninstall removes the program and association but keeps
+      `%APPDATA%\MasterFlow` and the user's projects; installing over an older version upgrades it.
 
 ## 5. Publish
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds the Windows release of MasterFlow: tests (Debug + Release performance), independent
-# validation scripts, self-contained single-file publish, zip and SHA-256.
+# validation scripts, self-contained single-file publish, zip, per-user installer (NSIS) and SHA-256s.
 # Usage: scripts/publish-win.sh [output-dir]     (run from anywhere; needs .NET 10 SDK, python3, zip)
 # Signing (roadmap G2) is a separate step on a Windows machine holding the certificate; see
 # docs/RELEASE_CHECKLIST.md.
@@ -30,6 +30,17 @@ ZIP="$OUT/MasterFlow-$VERSION-win-x64.zip"
 rm -f "$ZIP"
 ( cd "$PUB" && zip -q -9 "$ZIP" MasterFlow.exe )
 ( cd "$OUT" && sha256sum "$(basename "$ZIP")" > "$(basename "$ZIP").sha256" )
-rm -rf "$PUB"
 echo "Wrote $ZIP"
 cat "$ZIP.sha256"
+
+# Per-user installer (roadmap G1), built from the same exe, when NSIS is installed (apt install nsis).
+if command -v makensis >/dev/null; then
+  SETUP="$OUT/MasterFlow-$VERSION-setup.exe"
+  makensis -V2 -DVERSION="$VERSION" -DSOURCE="$PUB" -DOUTFILE="$SETUP" "$ROOT/installer/MasterFlow.nsi"
+  ( cd "$OUT" && sha256sum "$(basename "$SETUP")" > "$(basename "$SETUP").sha256" )
+  echo "Wrote $SETUP"
+  cat "$SETUP.sha256"
+else
+  echo "makensis not found: installer skipped"
+fi
+rm -rf "$PUB"
