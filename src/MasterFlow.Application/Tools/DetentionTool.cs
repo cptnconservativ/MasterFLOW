@@ -30,37 +30,23 @@ public sealed record PondOutlet(string Name, string Type, double Invert, double 
     }
 
     /// <summary>
-    /// Outlet pipe (barrel) capacity, continuous and non-decreasing in stage so that storage-indication routing stays valid.
-    /// At and above the barrel's inlet crown: outlet control with a free outfall (HDS-5 form), Q = A √(2g H / (1 + Ke + Kf)),
-    /// H = WSE − (outlet invert + ho), ho = (dc + D)/2 with dc the critical depth of Q in the pipe (solved together with Q);
-    /// Ke = Coefficient, Kf = 29 n² L / R^(4/3) (U.S.) or 19.6 n² L / R^(4/3) (SI), R = D/4.
-    /// Below the inlet crown the entrance is unsubmerged; the capacity is taken as Qcrown·(h/D)^1.5, h = WSE − inlet invert,
-    /// a weir-type curve that meets the outlet-control value at the crown (an approximation, stated in the report).
+    /// Outlet pipe (barrel) capacity at pond level <paramref name="wse"/>: the culvert flow whose FHWA HDS-5 controlling
+    /// headwater (the larger of inlet control and outlet control, see <see cref="Culverts.CulvertAnalysis"/>) equals
+    /// WSE − inlet invert, with a free outfall (TW = 0, so ho = (dc + D)/2). Inlet: concrete pipe, square edge with
+    /// headwall (HDS-5 chart 1); Ke = Coefficient. The rating is continuous and rises with stage, which
+    /// storage-indication routing needs. This replaces the earlier below-crown approximation Qcrown·(h/D)^1.5.
     /// </summary>
     public double BarrelCapacity(double wse, double g, bool us)
     {
         double h = wse - Invert;
         if (!(h > 0)) return 0;
-        if (h < Size) return OutletControl(Invert + Size, g, us) * Math.Pow(h / Size, 1.5);
-        return OutletControl(wse, g, us);
-    }
-
-    private double OutletControl(double wse, double g, bool us)
-    {
-        double outInv = double.IsNaN(OutletInvert) ? Invert : OutletInvert;
-        double a = Math.PI * Size * Size / 4, r = Size / 4, k = 1 + Coefficient + (us ? 29.0 : 19.6) * N * N * Length / Math.Pow(r, 4.0 / 3.0);
-        double Head(double q) => wse - (outInv + (CircularCriticalDepth(q, Size, g) + Size) / 2);
-        // f(q) = A √(2g H(q) / k) − q decreases in q (dc grows with q), so bisection finds the unique root.
-        double hiQ = a * Math.Sqrt(2 * g * Math.Max(0, wse - outInv - Size / 2) / k);
-        if (!(hiQ > 0)) return 0;
-        double lo = 0, hi = hiQ;
-        for (int i = 0; i < 50; i++)
+        var barrel = new Culverts.CulvertAnalysis(new Culverts.CulvertDefinition
         {
-            double m = 0.5 * (lo + hi), hm = Head(m);
-            double f = (hm > 0 ? a * Math.Sqrt(2 * g * hm / k) : 0) - m;
-            if (f > 0) lo = m; else hi = m;
-        }
-        return 0.5 * (lo + hi);
+            Shape = Culverts.BarrelShape.Circular, Rise = Size, N = N, Length = Length > 0 ? Length : 1e-6,
+            UpstreamInvert = Invert, DownstreamInvert = double.IsNaN(OutletInvert) || !(Length > 0) ? Invert : OutletInvert,
+            Inlet = Culverts.CulvertInlets.Find("circ-conc-square-headwall")!, Ke = Coefficient,
+        }, us ? UnitSystem.USCustomary : UnitSystem.SI);
+        return barrel.Capacity(h, 0);
     }
 
     /// <summary>Critical depth of <paramref name="q"/> in a circular pipe of diameter <paramref name="d"/> (Q²/g = A³/T), capped at D.</summary>
@@ -318,7 +304,7 @@ public sealed class DetentionTool : IDesignTool
             else msgs.Add(CalcMessage.Info("I-DT-002", $"Freeboard at the 100-yr level: {fb:F2} ft (≥ 1 ft, §4.10.3(2))."));
         }
         else if (berm is null) msgs.Add(CalcMessage.Info("I-DT-003", "Enter top of berm to check the 1 ft freeboard."));
-        if (pond.Barrel is not null) msgs.Add(CalcMessage.Info("I-DT-002", "Outlet pipe capacity: outlet control with a free outfall, ho = (dc + D)/2 (HDS-5), at and above the barrel's inlet crown; below the crown, Qcrown·(h/D)^1.5, an approximation that keeps the rating continuous and rising so that routing is valid."));
+        if (pond.Barrel is not null) msgs.Add(CalcMessage.Info("I-DT-002", "Outlet pipe capacity: FHWA HDS-5 controlling headwater, the larger of inlet control (concrete pipe, square edge with headwall: unsubmerged, transition and submerged equations) and outlet control with a free outfall (ho = (dc + D)/2). The same engine as the Culvert analysis tool."));
         if (pond.Barrel is { } pipe && pipe.Size < 1.5 - 1e-9) msgs.Add(CalcMessage.Warning("W-DT-005", $"Outlet pipe {pipe.Size * 12:F0} in. is below the 18 in. minimum (§4.10.5)."));
         if (outlets.Where(o => o.Type != "pipe").Min(o => o.Invert) > pond.Bottom + 1e-9)
             msgs.Add(CalcMessage.Warning("W-DT-006", "The lowest orifice or weir is above the pond bottom: the storage below it does not drain by gravity."));

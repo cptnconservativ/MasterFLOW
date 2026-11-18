@@ -11,6 +11,13 @@ public sealed record DesignToolContext(UnitSystem Units, StormNetwork? Network =
 /// <summary>A result table: shown in the window, the HTML report and as an Excel sheet. Cells are numbers or text.</summary>
 public sealed record ToolTable(string Title, IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows, IReadOnlyList<string>? Notes = null);
 
+/// <summary>One line of a chart; points need not be evenly spaced. NaN y values break the line.</summary>
+/// <summary>Reference: a dashed grey guide line labelled at its right end. Envelope: a wide translucent band drawn under the other lines (e.g. the controlling value of two curves).</summary>
+public sealed record ToolSeries(string Name, IReadOnlyList<(double X, double Y)> Points, bool Reference = false, bool Envelope = false);
+
+/// <summary>An x–y line chart with one y axis.</summary>
+public sealed record ToolChart(string Title, string XLabel, string YLabel, IReadOnlyList<ToolSeries> Series);
+
 /// <summary>
 /// The outcome of running a tool. Messages carry every error, warning and assumption; a tool with an error
 /// returns no numbers for the failed part. A tool that can change the selected network returns it in
@@ -19,6 +26,8 @@ public sealed record ToolTable(string Title, IReadOnlyList<string> Headers, IRea
 public sealed record ToolResult(string Title, IReadOnlyList<string> Summary, IReadOnlyList<ToolTable> Tables, IReadOnlyList<CalcMessage> Messages)
 {
     public StormNetwork? UpdatedNetwork { get; init; }
+    /// <summary>Optional x–y charts (drawn in the HTML report; their data is also in <see cref="Tables"/>).</summary>
+    public IReadOnlyList<ToolChart> Charts { get; init; } = [];
     public string? UpdateDescription { get; init; }
     public bool Succeeded => Messages.All(m => m.Severity != MessageSeverity.Error);
 

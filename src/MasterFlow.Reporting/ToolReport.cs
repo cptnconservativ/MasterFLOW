@@ -19,6 +19,7 @@ public static class ToolReport
           .Append("pre{background:#f5f7f9;padding:8px;font-size:11px;white-space:pre-wrap}.sub{color:#5b6876}@media print{body{margin:0}}</style></head><body>");
         sb.Append($"<h1>{E(r.Title)}</h1><div class=\"sub\">{E(project.Name)} {E(project.ProjectNumber)} · Prepared by {E(project.PreparedBy)} · Checked by {E(project.CheckedBy)} · {(when ?? DateTimeOffset.Now):yyyy-MM-dd HH:mm} · MasterFlow {E(softwareVersion)}</div>");
         foreach (var s in r.Summary) sb.Append($"<p>{E(s)}</p>");
+        foreach (var ch in r.Charts) sb.Append($"<h2>{E(ch.Title)}</h2>").Append(ChartSvg(ch));
         foreach (var t in r.Tables)
         {
             sb.Append($"<h2>{E(t.Title)}</h2><table><tr>");
@@ -41,6 +42,73 @@ public static class ToolReport
         sb.Append($"<h2>Input</h2><pre>{E(input)}</pre>");
         sb.Append("<p class=\"note\">Computed by MasterFlow. The responsible engineer must review inputs, assumptions and results before use.</p></body></html>");
         return sb.ToString();
+    }
+
+    private static readonly string[] SeriesColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"];
+
+    /// <summary>
+    /// A static SVG line chart: one y axis, recessive grid, legend, the last point of each series labelled, and a
+    /// tooltip (SVG title) on every point. Reference series are drawn dashed in grey and labelled at their left end.
+    /// </summary>
+    public static string ChartSvg(ToolChart ch)
+    {
+        static string F(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        static string E(string? s) => WebUtility.HtmlEncode(s ?? "");
+        var pts = ch.Series.SelectMany(s => s.Points).Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y)).ToList();
+        if (pts.Count < 2) return "";
+        const double W = 760, H = 360, L = 64, R = 190, T = 14, B = 46;
+        double x0 = pts.Min(p => p.X), x1 = pts.Max(p => p.X), y0 = pts.Min(p => p.Y), y1 = pts.Max(p => p.Y);
+        if (x1 <= x0) x1 = x0 + 1;
+        if (y1 <= y0) y1 = y0 + 1;
+        var (xt, xs) = Ticks(x0, x1); var (yt, ys) = Ticks(y0, y1);
+        x0 = xt[0]; x1 = xt[^1]; y0 = yt[0]; y1 = yt[^1];
+        double X(double v) => L + (v - x0) / (x1 - x0) * (W - L - R);
+        double Y(double v) => H - B - (v - y0) / (y1 - y0) * (H - T - B);
+        var sb = new StringBuilder($"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {W} {H}\" width=\"{W}\" style=\"max-width:100%;height:auto;font-family:Segoe UI,Arial,sans-serif;font-size:11px\" role=\"img\" aria-label=\"{E(ch.Title)}\">");
+        foreach (var t in yt) sb.Append($"<line x1=\"{L}\" x2=\"{W - R}\" y1=\"{F(Y(t))}\" y2=\"{F(Y(t))}\" stroke=\"#e3e8ee\"/><text x=\"{L - 6}\" y=\"{F(Y(t) + 4)}\" text-anchor=\"end\" fill=\"#5b6876\">{F(t)}</text>");
+        foreach (var t in xt) sb.Append($"<text x=\"{F(X(t))}\" y=\"{H - B + 16}\" text-anchor=\"middle\" fill=\"#5b6876\">{F(t)}</text>");
+        sb.Append($"<line x1=\"{L}\" x2=\"{W - R}\" y1=\"{H - B}\" y2=\"{H - B}\" stroke=\"#9aa7b4\"/>");
+        sb.Append($"<text x=\"{F((L + W - R) / 2)}\" y=\"{H - 8}\" text-anchor=\"middle\" fill=\"#1d2733\">{E(ch.XLabel)}</text>");
+        sb.Append($"<text transform=\"translate(14 {F((T + H - B) / 2)}) rotate(-90)\" text-anchor=\"middle\" fill=\"#1d2733\">{E(ch.YLabel)}</text>");
+        int li = 0;
+        // Envelopes first so the lines they summarise draw on top.
+        foreach (var s in ch.Series.Where(x => x.Envelope).Concat(ch.Series.Where(x => !x.Envelope)))
+        {
+            string color = s.Reference ? "#7d8a97" : SeriesColors[ch.Series.Where(x => !x.Reference).ToList().IndexOf(s) % SeriesColors.Length];
+            var good = s.Points.Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y)).ToList();
+            if (good.Count == 0) continue;
+            var d = new StringBuilder();
+            bool pen = false;
+            foreach (var p in s.Points)
+            {
+                if (!double.IsFinite(p.Y) || !double.IsFinite(p.X)) { pen = false; continue; }
+                d.Append(pen ? " L" : " M").Append(F(X(p.X))).Append(' ').Append(F(Y(p.Y)));
+                pen = true;
+            }
+            sb.Append($"<path d=\"{d}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{(s.Envelope ? 8 : 2)}\" stroke-linejoin=\"round\" stroke-linecap=\"round\"{(s.Envelope ? " stroke-opacity=\"0.3\"" : "")}{(s.Reference ? " stroke-dasharray=\"6 4\"" : "")}/>");
+            if (s.Reference)
+            {
+                var first = good[0];
+                sb.Append($"<text x=\"{F(X(first.X) + 4)}\" y=\"{F(Y(first.Y) - 5)}\" fill=\"#5b6876\">{E(s.Name)}</text>");
+                continue;
+            }
+            if (!s.Envelope)
+                foreach (var p in good)
+                    sb.Append($"<circle cx=\"{F(X(p.X))}\" cy=\"{F(Y(p.Y))}\" r=\"4\" fill=\"{color}\" stroke=\"#fff\" stroke-width=\"2\"><title>{E(s.Name)}: {E(ch.XLabel)} {F(p.X)}, {E(ch.YLabel)} {F(p.Y)}</title></circle>");
+            double ly = T + 6 + 18 * li++;
+            sb.Append($"<line x1=\"{W - R + 12}\" x2=\"{W - R + 32}\" y1=\"{F(ly)}\" y2=\"{F(ly)}\" stroke=\"{color}\" stroke-width=\"{(s.Envelope ? 8 : 2)}\"{(s.Envelope ? " stroke-opacity=\"0.3\"" : "")}/><text x=\"{W - R + 38}\" y=\"{F(ly + 4)}\" fill=\"#1d2733\">{E(s.Name)}</text>");
+        }
+        return sb.Append("</svg>").ToString();
+
+        static (double[] Ticks, double Step) Ticks(double lo, double hi)
+        {
+            double raw = (hi - lo) / 6, mag = Math.Pow(10, Math.Floor(Math.Log10(raw))), n = raw / mag;
+            double step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
+            double a = Math.Floor(lo / step) * step, b = Math.Ceiling(hi / step) * step;
+            var t = new List<double>();
+            for (double v = a; v <= b + step * 1e-9; v += step) t.Add(Math.Round(v / step) * step);
+            return (t.ToArray(), step);
+        }
     }
 
     /// <summary>One sheet per table (names made unique and kept within Excel's 31 characters), then a messages sheet.</summary>

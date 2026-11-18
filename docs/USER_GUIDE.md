@@ -303,6 +303,14 @@ where the tool offers it. Inputs are saved with the project. See [docs/tools](to
 method and sources. The first tool is the Rapid City rational method, which can fill in the storm network's
 structure inflows for the design and minor storms.
 
+**Culvert analysis (FHWA HDS-5)** gives the headwater of a culvert for a design flow (Rapid City: 10-yr) and a
+check flow (100-yr): inlet control by the HDS-5 equations for the chosen inlet (`inlet =` one of the built-in
+HDS-5 rows, or `custom` with your own K, M, c, Y), outlet control, which one governs, flow over the roadway
+(give the crest under `[Roadway]`), outlet velocity, and a performance curve. The HTML report draws the curve;
+the hand-check table lists every intermediate value (Ku·Q/AD^0.5, dc, Hc, V²/2g, H, ho) so a reviewer can redo
+the numbers. `criteria = rapid-city` adds the IDCM §4.7.2 checks. The detention tool's outlet pipe uses the same
+engine. See [docs/tools/culverts.md](tools/culverts.md).
+
 ## 7. Projects, templates and safety nets
 
 | Task | How |

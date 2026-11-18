@@ -1,0 +1,19 @@
+A. 48-in concrete pipe, square edge with headwall (K 0.0098, M 2.0, c 0.0398, Y 0.67, Ks -0.5)
+   n 0.012, L 200 ft, inverts 100.00 / 99.00 (S 0.005), Ke 0.5
+   Q   30.0: X 1.193662  dc 1.624483  Hc 2.234074  HWi unsub 2.279927  HWi sub 2.896833
+   Q  120.0: X 4.774648  dc 3.298296  Hc 5.119762  HWi unsub 6.003415  HWi sub 6.299325
+   Q   90.0: X 3.580986  HW(3.5) 4.630993  HW(4.0) 5.217200  HWi transition 4.725942
+   Kf = 2gn^2L/(k^2 R^4/3) = 0.839247   (29 n^2 L / R^1.33 = 0.835200)
+   Q  120.0, TW 5.0: V 9.549297  hv 1.417124  H 3.315002  ho 5.000000  HWo 7.315002
+   Q  120.0, TW 2.0: V 9.549297  hv 1.417124  H 3.315002  ho 3.649148  HWo 5.964150
+
+B. 6 ft x 4 ft concrete box, S 0.01
+   Form 2, 90-deg headwall 3/4-in chamfers (K 0.515, M 0.667): Q 100.0: X 2.083333  HWi 3.361084
+   Form 1, 30-75 deg wingwalls (K 0.026, M 1.0): dc 2.051465  Hc 3.077198  HWi 3.273864
+   Submerged, 30-75 deg wingwalls (c 0.0347, Y 0.81): Q 250.0: X 5.208333  HWi 6.985191
+
+C. Roadway: level crest 100 ft long at 107.50, Cd 3.0, headwater 108.12: Q = Cd L h^1.5 = 146.456546
+   Villemonte kt for ht/h = 0.8: 0.616307
+
+D. Same 48-in culvert in SI (D 1.2192 m, Q 120 cfs = 3.398022 m3/s, Ku 1.811): submerged HWi
+   X 4.773834  HWi 1.919657 m = 6.298087 ft
