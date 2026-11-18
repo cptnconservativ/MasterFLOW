@@ -167,3 +167,19 @@ public class SampleArtifacts
             XlsxWriter.ToBytes(ProjectWorkbook.Build(info, [(calc, r), (creek, rc)], rt, "Ditch rating")));
     }
 }
+
+public class VersionTests
+{
+    [Fact]
+    public void AppVersion_ComesFromDirectoryBuildProps_AndIsStampedInFilesAndReports()
+    {
+        string? dir = AppContext.BaseDirectory;
+        while (dir is not null && !File.Exists(Path.Combine(dir, "MasterFlow.slnx"))) dir = Path.GetDirectoryName(dir);
+        if (dir is null) return;
+        var props = System.Xml.Linq.XDocument.Load(Path.Combine(dir, "Directory.Build.props"));
+        var version = props.Descendants("Version").Single().Value.Trim();
+        Assert.Equal(version, AppInfo.Version);
+        Assert.Contains($"MasterFlow {version}", ProjectFile.Serialize(new Project()));
+        Assert.Equal(version, new ReportOptions().SoftwareVersion);
+    }
+}

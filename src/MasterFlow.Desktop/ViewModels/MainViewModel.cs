@@ -23,7 +23,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.10.0";
+    public static string AppVersion => AppInfo.Version;
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
