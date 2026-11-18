@@ -457,6 +457,8 @@ public static class UniformFlowCalculator
     public static void Validate(UniformFlowInput input, List<CalcMessage> messages)
     {
         ValidateSection(input.Section, messages);
+        if (input.InvertElevation is { } ie && !double.IsFinite(ie))
+            messages.Add(CalcMessage.Error(MessageCodes.GeometryInvalid, "Invert elevation, when given, must be a number.", nameof(input.InvertElevation)));
         if (input.SolveFor == SolveFor.Roughness && input.Section is IrregularSection { HasPointRoughness: true })
             messages.Add(CalcMessage.Error(MessageCodes.RoughnessSolveNeedsSingleN,
                 "Solving for Manning's n needs one roughness for the whole section. Clear the per-point n values, or solve for another unknown.", nameof(input.ManningN)));

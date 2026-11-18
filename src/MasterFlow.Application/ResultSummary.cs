@@ -39,6 +39,9 @@ public static class ResultSummary
             new(N, "Froude number", "Fr", r.Normal.Froude, "", 3),
             new(N, "Conveyance", "K", r.Conveyance, c.Conveyance, 2),
             new(N, "Section factor", "AR²ᐟ³", r.UniformFlowSectionFactor, c.Length + "⁸ᐟ³", 4),
+            new(N, "Velocity × depth", "V·y", r.Normal.Velocity * r.Normal.Depth, c.VelocityDepth, 3),
+            new(N, "Mean boundary shear", "τ = γRS", c.UnitWeight * r.Normal.HydraulicRadius * r.Slope, c.Stress, 3),
+            new(N, "Max. shear (deepest point)", "τmax = γyS", c.UnitWeight * r.Normal.Depth * r.Slope, c.Stress, 3),
 
             new(C, "Critical depth", "yc", r.Critical.Depth, c.Length, 3),
             new(C, "Critical velocity", "Vc", r.Critical.Velocity, c.Velocity, 3),
@@ -66,6 +69,17 @@ public static class ResultSummary
                 new(P, "Q / Qfull", "", r.Discharge / p.FullFlowDischarge, "", 4),
             ]);
         }
+        if (r.Input.InvertElevation is { } inv && r.Irregular is null)
+        {
+            const string L = "Elevations";
+            lines.AddRange(
+            [
+                new(L, "Invert elevation", "zinv", inv, c.Length, 3),
+                new(L, "Water surface (HGL)", "WSE", inv + r.Normal.Depth, c.Length, 3),
+                new(L, "Energy grade (EGL)", "EGL", inv + r.Normal.SpecificEnergy, c.Length, 3),
+                new(L, "Critical water surface", "WSEc", inv + r.Critical.Depth, c.Length, 3),
+            ]);
+        }
         if (r.Irregular is { } ir)
         {
             const string I = "Irregular section";
@@ -74,6 +88,7 @@ public static class ResultSummary
             lines.AddRange(
             [
                 new(I, "Water-surface elev.", "WSE", ir.WaterSurfaceElevation, c.Length, 3),
+                new(I, "Energy grade elev.", "EGL", ir.WaterSurfaceElevation + r.Normal.VelocityHead, c.Length, 3),
                 new(I, "Critical WS elev.", "WSEc", ir.CriticalWaterSurfaceElevation, c.Length, 3),
                 new(I, "Lowest ground elev.", "zmin", ir.LowestElevation, c.Length, 3),
                 new(I, "Effective n", "neff", ir.CompositeN, "", 4),
@@ -147,6 +162,7 @@ public static class ResultSummary
                 break;
         }
         if (i.Section.ChannelDepth is { } cd) list.Add(("Channel depth", $"{Num(cd)} {c.Length}"));
+        if (i.InvertElevation is { } ie && i.Section is not IrregularSection) list.Add(("Invert elevation", $"{Num(ie)} {c.Length}"));
         if (i.SolveFor != SolveFor.Roughness) list.Add((i.Section is IrregularSection { HasPointRoughness: true } ? "Manning's n (other segments)" : "Manning's n", Num(i.ManningN, 4)));
         if (i.SolveFor != SolveFor.Slope) list.Add(("Channel slope S", $"{Num(i.Slope * 100, 4)} % ({i.Slope.ToString("G6", inv)} {c.Length}/{c.Length})"));
         if (i.SolveFor != SolveFor.Discharge) list.Add(("Discharge Q", $"{Num(i.Discharge)} {c.Discharge}"));

@@ -300,3 +300,41 @@ public class IrregularViewModelTests
         finally { File.Delete(path); }
     }
 }
+
+public class FlowExtrasViewModelTests
+{
+    [Fact]
+    public void PickingReferenceN_SetsN_AndIsUndoable()
+    {
+        var c = MainViewModel.CreateWithSample().Selected!;
+        string before = c.ManningN;
+        var entry = ManningRoughnessTable.Entries.First(x => x.Description.StartsWith("Corrugated metal storm"));
+        c.RoughnessPick = entry;
+        Assert.Equal(0.024, double.Parse(c.ManningN, System.Globalization.CultureInfo.CurrentCulture), 12);
+        Assert.Null(c.RoughnessPick);
+        c.Undo();
+        Assert.Equal(before, c.ManningN);
+    }
+
+    [Fact]
+    public void InvertElevation_RoundTrips_AndBadTextBlocksResult()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.InvertElevation = "1000.25";
+        Assert.Contains(c.ResultLines, l => l.Label == "Water surface (HGL)" && Math.Abs(l.Value - (1000.25 + c.Result!.Normal.Depth)) < 1e-9);
+        string path = Path.Combine(Path.GetTempPath(), $"mf-{Guid.NewGuid():N}.mfproj");
+        try
+        {
+            vm.SaveTo(path);
+            var vm2 = new MainViewModel();
+            vm2.LoadFrom(path);
+            Assert.Equal(1000.25, double.Parse(vm2.Calculations[0].InvertElevation, System.Globalization.CultureInfo.CurrentCulture), 12);
+        }
+        finally { File.Delete(path); }
+        c.InvertElevation = "abc";
+        Assert.False(c.HasResult);
+        c.InvertElevation = "";
+        Assert.True(c.HasResult);
+    }
+}

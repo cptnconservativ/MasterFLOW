@@ -109,7 +109,7 @@ public sealed class CrossSectionView : Control
             Text(ctx, "Vertical exaggeration — not to scale", new Point(bounds.Width - padR - 190, 4), muted, 10);
     }
 
-    private static double Nice(double raw)
+    internal static double Nice(double raw)
     {
         if (!(raw > 0)) return 1;
         double mag = Math.Pow(10, Math.Floor(Math.Log10(raw)));
@@ -117,7 +117,7 @@ public sealed class CrossSectionView : Control
         return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
     }
 
-    private static void Text(DrawingContext ctx, string s, Point at, Color color, double size)
+    internal static void Text(DrawingContext ctx, string s, Point at, Color color, double size)
     {
         var ft = new FormattedText(s, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface.Default, size, new SolidColorBrush(color));
         ctx.DrawText(ft, at);

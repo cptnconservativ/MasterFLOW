@@ -26,6 +26,12 @@ public sealed record UniformFlowInput
     /// <summary>Longitudinal channel slope S (length/length).</summary>
     public double Slope { get; init; }
 
+    /// <summary>
+    /// Optional elevation of the channel invert (lowest point) at the section, for water-surface (HGL) and
+    /// energy-grade (EGL) elevations. Not used for irregular sections, whose points carry elevations.
+    /// </summary>
+    public double? InvertElevation { get; init; }
+
     /// <summary>Discharge Q in the unit system's discharge unit.</summary>
     public double Discharge { get; init; }
 

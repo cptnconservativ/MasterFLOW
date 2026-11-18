@@ -5,12 +5,14 @@ Run 2026-11-17, .NET 10.0.115, Linux x64. Command: `dotnet test MasterFlow.slnx`
 | Test project | Passed | Failed |
 |---|---|---|
 | MasterFlow.Hydraulics.Tests | 107 | 0 |
-| MasterFlow.Application.Tests | 20 | 0 |
+| MasterFlow.Application.Tests | 24 | 0 |
 | MasterFlow.IntegrationTests | 11 | 0 |
-| MasterFlow.Desktop.Tests | 21 | 0 |
-| **Total** | **159** | **0** |
+| MasterFlow.Desktop.Tests | 23 | 0 |
+| **Total** | **165** | **0** |
 
-(Updated for v0.4.0 irregular sections; v0.3.0 was 129/129, v0.2.0 91/91, the first slice 72/72.)
+(Updated for v0.5.0 outputs; v0.4.0 was 159/159, v0.3.0 129/129, v0.2.0 91/91, the first slice 72/72.)
+Shear check by hand: rectangle b = 10 ft, y = 2 ft, S = 0.01: τ = 62.4 × (20/14) × 0.01 = 0.89143 lb/ft²,
+τmax = 1.248 lb/ft²; SI rectangle b = 3 m, y = 1 m, S = 0.001: τ = 9810 × 0.6 × 0.001 = 5.886 N/m². Pass.
 
 ## Reference cases (engine vs independent calculation)
 US customary unless noted. Values from `validation/hand_calcs_output.txt`.

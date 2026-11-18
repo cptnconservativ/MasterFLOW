@@ -21,7 +21,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.4.0";
+    public const string AppVersion = "0.5.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
 

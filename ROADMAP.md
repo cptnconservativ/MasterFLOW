@@ -42,7 +42,7 @@ Acceptance: HEC-RAS normal-depth agreement within ±0.01 ft for equivalent subdi
 
 ## Phase E — Tables and comparison
 Dependencies: B (C, D for pipe/irregular rows). Risk L/L.
-- E1 Rating chart (Q vs y) — 1.5 d — ⬜
+- E1 Rating chart (Q vs y) — 1.5 d — ✅ v0.5.0
 - E2 Alternative comparison, side-by-side inputs and outputs — 3 d — ⬜
 - E3 Quick calculator panel (no project item needed) — 1.5 d — ⬜
 - E4 .xlsx export — 1 d — ⬜

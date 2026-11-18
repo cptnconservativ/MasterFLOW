@@ -3,6 +3,7 @@
         xmlns:vm="using:MasterFlow.Desktop.ViewModels"
         xmlns:c="using:MasterFlow.Desktop.Controls"
         xmlns:app="using:MasterFlow.Application"
+        xmlns:dom="using:MasterFlow.Domain"
         x:Class="MasterFlow.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="{Binding WindowTitle}"
@@ -151,7 +152,7 @@
             <Border Classes="card" Grid.Column="2">
               <StackPanel>
                 <TextBlock Classes="h2" Text="Flow" Margin="0,0,0,4"/>
-                <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+                <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                   <TextBlock Classes="label" Text="Solve for"/>
                   <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:CalculationViewModel.SolveModes}" SelectedItem="{Binding SolveFor}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
                   <TextBlock Grid.Row="1" Classes="label" Text="Manning's n"/>
@@ -169,6 +170,15 @@
                   <TextBlock Grid.Row="4" Classes="label" Text="Depth y"/>
                   <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
                     <TextBox Classes="num" Text="{Binding Depth}" IsVisible="{Binding DepthIsInput}"/><Border IsVisible="{Binding !DepthIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
+                  </StackPanel>
+                  <TextBlock Grid.Row="5" Classes="label" Text="n reference" IsVisible="{Binding RoughnessIsInput}"/>
+                  <ComboBox Grid.Row="5" Grid.Column="1" HorizontalAlignment="Stretch" IsVisible="{Binding RoughnessIsInput}" PlaceholderText="Pick a typical n (Chow 1959)…"
+                            ItemsSource="{x:Static vm:CalculationViewModel.RoughnessEntries}" SelectedItem="{Binding RoughnessPick}" MaxDropDownHeight="420">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="dom:RoughnessEntry"><StackPanel><TextBlock Text="{Binding Description}"/><TextBlock FontSize="11" Opacity="0.65"><Run Text="{Binding Category}"/><Run Text=" · normal "/><Run Text="{Binding Normal, StringFormat={}{0:0.000}}"/><Run Text=" · range "/><Run Text="{Binding Range}"/></TextBlock></StackPanel></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Grid.Row="6" Classes="label" Text="Invert elevation" IsVisible="{Binding ShowInvertElevation}"/>
+                  <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowInvertElevation}">
+                    <TextBox Classes="num" Text="{Binding InvertElevation}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
                   </StackPanel>
                 </Grid>
                 <TextBlock Text="The highlighted field is the unknown being solved for." FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,8,0,0"/>
@@ -258,6 +268,8 @@
               </StackPanel>
               <TextBlock Text="{Binding RatingStatus}" TextWrapping="Wrap" FontSize="11" Opacity="0.8"/>
             </StackPanel>
+            <c:RatingChartView DockPanel.Dock="Top" Height="190" Margin="0,8,0,0" Table="{Binding RatingTable}"
+                               LengthUnit="{Binding Selected.LengthUnit, FallbackValue=ft}" DischargeUnit="{Binding Selected.DischargeUnit, FallbackValue=cfs}"/>
             <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,*,*,*" Margin="0,8,0,2">
               <TextBlock Grid.Column="0" Text="Depth" FontWeight="SemiBold" HorizontalAlignment="Right"/>
               <TextBlock Grid.Column="1" Text="Q" FontWeight="SemiBold" HorizontalAlignment="Right"/>

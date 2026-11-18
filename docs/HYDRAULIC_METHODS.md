@@ -194,6 +194,15 @@ point elevation) and ignored, with a trace note.
   the lowest specific energy governs; others are listed (W-I-004, D-020). Velocity head and Fr use α = 1.
 - Solving for n requires a single n (error E-N-002 when points carry their own n).
 
+## 8c. Additional outputs (v0.5.0)
+- Velocity × depth V·y at normal depth (yn is the maximum depth of the section).
+- Mean boundary shear τ = γ R S and maximum shear at the deepest point τmax = γ y S (FHWA HEC-15
+  form), with γ = 62.4 lb/ft³ (U.S.) or 9810 N/m³ (SI). For channel-lining checks; τmax = γyS is the
+  usual straight-channel estimate and does not include bend or side-slope factors.
+- With an optional invert elevation z: water surface (HGL) = z + yn, energy grade (EGL) = z + yn + V²/2g
+  (α = 1), critical water surface = z + yc. Irregular sections use their own point elevations.
+- Manning's n reference list: Chow (1959) Table 5-6 ranges (selection), a starting point only.
+
 ## 9. Rating tables
 Each row is a full call to the same calculator (same validation, convergence and acceptance checks).
 Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.

@@ -21,15 +21,15 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Froude, regime | Fr (obs.) | MVP | ✅ | Regime + near-critical warning |
 | Specific energy, velocity head | Yes (obs.) | MVP | ✅ | |
 | Conveyance, section factor | Not seen | MVP | ✅ | |
-| Velocity-depth product | Yes (obs.) | Pro | ⬜ | Trivial; add with roadside-safety context |
-| Water elevation / HGL | Yes (obs.) | Pro | ⬜ | Needs invert elevation input |
+| Velocity-depth product | Yes (obs.) | Pro | ✅ | v0.5.0: V·y, plus mean boundary shear γRS and maximum shear γyS (improvement) |
+| Water elevation / HGL | Yes (obs.) | Pro | ✅ | v0.5.0: optional invert elevation gives WSE (HGL), EGL and critical WSE; irregular sections use point elevations |
 | Imperial / Metric | Yes (obs.) | MVP | ✅ | |
 | Units precision settings | Not seen | Pro | 🟡 | Fixed precision per value; user settings later |
 | Input validation / errors | Yes (obs.) | MVP | ✅ | Structured codes |
-| n reference picker | Handbook table (obs.) | Pro | ⬜ | Original table built from Chow 1959 ranges |
+| n reference picker | Handbook table (obs.) | Pro | ✅ | v0.5.0: 49 entries, min/normal/max from Chow Table 5-6, original descriptions; picking copies the normal value (undoable) |
 | Rating table depth → Q | Yes | MVP | ✅ | |
 | Rating table Q → depth | Inv | MVP | ✅ | |
-| Rating chart | Inv | Pro | ⬜ | Phase E |
+| Rating chart | Inv | Pro | ✅ | v0.5.0: in the rating tab and in reports with a rating table |
 | CSV / clipboard export | "Export calculations" | MVP | ✅ | Rating table and results |
 | Excel (.xlsx) export | Inv | Plan | ⬜ | Tab-separated clipboard already pastes into Excel |
 | Quick calculator | Not found | Plan / Diff | ⬜ | Phase E differentiator |

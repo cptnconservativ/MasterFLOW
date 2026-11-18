@@ -10,7 +10,7 @@ namespace MasterFlow.Reporting;
 /// <summary>Options that control report presentation (not calculation).</summary>
 public sealed record ReportOptions
 {
-    public string SoftwareVersion { get; init; } = "0.4.0";
+    public string SoftwareVersion { get; init; } = "0.5.0";
     public string? Watermark { get; init; }
     public string? FooterText { get; init; }
     /// <summary>Optional company logo as a data: URI (PNG/SVG). Embedded, never fetched.</summary>
@@ -160,7 +160,9 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
 
         if (options.RatingTable is { Rows.Count: > 0 } rt)
         {
-            sb.Append("<h2>Rating table</h2><table><tr>");
+            sb.Append("<h2>Rating table</h2>");
+            sb.Append(RatingChartSvg.Render(rt, c));
+            sb.Append("<table><tr>");
             foreach (var h in new[] { $"Depth ({c.Length})", $"Q ({c.Discharge})", $"A ({c.Area})", $"V ({c.Velocity})", $"T ({c.Length})", "Fr", $"yc ({c.Length})" })
                 sb.Append($"<th>{E(h)}</th>");
             sb.Append("</tr>");
@@ -226,6 +228,42 @@ public static class CrossSectionSvg
         Level(d.WaterDepth, "#1f5f8b", "yn", false);
         Level(d.CriticalDepth, "#b3261e", "yc", true);
         sb.Append($"<text x=\"{pad}\" y=\"{height - 8}\" font-size=\"9\" fill=\"#5b6876\">Not to scale (horizontal and vertical scales differ). Units: {lengthUnit}</text>");
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+}
+
+/// <summary>Rating curve (Q horizontal, depth vertical) as inline SVG.</summary>
+public static class RatingChartSvg
+{
+    public static string Render(RatingTable table, UnitConstants c, int width = 640, int height = 220)
+    {
+        var rows = table.Rows.OrderBy(r => r.Depth).ToList();
+        if (rows.Count < 2) return "";
+        var inv = CultureInfo.InvariantCulture;
+        const double padL = 48, padR = 16, padT = 12, padB = 34;
+        double w = width - padL - padR, h = height - padT - padB;
+        static double Nice(double raw)
+        {
+            if (!(raw > 0)) return 1;
+            double mag = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+            double f = raw / mag;
+            return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+        }
+        double gq = Nice(rows.Max(r => r.Discharge) / 5), gy = Nice(rows.Max(r => r.Depth) / 4);
+        double qMax = Math.Ceiling(rows.Max(r => r.Discharge) / gq) * gq, yMax = Math.Ceiling(rows.Max(r => r.Depth) / gy) * gy;
+        string X(double q) => (padL + q / qMax * w).ToString("F1", inv);
+        string Y(double y) => (padT + h - y / yMax * h).ToString("F1", inv);
+        var sb = new StringBuilder();
+        sb.Append($"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" role=\"img\" aria-label=\"Rating curve\">");
+        for (double y = 0; y <= yMax + 1e-9; y += gy)
+            sb.Append($"<line x1=\"{X(0)}\" x2=\"{X(qMax)}\" y1=\"{Y(y)}\" y2=\"{Y(y)}\" stroke=\"#e3e8ee\"/><text x=\"{padL - 6}\" y=\"{Y(y)}\" dy=\"3\" font-size=\"10\" text-anchor=\"end\" fill=\"#5b6876\">{y.ToString("0.##", inv)}</text>");
+        for (double q = 0; q <= qMax + 1e-9; q += gq)
+            sb.Append($"<line x1=\"{X(q)}\" x2=\"{X(q)}\" y1=\"{Y(0)}\" y2=\"{Y(yMax)}\" stroke=\"#e3e8ee\"/><text x=\"{X(q)}\" y=\"{(padT + h + 14).ToString("F1", inv)}\" font-size=\"10\" text-anchor=\"middle\" fill=\"#5b6876\">{q.ToString("0.##", inv)}</text>");
+        sb.Append($"<polyline fill=\"none\" stroke=\"#1f5f8b\" stroke-width=\"2\" points=\"{string.Join(" ", rows.Select(r => $"{X(r.Discharge)},{Y(r.Depth)}"))}\"/>");
+        foreach (var r in rows) sb.Append($"<circle cx=\"{X(r.Discharge)}\" cy=\"{Y(r.Depth)}\" r=\"2.5\" fill=\"#1f5f8b\"/>");
+        sb.Append($"<text x=\"{(padL + w / 2).ToString("F1", inv)}\" y=\"{height - 4}\" font-size=\"10\" text-anchor=\"middle\" fill=\"#5b6876\">Discharge Q ({c.Discharge})</text>");
+        sb.Append($"<text x=\"12\" y=\"{(padT + h / 2).ToString("F1", inv)}\" font-size=\"10\" text-anchor=\"middle\" fill=\"#5b6876\" transform=\"rotate(-90 12 {(padT + h / 2).ToString("F1", inv)})\">Depth ({c.Length})</text>");
         sb.Append("</svg>");
         return sb.ToString();
     }

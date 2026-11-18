@@ -100,6 +100,7 @@ public class ProjectAndReportTests
         Assert.Contains(r.Normal.Depth.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), html);
         Assert.Contains("<svg", html);
         Assert.Contains("Rating table", html);
+        Assert.Contains("aria-label=\"Rating curve\"", html);
         Assert.Contains("responsible engineer", html);
         Assert.Contains("2026-11-17", html);
     }

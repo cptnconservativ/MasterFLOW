@@ -32,11 +32,16 @@ public sealed record UnitConstants(
     /// g = 32.174 ft/s² (standard gravity 9.80665 m/s² converted exactly and rounded).
     /// </summary>
     public static readonly UnitConstants USCustomary =
-        new(UnitSystem.USCustomary, 1.486, 32.174, "ft", "ft²", "cfs", "ft/s", "cfs");
+        new(UnitSystem.USCustomary, 1.486, 32.174, "ft", "ft²", "cfs", "ft/s", "cfs") { UnitWeight = 62.4, Stress = "lb/ft²", VelocityDepth = "ft²/s" };
 
     /// <summary>SI constants. k = 1.0 exactly; g = 9.80665 m/s² (standard gravity).</summary>
     public static readonly UnitConstants SI =
-        new(UnitSystem.SI, 1.0, 9.80665, "m", "m²", "m³/s", "m/s", "m³/s");
+        new(UnitSystem.SI, 1.0, 9.80665, "m", "m²", "m³/s", "m/s", "m³/s") { UnitWeight = 9810, Stress = "N/m²", VelocityDepth = "m²/s" };
+
+    /// <summary>Unit weight of water γ used for shear stress: 62.4 lb/ft³ or 9810 N/m³ (FHWA HEC-15 values).</summary>
+    public double UnitWeight { get; init; }
+    public string Stress { get; init; } = "";
+    public string VelocityDepth { get; init; } = "";
 
     public static UnitConstants For(UnitSystem system) => system switch
     {

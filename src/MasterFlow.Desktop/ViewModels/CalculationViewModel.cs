@@ -20,7 +20,7 @@ public sealed record FieldState(
     string BottomWidth, string LeftSlope, string RightSlope, string ChannelDepth, string Diameter,
     bool EllipseStandard, EllipticalPipeSize EllipseSize, bool EllipseVertical, string EllipseRise, string EllipseSpan,
     string ManningN, string SlopePercent, string Discharge, string Depth,
-    string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance);
+    string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance, string InvertElevation = "");
 
 /// <summary>
 /// Editable state of one calculation. Fields are held as text so that partially typed or invalid
@@ -33,7 +33,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     [
         nameof(Title), nameof(Description), nameof(Shape), nameof(Units), nameof(SolveFor), nameof(BottomWidth), nameof(LeftSlope),
         nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(EllipseStandard), nameof(EllipseSize), nameof(EllipseVertical), nameof(EllipseRise), nameof(EllipseSpan), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
-        nameof(PointsText), nameof(RoughnessMethod),
+        nameof(PointsText), nameof(RoughnessMethod), nameof(InvertElevation),
     ];
 
     private readonly Stack<FieldState> _undo = new();
@@ -63,6 +63,21 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private string _ellipseSpan = "45";
     [ObservableProperty] private string _pointsText = "0\t5\n10\t0\n20\t0\n30\t5";
     [ObservableProperty] private CompositeRoughnessMethod _roughnessMethod = CompositeRoughnessMethod.Conveyance;
+    [ObservableProperty] private string _invertElevation = "";
+
+    public static IReadOnlyList<RoughnessEntry> RoughnessEntries { get; } = ManningRoughnessTable.Entries;
+
+    /// <summary>Picking a reference entry copies its normal n into the n field (an ordinary, undoable edit).</summary>
+    public RoughnessEntry? RoughnessPick
+    {
+        get => null;
+        set
+        {
+            if (value is null) return;
+            ManningN = value.Normal.ToString("0.0###", CultureInfo.CurrentCulture);
+            OnPropertyChanged();
+        }
+    }
     [ObservableProperty] private string _manningN = "0.013";
     [ObservableProperty] private string _slopePercent = "1";
     [ObservableProperty] private string _discharge = "100";
@@ -105,6 +120,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     public bool ShowSideSlopes => Shape is SectionShape.Trapezoidal or SectionShape.Triangular;
     public bool IsIrregular => Shape == SectionShape.Irregular;
     public bool ShowChannelDepth => !IsPipe && !IsEllipse && !IsIrregular;
+    public bool ShowInvertElevation => !IsIrregular;
     /// <summary>Pipe diameters are entered in inches (U.S.) or millimetres (SI) and converted once, here, to the base length unit.</summary>
     public string DiameterUnit => Units == UnitSystem.USCustomary ? "in" : "mm";
     private double DiameterToBase => Units == UnitSystem.USCustomary ? 1.0 / 12.0 : 1.0 / 1000.0;
@@ -175,6 +191,7 @@ public sealed partial class CalculationViewModel : ObservableObject
             }
         }
         vm.ChannelDepth = i.Section.ChannelDepth is { } cd ? N(cd) : "";
+        vm.InvertElevation = i.InvertElevation is { } ie ? N(ie) : "";
         vm.ManningN = N(i.ManningN);
         vm.SlopePercent = N(i.Slope * 100.0);
         vm.Discharge = N(i.Discharge);
@@ -228,6 +245,12 @@ public sealed partial class CalculationViewModel : ObservableObject
             _ => new TrapezoidalSection(b, zl, zr),
         };
         section = section with { ChannelDepth = cd };
+        double? invert = null;
+        if (ShowInvertElevation && !string.IsNullOrWhiteSpace(InvertElevation))
+        {
+            if (TryParse(InvertElevation, out double v)) invert = v;
+            else errs.Add(CalcMessage.Error("E-UI-001", $"Invert elevation: \"{InvertElevation}\" is not a number (leave blank for none)."));
+        }
         var input = new UniformFlowInput
         {
             Section = section,
@@ -237,6 +260,7 @@ public sealed partial class CalculationViewModel : ObservableObject
             Slope = P(SlopePercent, "Slope", SlopeIsInput) / 100.0, // displayed as percent; converted here, labelled "%"
             Discharge = P(Discharge, "Discharge", DischargeIsInput),
             Depth = P(Depth, "Flow depth", DepthIsInput),
+            InvertElevation = invert,
         };
         parseErrors = errs;
         return input;
@@ -287,7 +311,7 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ undo / redo
 
-    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod);
+    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod, InvertElevation);
 
     private void Restore(FieldState s)
     {
@@ -296,7 +320,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         (BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter) = (s.BottomWidth, s.LeftSlope, s.RightSlope, s.ChannelDepth, s.Diameter);
         (EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan) = (s.EllipseStandard, s.EllipseSize, s.EllipseVertical, s.EllipseRise, s.EllipseSpan);
         (ManningN, SlopePercent, Discharge, Depth) = (s.ManningN, s.SlopePercent, s.Discharge, s.Depth);
-        (PointsText, RoughnessMethod) = (s.PointsText, s.RoughnessMethod);
+        (PointsText, RoughnessMethod, InvertElevation) = (s.PointsText, s.RoughnessMethod, s.InvertElevation);
         _restoring = false;
         _committed = s;
         _lastEditedProp = null;
@@ -336,7 +360,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     private void AfterInputChange()
     {
         Recalculate();
-        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(DiameterUnit),
+        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit),
                      nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(CanUndo), nameof(CanRedo) })
             OnPropertyChanged(p);
     }
