@@ -890,3 +890,50 @@ public class PipeNetworkImportTests
         Assert.False(vm.IsDirty);
     }
 }
+
+public class DesignCheckViewModelTests
+{
+    [Fact]
+    public void Criteria_Check_Report_Persist_Undo()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.Lining = "Class C riprap";
+        c.PermissibleShear = "0.0001";
+        Assert.True(vm.IsDirty);
+        var k = Assert.Single(c.Checks);
+        Assert.Equal(CheckStatus.Fail, k.Status);
+        Assert.Contains(c.Messages, m => m.Code == "W-C-001");
+        var html = vm.BuildReportHtml(c);
+        Assert.Contains("Design checks", html);
+        Assert.Contains("Class C riprap", html);
+        Assert.Contains("FAILS", html);
+        Assert.True(vm.BuildReportPdf([c]).Length > 1000);
+
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        var model = back.Calculations.First(x => x.Id == c.Id);
+        Assert.Equal(0.0001, model.Criteria!.PermissibleShear);
+        Assert.Equal("Class C riprap", CalculationViewModel.FromModel(model).Lining);
+
+        c.Undo();
+        Assert.Equal("", c.PermissibleShear);
+        Assert.Empty(c.Checks);
+    }
+
+    [Fact]
+    public void UnreadableLimit_IsReported_AndSkipped()
+    {
+        var c = MainViewModel.CreateWithSample().Selected!;
+        c.MaxVelocity = "fast";
+        Assert.Empty(c.Checks);
+        Assert.True(c.HasResult);
+        Assert.Contains(c.Messages, m => m.Code == "W-C-000");
+    }
+
+    [Fact]
+    public void OlderFiles_HaveNoCriteria()
+    {
+        var json = ProjectFile.Serialize(MainViewModel.SampleProject());
+        Assert.All(ProjectFile.Deserialize(json).Calculations, x => Assert.Null(x.Criteria));
+    }
+}

@@ -205,6 +205,22 @@ point elevation) and ignored, with a trace note.
   (α = 1), critical water surface = z + yc. Irregular sections use their own point elevations.
 - Manning's n reference list: Chow (1959) Table 5-6 ranges (selection), a starting point only.
 
+## 8d. Design checks (H1)
+
+Optional limits entered by the engineer, in the calculation's units; a blank limit is not checked.
+
+| Check | Computed value | Passes when | Applies to |
+|---|---|---|---|
+| Lining shear | τd = γ·yn·S (FHWA HEC-15, 3rd ed. 2005, eq. 2.3: shear at the deepest point of a straight channel); γ = 62.4 lb/ft³ or 9810 N/m³ | τd ≤ τp; factor of safety τp/τd reported | Open channels |
+| Freeboard | Channel depth − yn (regular shapes); lower end-point elevation − normal WSE (irregular) | f ≥ f req. | Open channels; not evaluated without a channel depth |
+| Maximum / minimum velocity | Mean normal-flow velocity V | V ≤ Vmax; V ≥ Vmin | All shapes |
+
+Failures are warnings W-C-001 (shear), W-C-002 (freeboard), W-C-003 (V above max), W-C-004 (V below min);
+an unreadable limit is W-C-000 and is not checked. Not included: bend shear (HEC-15 Kb), steep-slope
+riprap methods, and permissible-shear values themselves; the engineer enters τp for the lining from the
+governing manual. Hand check (tests): rectangle b = 10 ft, y = 2 ft, S = 1 %: τd = 62.4 × 2 × 0.01 =
+1.248 lb/ft²; freeboard with channel depth 3 ft = 1.000 ft.
+
 ## 9. Rating tables
 Each row is a full call to the same calculator (same validation, convergence and acceptance checks).
 Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.

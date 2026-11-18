@@ -99,6 +99,7 @@ public static class PdfReport
     private static void Calculation(PdfPager pager, ProjectInfo project, PdfReportItem item)
     {
         var (calc, result, o) = (item.Calculation, item.Result, item.Options);
+        var checks = DesignChecks.Evaluate(calc.Criteria, result);
         var fonts = pager.Fonts;
         var c = result.Constants;
         pager.StartSection(calc.Title + " — " + project.Name, Context(o));
@@ -144,6 +145,17 @@ public static class PdfReport
                 pager.AddTablePair(ResultTable(fonts, "Critical flow (same discharge)", critical.Take(half)), ResultTable(fonts, " ", critical.Skip(half)));
             }
 
+            if (checks.Count > 0)
+            {
+                pager.Heading("Design checks");
+                if (calc.Criteria is { Lining.Length: > 0 } dc) pager.Paragraph("Lining: " + dc.Lining);
+                var rows = checks.Select(k => ((IReadOnlyList<PdfCell>)[new PdfCell(k.Name), new PdfCell(k.Symbol),
+                    new PdfCell(double.IsFinite(k.Actual) ? k.Actual.ToString("F3", Inv) : "—"), new PdfCell(k.Limit.ToString("F3", Inv)), new PdfCell(k.Unit),
+                    new PdfCell(k.StatusText), new PdfCell(k.Basis)], k.Status == CheckStatus.Fail)).ToList();
+                pager.AddTable(new TableBlock(fonts, [new(1.2f), new(1.5f), new(0.8f, true), new(0.8f, true), new(0.7f), new(0.9f), new(2.6f)],
+                    ["Check", "Criterion", "Computed", "Limit", "Unit", "Result", "Basis"], rows, PdfStyle.Body - 0.5f));
+            }
+
             var subs = ResultSummary.Subareas(result);
             if (subs.Count > 0)
             {
@@ -170,7 +182,7 @@ public static class PdfReport
         }
 
         pager.Heading("Warnings, notes and assumptions");
-        foreach (var m in result.Messages)
+        foreach (var m in result.Messages.Concat(DesignChecks.Messages(checks)))
         {
             var (bar, fill) = m.Severity switch
             {
