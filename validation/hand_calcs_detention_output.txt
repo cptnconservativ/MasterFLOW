@@ -1,0 +1,9 @@
+Storage-indication table method (dt = 1 min):
+  peak outflow 113.779 cfs at 33 min, peak WSE 105.9273 ft, storage 55158.2 ft3
+Runge-Kutta level-pool ODE (dt = 0.5 s):
+  peak outflow 113.685 cfs at 33.2 min, peak WSE 105.9264 ft
+Closed-form spot values:
+  storage at 103.0 (Simpson) = 20976.000 ft3
+  outflow at 104.0 = 30.1044 cfs (orifice 1.8301, riser 28.2743)
+  outflow at 105.5 = 75.8133 cfs (riser 53.7924, spillway 19.8556)
+  v-notch 90 deg, C 2.5, h 0.8 ft = 1.4311 cfs
