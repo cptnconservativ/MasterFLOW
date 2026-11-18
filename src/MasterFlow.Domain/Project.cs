@@ -25,8 +25,31 @@ public sealed record ChannelCalculation
     public string ItemNumber { get; init; } = "";
     /// <summary>Saved rating-table range; when set, reports and the workbook include this calculation's rating table.</summary>
     public RatingRange? Rating { get; init; }
+    /// <summary>Optional design criteria (lining shear, freeboard, velocity limits) checked against the results.</summary>
+    public DesignCriteria? Criteria { get; init; }
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
     public required UniformFlowInput Input { get; init; }
+}
+
+/// <summary>
+/// Engineer-entered design limits, in the calculation's unit system (no conversion). A null limit is not
+/// checked. MasterFlow supplies no permissible-shear values: the engineer enters the value for the lining
+/// from the governing manual (e.g. FHWA HEC-15 or the agency's drainage manual).
+/// </summary>
+public sealed record DesignCriteria
+{
+    /// <summary>Lining description shown on the report (e.g. "Riprap D50 = 6 in").</summary>
+    public string Lining { get; init; } = "";
+    /// <summary>Permissible shear τp (lb/ft² or N/m²).</summary>
+    public double? PermissibleShear { get; init; }
+    /// <summary>Required freeboard above the normal water surface (ft or m).</summary>
+    public double? RequiredFreeboard { get; init; }
+    /// <summary>Minimum velocity, e.g. self-cleansing (ft/s or m/s).</summary>
+    public double? MinVelocity { get; init; }
+    /// <summary>Maximum velocity for the lining (ft/s or m/s).</summary>
+    public double? MaxVelocity { get; init; }
+
+    public bool IsEmpty => Lining.Length == 0 && PermissibleShear is null && RequiredFreeboard is null && MinVelocity is null && MaxVelocity is null;
 }
 
 /// <summary>

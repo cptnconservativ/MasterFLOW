@@ -75,7 +75,7 @@ effort, adjusted where one item feeds another.
 
 | Rank | Item | Gain | Effort (d) | Gain/effort | Branch | Status |
 |---|---|---|---|---|---|---|
-| 1 | H1 Lining shear and freeboard check (HEC-15 permissible shear, required freeboard, pass/fail in results and report) | 4 | 1.5 | 2.7 | `feature/lining-freeboard-check` | 🟡 PR |
+| 1 | H1 Lining shear and freeboard check (HEC-15 permissible shear, required freeboard, pass/fail in results and report) | 4 | 1.5 | 2.7 | `feature/lining-freeboard-check` | ✅ PR open |
 | 2 | H2 Sensitivity table (yn, V, Fr for n ± 10/20 %, slope range) | 3 | 1 | 3.0 | `feature/sensitivity-table` | ⬜ |
 | 3 | H3 Checker sign-off (prepared/checked by and date per calculation; cleared by any later input edit) | 3 | 1 | 3.0 | `feature/checker-signoff` | ⬜ |
 | 4 | H4 **LandXML pipe networks** → one pipe calculation per pipe (shape, size, n, slope from inverts, length) and a structure list with inlet locations (northing/easting, rim, sump, inverts) | 5 | 2.5 | 2.0 | `feature/landxml-pipe-networks` | 🟡 PR |

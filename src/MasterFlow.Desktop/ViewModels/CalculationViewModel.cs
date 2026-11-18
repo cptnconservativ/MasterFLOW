@@ -20,7 +20,8 @@ public sealed record FieldState(
     string BottomWidth, string LeftSlope, string RightSlope, string ChannelDepth, string Diameter,
     bool EllipseStandard, EllipticalPipeSize EllipseSize, bool EllipseVertical, string EllipseRise, string EllipseSpan,
     string ManningN, string SlopePercent, string Discharge, string Depth,
-    string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance, string InvertElevation = "", string Folder = "");
+    string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance, string InvertElevation = "", string Folder = "",
+    string Lining = "", string PermissibleShear = "", string RequiredFreeboard = "", string MinVelocity = "", string MaxVelocity = "");
 
 /// <summary>
 /// Editable state of one calculation. Fields are held as text so that partially typed or invalid
@@ -34,6 +35,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         nameof(Title), nameof(Description), nameof(Shape), nameof(Units), nameof(SolveFor), nameof(BottomWidth), nameof(LeftSlope),
         nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(EllipseStandard), nameof(EllipseSize), nameof(EllipseVertical), nameof(EllipseRise), nameof(EllipseSpan), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
         nameof(PointsText), nameof(RoughnessMethod), nameof(InvertElevation), nameof(Folder),
+        nameof(Lining), nameof(PermissibleShear), nameof(RequiredFreeboard), nameof(MinVelocity), nameof(MaxVelocity),
     ];
 
     private readonly Stack<FieldState> _undo = new();
@@ -65,6 +67,16 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private CompositeRoughnessMethod _roughnessMethod = CompositeRoughnessMethod.Conveyance;
     [ObservableProperty] private string _invertElevation = "";
     [ObservableProperty] private string _folder = "";
+
+    // Design criteria (blank = not checked); values in the calculation's units.
+    [ObservableProperty] private string _lining = "";
+    [ObservableProperty] private string _permissibleShear = "";
+    [ObservableProperty] private string _requiredFreeboard = "";
+    [ObservableProperty] private string _minVelocity = "";
+    [ObservableProperty] private string _maxVelocity = "";
+    [ObservableProperty] private IReadOnlyList<DesignCheck> _checks = [];
+    public bool HasChecks => Checks.Count > 0;
+    partial void OnChecksChanged(IReadOnlyList<DesignCheck> value) => OnPropertyChanged(nameof(HasChecks));
 
     /// <summary>Selection for batch outputs; not an input, so it is not part of undo.</summary>
     [ObservableProperty] private bool _includeInBatch = true;
@@ -114,6 +126,9 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private bool _hasResult;
 
     public event EventHandler? Edited;
+
+    public string StressUnit => Constants.Stress;
+    public string VelocityUnit => Constants.Velocity;
 
     public bool CanConvertToIrregular => Shape is SectionShape.Rectangular or SectionShape.Trapezoidal or SectionShape.Triangular;
 
@@ -199,6 +214,14 @@ public sealed partial class CalculationViewModel : ObservableObject
         vm.IncludeInBatch = c.IncludeInBatch;
         vm.ItemNumber = c.ItemNumber;
         vm.Rating = c.Rating;
+        if (c.Criteria is { } dc)
+        {
+            vm.Lining = dc.Lining;
+            vm.PermissibleShear = dc.PermissibleShear is { } a ? N(a) : "";
+            vm.RequiredFreeboard = dc.RequiredFreeboard is { } b ? N(b) : "";
+            vm.MinVelocity = dc.MinVelocity is { } e ? N(e) : "";
+            vm.MaxVelocity = dc.MaxVelocity is { } f ? N(f) : "";
+        }
         vm.Units = i.Units;
         vm.SolveFor = i.SolveFor;
         vm.Shape = i.Section.Shape;
@@ -254,8 +277,32 @@ public sealed partial class CalculationViewModel : ObservableObject
         IncludeInBatch = IncludeInBatch,
         ItemNumber = ItemNumber.Trim(),
         Rating = Rating,
+        Criteria = BuildCriteria(out _),
         Input = BuildInput(out _),
     };
+
+    /// <summary>Design criteria from the text fields; null when all are blank. Unreadable limits are reported and not checked.</summary>
+    public DesignCriteria? BuildCriteria(out List<CalcMessage> errors)
+    {
+        var errs = new List<CalcMessage>();
+        double? L(string text, string label)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            if (TryParse(text, out double v) && v >= 0) return v;
+            errs.Add(new CalcMessage(MessageSeverity.Warning, "W-C-000", $"{label} \"{text}\" is not a number of zero or more; it is not checked."));
+            return null;
+        }
+        var d = new DesignCriteria
+        {
+            Lining = Lining.Trim(),
+            PermissibleShear = L(PermissibleShear, "Permissible shear"),
+            RequiredFreeboard = L(RequiredFreeboard, "Required freeboard"),
+            MinVelocity = L(MinVelocity, "Minimum velocity"),
+            MaxVelocity = L(MaxVelocity, "Maximum velocity"),
+        };
+        errors = errs;
+        return d.IsEmpty ? null : d;
+    }
 
     /// <summary>Trims each folder level and drops empty levels: " Ditches / /Phase 1 " → "Ditches/Phase 1".</summary>
     public static string NormaliseFolder(string? folder) =>
@@ -346,7 +393,9 @@ public sealed partial class CalculationViewModel : ObservableObject
         Result = r;
         HasResult = r.Succeeded;
         ResultLines = ResultSummary.Lines(r);
-        Messages = r.Messages.Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
+        var criteria = BuildCriteria(out var criteriaErrors);
+        Checks = DesignChecks.Evaluate(criteria, r);
+        Messages = r.Messages.Concat(criteriaErrors).Concat(DesignChecks.Messages(Checks)).Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
         Trace = r.Trace;
         CurrentSection = input.Section;
         bool geometryOk = parseErrors.Count == 0 && !r.Messages.Any(m => m.Code == MessageCodes.GeometryInvalid);
@@ -363,7 +412,7 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ undo / redo
 
-    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod, InvertElevation, Folder);
+    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod, InvertElevation, Folder, Lining, PermissibleShear, RequiredFreeboard, MinVelocity, MaxVelocity);
 
     private void Restore(FieldState s)
     {
@@ -373,6 +422,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         (EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan) = (s.EllipseStandard, s.EllipseSize, s.EllipseVertical, s.EllipseRise, s.EllipseSpan);
         (ManningN, SlopePercent, Discharge, Depth) = (s.ManningN, s.SlopePercent, s.Discharge, s.Depth);
         (PointsText, RoughnessMethod, InvertElevation, Folder) = (s.PointsText, s.RoughnessMethod, s.InvertElevation, s.Folder);
+        (Lining, PermissibleShear, RequiredFreeboard, MinVelocity, MaxVelocity) = (s.Lining, s.PermissibleShear, s.RequiredFreeboard, s.MinVelocity, s.MaxVelocity);
         _restoring = false;
         _committed = s;
         _lastEditedProp = null;
@@ -415,7 +465,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     private void AfterInputChange()
     {
         Recalculate();
-        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(CanConvertToIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit),
+        foreach (var p in new[] { nameof(Constants), nameof(StressUnit), nameof(VelocityUnit), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(CanConvertToIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit),
                      nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(ListDetail), nameof(CanUndo), nameof(CanRedo) })
             OnPropertyChanged(p);
     }

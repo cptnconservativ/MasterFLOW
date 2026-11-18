@@ -41,6 +41,13 @@ public static class ProjectWorkbook
             s.Add(["Result", "Symbol", "Value", "Unit"]);
             if (!r.Succeeded) s.Add(["No result (see messages)"]);
             foreach (var l in ResultSummary.Lines(r)) s.Add([l.Label, l.Symbol, l.Value, l.Unit]);
+            var checks = DesignChecks.Evaluate(calc.Criteria, r);
+            if (checks.Count > 0)
+            {
+                s.Add([]);
+                s.Add(["Design check", "Criterion", "Computed", "Limit", "Unit", "Result", "Basis"]);
+                foreach (var k in checks) s.Add([k.Name, k.Symbol, double.IsFinite(k.Actual) ? k.Actual : null, k.Limit, k.Unit, k.StatusText, k.Basis]);
+            }
             if (r.Input.Section is IrregularSection ir)
             {
                 s.Add([]);
@@ -55,7 +62,7 @@ public static class ProjectWorkbook
             }
             s.Add([]);
             s.Add(["Severity", "Code", "Message"]);
-            foreach (var m in r.Messages) s.Add([m.Severity.ToString(), m.Code, m.Text]);
+            foreach (var m in r.Messages.Concat(DesignChecks.Messages(checks))) s.Add([m.Severity.ToString(), m.Code, m.Text]);
             sheets.Add(new XlsxSheet(calc.Title, s, 1, [30, 14, 16, 14, 16, 14, 14, 14]));
         }
 
