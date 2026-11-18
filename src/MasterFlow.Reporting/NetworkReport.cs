@@ -81,7 +81,7 @@ public static class NetworkTables
         "Sf = (Q n / (k A R^⅔))². Above the crown A and P are the full-pipe values (pressure flow). The depth at a pipe outlet is not taken below critical depth. " +
         "Steep pipes with no subcritical solution are computed supercritical from critical depth at the entrance; a hydraulic jump is placed where the momentum functions are equal. " +
         "At each structure the HGL rises by hj (Rapid City IDCM 2012 Figs. 4-6/4-7, hj = V2²/2g − c·V1²/2g, beginning of line 1.25·V2²/2g; or Eq. 4-6-1, hs = K·Vo²/2g); " +
-        "V2 is the outlet pipe velocity, V1 the velocity of the largest inflow; the structure water level is the starting water surface for every inflow pipe.";
+        "V2 is the outlet pipe velocity, V1 the velocity of the inflow pipe carrying the largest flow (the IDCM does not name the inflow; this is the confirmed project reading, D-042); the structure water level is the starting water surface for every inflow pipe.";
 }
 
 /// <summary>Native PDF and self-contained HTML reports for a storm network HGL/EGL computation.</summary>
