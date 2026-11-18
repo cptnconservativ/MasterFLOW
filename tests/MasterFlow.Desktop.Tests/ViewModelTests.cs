@@ -816,3 +816,26 @@ public class DesignCheckViewModelTests
         Assert.All(ProjectFile.Deserialize(json).Calculations, x => Assert.Null(x.Criteria));
     }
 }
+
+public class SensitivityViewModelTests
+{
+    [Fact]
+    public void Sensitivity_ShownForSelection_IncludedInReportsAndWorkbook_WhenTicked_AndSaved()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var calc = vm.Calculations.First(c => c.HasResult);
+        vm.Selected = calc;
+        Assert.NotNull(vm.SensitivityTable);
+        Assert.True(vm.SensitivityTable!.Rows.Count >= 5);
+        Assert.DoesNotContain("Sensitivity to n and slope", vm.BuildReportHtml(calc));
+
+        calc.Sensitivity = true;
+        Assert.Contains("Sensitivity to n and slope", vm.BuildReportHtml(calc));
+        Assert.True(vm.BuildReportPdf([calc]).Length > 1000);
+        using (var zip = new System.IO.Compression.ZipArchive(new MemoryStream(vm.BuildWorkbook())))
+            Assert.Contains(zip.Entries.Where(e => e.FullName.StartsWith("xl/worksheets/")),
+                e => new StreamReader(e.Open()).ReadToEnd().Contains("Sensitivity to n and slope"));
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        Assert.True(back.Calculations.Single(c => c.Id == calc.Id).Sensitivity);
+    }
+}

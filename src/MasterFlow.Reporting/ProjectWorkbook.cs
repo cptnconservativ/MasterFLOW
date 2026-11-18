@@ -48,6 +48,19 @@ public static class ProjectWorkbook
                 s.Add(["Design check", "Criterion", "Computed", "Limit", "Unit", "Result", "Basis"]);
                 foreach (var k in checks) s.Add([k.Name, k.Symbol, double.IsFinite(k.Actual) ? k.Actual : null, k.Limit, k.Unit, k.StatusText, k.Basis]);
             }
+            if (calc.Sensitivity && r.Succeeded)
+            {
+                var st = SensitivityAnalysis.Build(r.Input);
+                var uc = UnitConstants.For(r.Input.Units);
+                s.Add([]);
+                s.Add(["Sensitivity to n and slope"]);
+                s.Add(SensitivityAnalysis.Headers(st, uc).Cast<object?>().ToArray());
+                foreach (var row in st.Rows)
+                    s.Add(row.Succeeded
+                        ? [row.Case, row.ManningN, row.Slope, row.Depth, row.Discharge, row.Velocity, row.Froude, row.Regime.ToString(), row.Parameter == "" ? null : Math.Round(row.UnknownChangePercent, 2)]
+                        : [row.Case, row.ManningN, row.Slope, null, null, null, null, "failed", row.Error]);
+                foreach (var n in st.Notes) s.Add([n]);
+            }
             if (r.Input.Section is IrregularSection ir)
             {
                 s.Add([]);

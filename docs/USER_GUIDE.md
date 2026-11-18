@@ -195,6 +195,19 @@ The rating curve is drawn above the table. Generating a table saves its range wi
 the table is rebuilt from the current inputs in that calculation's report, the batch report and its own
 sheet in the Excel workbook, whichever calculation is selected. **Remove** stops including it.
 
+## 4a. Sensitivity to n and slope
+
+The **Sensitivity** tab re-solves the selected calculation with Manning's n multiplied by 0.8, 0.9, 1.1
+and 1.2 and with the slope multiplied by 0.5, 0.75, 1.25 and 1.5, keeping the same unknown. Each row
+shows yn, Q, V, Fr, the regime and the change in the unknown from the base case. The unknown itself is
+not varied (solving for slope varies only n). Per-point n values of an irregular section are scaled
+too. A case that does not solve (for example a pipe that can no longer carry Q) is listed as failed with
+the reason. Tick **Include in report and Excel** to add the table to this calculation's report and its
+workbook sheet; the setting is saved with the calculation. **Copy** puts it on the clipboard for Excel.
+
+Check by hand: at a fixed depth Q is proportional to √S / n, so n + 10 % gives Q − 9.1 % and slope
+− 50 % gives Q − 29.3 %.
+
 ## 5. Comparing alternatives
 
 Every calculation in the list has a tick box. Ticked, solved calculations appear side by side on the

@@ -25,6 +25,8 @@ public sealed record ChannelCalculation
     public string ItemNumber { get; init; } = "";
     /// <summary>Saved rating-table range; when set, reports and the workbook include this calculation's rating table.</summary>
     public RatingRange? Rating { get; init; }
+    /// <summary>When true, reports and the workbook include a sensitivity table (n and slope varied) for this calculation.</summary>
+    public bool Sensitivity { get; init; }
     /// <summary>Optional design criteria (lining shear, freeboard, velocity limits) checked against the results.</summary>
     public DesignCriteria? Criteria { get; init; }
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;

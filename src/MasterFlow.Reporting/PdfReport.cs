@@ -206,6 +206,15 @@ public static class PdfReport
                 [$"Depth ({c.Length})", $"Q ({c.Discharge})", $"A ({c.Area})", $"V ({c.Velocity})", $"T ({c.Length})", "Fr", $"yc ({c.Length})"], rows));
         }
 
+        if (o.Sensitivity is { Rows.Count: > 0 } st)
+        {
+            pager.Heading("Sensitivity to n and slope", keepWithNext: 60);
+            var srows = st.Rows.Select(r => ((IReadOnlyList<PdfCell>)SensitivityAnalysis.Cells(r).Select(x => new PdfCell(x)).ToList(), r.Parameter == "")).ToList();
+            pager.AddTable(new TableBlock(fonts, [new PdfColumn(0.9f), new PdfColumn(0.8f, Right: true), new PdfColumn(1f, Right: true), new PdfColumn(0.8f, Right: true), new PdfColumn(0.8f, Right: true), new PdfColumn(0.8f, Right: true), new PdfColumn(0.6f, Right: true), new PdfColumn(1f), new PdfColumn(1.1f, Right: true)],
+                SensitivityAnalysis.Headers(st, c).ToList(), srows));
+            foreach (var n in st.Notes) pager.Paragraph(n, null, PdfStyle.Small, PdfStyle.Muted, spaceAfter: 0);
+        }
+
         if (!string.IsNullOrWhiteSpace(project.Notes))
         {
             pager.Heading("Notes");
