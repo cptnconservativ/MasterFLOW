@@ -8,6 +8,10 @@ namespace MasterFlow.Reporting;
 public static class ProjectWorkbook
 {
     public static IReadOnlyList<XlsxSheet> Build(ProjectInfo info, IReadOnlyList<(ChannelCalculation Calc, UniformFlowResult Result)> items, RatingTable? rating = null, string? ratingTitle = null)
+        => Build(info, items, rating is null ? [] : [(ratingTitle ?? "Rating table", rating)]);
+
+    /// <summary>Comparison sheet, one sheet per calculation, then one sheet per rating table.</summary>
+    public static IReadOnlyList<XlsxSheet> Build(ProjectInfo info, IReadOnlyList<(ChannelCalculation Calc, UniformFlowResult Result)> items, IReadOnlyList<(string Title, RatingTable Table)> ratings)
     {
         var sheets = new List<XlsxSheet>();
         var cmp = Comparison.Build(items.Select(i => (i.Calc.Title, i.Result)).ToList());
@@ -55,15 +59,16 @@ public static class ProjectWorkbook
             sheets.Add(new XlsxSheet(calc.Title, s, 1, [30, 14, 16, 14, 16, 14, 14, 14]));
         }
 
-        if (rating is { Rows.Count: > 0 })
+        foreach (var (ratingTitle, rating) in ratings)
         {
+            if (rating.Rows.Count == 0) continue;
             var c = UnitConstants.For(rating.Request.Base.Units);
             var t = new List<IReadOnlyList<object?>>
             {
                 new object?[] { $"Depth ({c.Length})", $"Q ({c.Discharge})", $"A ({c.Area})", $"V ({c.Velocity})", $"T ({c.Length})", "Fr", $"yc ({c.Length})" },
             };
             foreach (var row in rating.Rows) t.Add([row.Depth, row.Discharge, row.Area, row.Velocity, row.TopWidth, row.Froude, row.CriticalDepth]);
-            sheets.Add(new XlsxSheet(ratingTitle ?? "Rating table", t, 1, [12, 12, 12, 12, 12, 10, 12]));
+            sheets.Add(new XlsxSheet(ratingTitle, t, 1, [12, 12, 12, 12, 12, 10, 12]));
         }
         return sheets;
     }

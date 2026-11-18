@@ -107,7 +107,7 @@ public static class PdfReport
         var logo = DecodeLogo(o.LogoDataUri);
         var meta = new List<(string, string)>();
         void M(string k, string v) { if (!string.IsNullOrWhiteSpace(v)) meta.Add((k, v)); }
-        M("Client", project.Client); M("Prepared by", project.PreparedBy); M("Checked by", project.CheckedBy);
+        M("Item No.", calc.ItemNumber); M("Client", project.Client); M("Prepared by", project.PreparedBy); M("Checked by", project.CheckedBy);
         M("Date", Stamp(o)); M("Software", "MasterFlow " + o.SoftwareVersion);
         string sub = project.Name + (string.IsNullOrWhiteSpace(project.ProjectNumber) ? "" : " · No. " + project.ProjectNumber);
         pager.Add(new HeaderBlock(fonts, calc.Title, sub, meta, logo));

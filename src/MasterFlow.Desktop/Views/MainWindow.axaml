@@ -112,6 +112,7 @@
           <Button Content="Duplicate" Command="{Binding DuplicateCommand}" ToolTip.Tip="Duplicate (Ctrl+D)"/>
           <Button Content="Save as template" Command="{Binding SaveAsTemplateCommand}" ToolTip.Tip="Keep the selected calculation in My templates (per user, all projects)"/>
           <Button Content="Delete" Command="{Binding DeleteCommand}" ToolTip.Tip="Move to the recycle bin"/>
+          <Button Content="Import LandXML…" Command="{Binding ImportLandXmlCommand}" ToolTip.Tip="Cross-sections from Civil 3D or other design software (LandXML CrossSects); one calculation each"/>
           <Button Content="Sort" Command="{Binding SortCommand}" ToolTip.Tip="Sort by folder, then title (2 before 10)"/>
         </WrapPanel>
         <Expander DockPanel.Dock="Bottom" Header="{Binding RecycleBinLabel}" IsVisible="{Binding HasRecycleBin}" HorizontalAlignment="Stretch" Margin="0,6,0,0">
@@ -155,7 +156,10 @@
             <StackPanel Spacing="4">
               <TextBox AutomationProperties.Name="Calculation title" Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Watermark="Calculation title (may contain fields such as {Q:F1})" ToolTip.Tip="{x:Static vm:CalculationViewModel.TitleFieldHelp}"/>
               <TextBlock IsVisible="{Binding TitleHasFields}" FontSize="12" Opacity="0.75" TextWrapping="Wrap"><Run Text="Title preview: "/><Run Text="{Binding DisplayTitle}" FontWeight="SemiBold"/></TextBlock>
-              <TextBox AutomationProperties.Name="Folder" Text="{Binding Folder}" Watermark="Folder (optional, e.g. Ditches/Phase 1)"/>
+              <DockPanel>
+                <TextBox DockPanel.Dock="Left" AutomationProperties.Name="Item number" Text="{Binding ItemNumber}" Watermark="Item no." Width="110" Margin="0,0,6,0" ToolTip.Tip="Item number on reports; title field {item}"/>
+                <TextBox AutomationProperties.Name="Folder" Text="{Binding Folder}" Watermark="Folder (optional, e.g. Ditches/Phase 1)"/>
+              </DockPanel>
               <TextBox AutomationProperties.Name="Description" Text="{Binding Description}" Watermark="Description (appears on the report)" AcceptsReturn="True" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
@@ -211,10 +215,23 @@
                     <TextBlock Classes="label" Text="Points: station, elevation, n to next point (optional), description. Paste from Excel."/>
                     <TextBox AutomationProperties.Name="Section points: station, elevation, optional n and description, one per line" Text="{Binding PointsText}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Consolas,Menlo,monospace"
                              Height="170" TextWrapping="NoWrap" Watermark="0&#x09;5&#x0a;10&#x09;0 ..."/>
+                    <WrapPanel ItemSpacing="4" LineSpacing="4">
+                      <Button Content="Import…" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ImportPointsCommand}" ToolTip.Tip="Read points from a text or CSV file"/>
+                      <Button Content="Export…" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ExportPointsCommand}" ToolTip.Tip="Save the points as CSV"/>
+                      <Button Content="Sort" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SortPointsCommand}" ToolTip.Tip="Sort points by station (n stays with its ground)"/>
+                      <Button Content="Mirror" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ReversePointsCommand}" ToolTip.Tip="Swap left and right"/>
+                      <Button Content="Zero sta." Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ZeroStationsCommand}" ToolTip.Tip="First station becomes 0"/>
+                      <Button Content="Zero elev." Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ZeroElevationsCommand}" ToolTip.Tip="Lowest point becomes elevation 0"/>
+                      <TextBox AutomationProperties.Name="Point shift amount" Text="{Binding $parent[Window].((vm:MainViewModel)DataContext).PointShift}" Width="70" ToolTip.Tip="Shift amount"/>
+                      <Button Content="Shift sta." Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShiftStationsCommand}" ToolTip.Tip="Add the amount to every station"/>
+                      <Button Content="Shift elev." Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShiftElevationsCommand}" ToolTip.Tip="Add the amount to every elevation"/>
+                    </WrapPanel>
                   </StackPanel>
                   <TextBlock Grid.Row="5" Classes="label" Text="Channel depth" IsVisible="{Binding ShowChannelDepth}"/>
                   <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowChannelDepth}">
                     <TextBox AutomationProperties.Name="Channel depth" Classes="num" Text="{Binding ChannelDepth}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/>
+                    <Button Content="To points" Margin="8,0,0,0" IsVisible="{Binding CanConvertToIrregular}" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ConvertToIrregularCommand}"
+                            ToolTip.Tip="Replace this shape by the same section as station/elevation points (then edit, add n per segment, etc.)"/>
                   </StackPanel>
                 </Grid>
               </StackPanel>
@@ -363,7 +380,8 @@
               </Grid>
               <TextBlock Text="{Binding RatingStartLabel}" FontSize="11" Opacity="0.6"/>
               <StackPanel Orientation="Horizontal" Spacing="4">
-                <Button Content="Generate" Command="{Binding GenerateRatingTableCommand}"/>
+                <Button Content="Generate" Command="{Binding GenerateRatingTableCommand}" ToolTip.Tip="Generate and keep with this calculation (included in its report and in Excel)"/>
+                <Button Content="Remove" Command="{Binding RemoveRatingTableCommand}" ToolTip.Tip="Stop including a rating table for this calculation"/>
                 <Button Content="Copy" Command="{Binding CopyRatingTableCommand}"/>
                 <Button Content="CSV…" Command="{Binding ExportRatingTableCsvCommand}"/>
               </StackPanel>

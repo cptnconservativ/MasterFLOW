@@ -99,6 +99,29 @@ What MasterFlow does with awkward sections, and tells you about:
 
 Up to 5000 points are accepted; a 5000-point section solves in well under a second.
 
+**Point tools** (the buttons under the points box). Each is one undo step.
+
+| Button | What it does |
+|---|---|
+| Import… | Reads points from a text or CSV file (same rules as pasting; also `|` and `:` separators) |
+| Export… | Saves the points as CSV: Station, Elevation, n, Description |
+| Sort | Orders points by station; each segment's n follows the ground it was on |
+| Mirror | Swaps left and right (stations become first + last − station) |
+| Zero sta. / Zero elev. | Moves the first station to 0, or the lowest point to elevation 0 |
+| Shift sta. / Shift elev. | Adds the amount in the box (in the length unit) to every station or elevation |
+
+**To points.** On a rectangular, trapezoidal or triangular channel, **To points** replaces the shape by the
+same section as station/elevation points, so you can edit it like a surveyed section. The height is the
+channel depth if you set one, otherwise 1.5 × the larger of yn and yc, rounded up (the status bar says
+which). The normal depth does not change. Pipes cannot be converted.
+
+**Import LandXML…** (project pane) reads cross-sections exported from Civil 3D sample lines or any
+other program that writes LandXML. Each section and surface becomes a new irregular calculation, titled
+like `Ditch A 12+34.50 (EG)` in a folder named after the alignment. Values are used exactly as they are
+in the file. The unit system comes from the file; if the file does not say (or uses something other than
+feet or metres) the status bar tells you and you must check it. n is set to 0.035: set n, slope and
+discharge for each section. Anything the file contains that cannot be read is listed, not guessed.
+
 ### 2.5 Pipes
 
 - **Circular**: enter the diameter in inches (U.S.) or mm (SI). Above about 94 % full, the same Q can
@@ -110,6 +133,8 @@ Up to 5000 points are accepted; a 5000-point section solves in well under a seco
 
 ### 2.6 Title, folder and description
 
+- **Item no.** (beside Folder) is a free text item or drawing number. It shows in the list and the report
+  header, and as `{item}` in titles.
 - **Folder** organises the project list, for example `Ditches/Phase 1`. Use **Sort** to order the list by
   folder and then title (natural order: "Ditch 2" before "Ditch 10").
 - **Title fields.** A title can contain live values in braces. They update as the inputs change and
@@ -125,7 +150,7 @@ Up to 5000 points are accepted; a 5000-point section solves in well under a seco
   | `{n}` | Manning's n | `{V}` `{Fr}` `{regime}` | Velocity, Froude number, regime |
   | `{A}` `{T}` | Flow area, top width | `{b}` `{zL}` `{zR}` | Bottom width, side slopes |
   | `{D}` `{rise}` `{span}` | Pipe sizes in in/mm | `{WSE}` | Water-surface elevation |
-  | `{pctfull}` | Conduit percent full | | |
+  | `{pctfull}` | Conduit percent full | `{item}` | Item number |
 
   Add a .NET number format after a colon: `{Q:F1}`, `{yn:F3}`, `{Q:N0}`. Type `{{` or `}}` for a literal
   brace. A misspelt field shows as `{?name}` so it cannot go unnoticed; result fields show "—" when there
@@ -153,8 +178,9 @@ value from a solver that did not converge.
 
 On the **Rating table** tab choose a mode (depth → discharge, or discharge → depth), start, end and
 step, then **Generate**. Up to 5000 rows. **Copy** puts the table on the clipboard; **CSV…** saves it.
-The rating curve is drawn above the table. The table of the selected calculation is also included in
-its report and in the Excel workbook.
+The rating curve is drawn above the table. Generating a table saves its range with the calculation, so
+the table is rebuilt from the current inputs in that calculation's report, the batch report and its own
+sheet in the Excel workbook, whichever calculation is selected. **Remove** stops including it.
 
 ## 5. Comparing alternatives
 

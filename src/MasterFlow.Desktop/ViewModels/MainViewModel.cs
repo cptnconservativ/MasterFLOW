@@ -19,6 +19,8 @@ public interface IDialogService
     void OpenWithShell(string path);
     Task<bool> ConfirmDiscardAsync(string message);
     Task<string?> PickImageAsync();
+    /// <summary>Open picker for any data file (patterns such as "*.csv").</summary>
+    Task<string?> PickOpenFileAsync(string title, string description, params string[] patterns);
 }
 
 public sealed partial class MainViewModel : ObservableObject
@@ -147,6 +149,13 @@ public sealed partial class MainViewModel : ObservableObject
     {
         RatingTable = null;
         RatingStatus = "Choose a range and press Generate.";
+        if (value?.Rating is { } rr)
+        {
+            var inv = CultureInfo.CurrentCulture;
+            (RatingMode, RatingStart, RatingEnd, RatingIncrement) = (RatingTableBuilder.ModeOf(rr.Direction), rr.Start.ToString("G10", inv), rr.End.ToString("G10", inv), rr.Step.ToString("G10", inv));
+            RatingTable = value.BuildRatingTable();
+            RatingStatus = RatingTable is null ? "Saved range; the calculation has no result yet." : $"{RatingTable.Rows.Count} rows (saved with this calculation).";
+        }
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(RatingStartLabel));
         OnPropertyChanged(nameof(RatingEndLabel));
@@ -563,10 +572,22 @@ public sealed partial class MainViewModel : ObservableObject
         if (!ok) { RatingTable = null; RatingStatus = "Start, end and increment must be numbers."; return; }
         var table = RatingTableBuilder.Build(new RatingTableRequest(r.Input, RatingMode, s, e, inc));
         RatingTable = table;
+        // Keep the range with the calculation so reports and the workbook include its table.
+        if (table.Rows.Count > 0) Selected.Rating = new RatingRange(RatingTableBuilder.DirectionOf(RatingMode), s, e, inc);
         var errors = table.Messages.Where(m => m.Severity == Hydraulics.MessageSeverity.Error).ToList();
         RatingStatus = errors.Count > 0
             ? $"{table.Rows.Count} rows. {errors.Count} problem(s): {errors[0].Text}"
             : $"{table.Rows.Count} rows." + (table.Messages.Count > 0 ? " " + table.Messages[0].Text : "");
+    }
+
+    /// <summary>Stops including a rating table for the selected calculation.</summary>
+    [RelayCommand]
+    private void RemoveRatingTable()
+    {
+        if (Selected is null) return;
+        Selected.Rating = null;
+        RatingTable = null;
+        RatingStatus = "Rating table removed from this calculation.";
     }
 
     [RelayCommand]
@@ -596,7 +617,7 @@ public sealed partial class MainViewModel : ObservableObject
         FooterText = string.IsNullOrWhiteSpace(FooterText) ? null : FooterText,
         LogoDataUri = LogoDataUri,
         IncludeCalculationTrace = IncludeCalculationTrace,
-        RatingTable = ReferenceEquals(calc, Selected) ? RatingTable : null,
+        RatingTable = calc.BuildRatingTable(),
     };
 
     private ChannelCalculation ReportModel(CalculationViewModel calc) => calc.ToModel() with { Title = calc.DisplayTitle };
@@ -664,13 +685,14 @@ public sealed partial class MainViewModel : ObservableObject
         var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + ".xlsx", ".xlsx", "Excel workbook");
         if (path is null) return;
         await File.WriteAllBytesAsync(path, BuildWorkbook());
-        StatusMessage = $"Workbook saved to {path} (comparison, one sheet per calculation{(RatingTable is null ? "" : ", rating table")}).";
+        StatusMessage = $"Workbook saved to {path} (comparison, one sheet per calculation and one per saved rating table).";
     }
 
     public byte[] BuildWorkbook()
     {
         var items = BatchCalculations.Select(c => (c.ToModel() with { Title = c.DisplayTitle }, c.Result!)).ToList();
-        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, RatingTable, Selected is null ? null : SafeName(Selected.Title) + " rating"));
+        var ratings = BatchCalculations.Select(c => (Title: SafeName(c.DisplayTitle) + " rating", Table: c.BuildRatingTable())).Where(t => t.Table is not null).Select(t => (t.Title, t.Table!)).ToList();
+        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, ratings));
     }
 
     [RelayCommand]
@@ -689,6 +711,141 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Comparison not saved: {ex.Message}"; return; }
         StatusMessage = $"Comparison saved to {path}.";
         Dialogs.OpenWithShell(path);
+    }
+
+    // ------------------------------------------------------------ section points (irregular)
+
+    /// <summary>Amount for Shift stations / Shift elevations, in the calculation's length unit.</summary>
+    [ObservableProperty] private string _pointShift = "0";
+
+    private bool EditPoints(Func<IReadOnlyList<StationPoint>, IReadOnlyList<StationPoint>> op, string done)
+    {
+        if (Selected is not { IsIrregular: true } c) { StatusMessage = "Point tools apply to irregular sections."; return false; }
+        var parsed = StationPointText.Parse(c.PointsText);
+        if (parsed.Errors.Count > 0) { StatusMessage = "Fix the points first: " + parsed.Errors[0]; return false; }
+        c.BeginUndoStep();
+        c.PointsText = StationPointText.Format(op(parsed.Points));
+        c.BeginUndoStep();
+        StatusMessage = done;
+        return true;
+    }
+
+    private bool TryShift(out double d)
+    {
+        if (CalculationViewModel.TryParse(PointShift, out d)) return true;
+        StatusMessage = "Enter the shift amount as a number.";
+        return false;
+    }
+
+    [RelayCommand] private void ShiftStations() { if (TryShift(out var d)) EditPoints(p => SectionPoints.ShiftStations(p, d), $"Stations shifted by {d.ToString("G10", CultureInfo.CurrentCulture)}."); }
+    [RelayCommand] private void ShiftElevations() { if (TryShift(out var d)) EditPoints(p => SectionPoints.ShiftElevations(p, d), $"Elevations shifted by {d.ToString("G10", CultureInfo.CurrentCulture)}."); }
+    [RelayCommand] private void ZeroStations() => EditPoints(SectionPoints.ZeroStations, "First station set to 0.");
+    [RelayCommand] private void ZeroElevations() => EditPoints(SectionPoints.ZeroElevations, "Lowest point set to elevation 0.");
+    [RelayCommand] private void SortPoints() => EditPoints(SectionPoints.SortByStation, "Points sorted by station.");
+    [RelayCommand] private void ReversePoints() => EditPoints(SectionPoints.Reverse, "Section mirrored (left and right swapped).");
+
+    /// <summary>Replaces a rectangular, trapezoidal or triangular section by the equivalent station/elevation points.</summary>
+    [RelayCommand]
+    private void ConvertToIrregular()
+    {
+        if (Selected is null) return;
+        var section = Selected.ToModel().Input.Section;
+        if (!SectionPoints.CanConvertToIrregular(section)) { StatusMessage = "Only rectangular, trapezoidal and triangular channels can be converted to points."; return; }
+        double height = section.ChannelDepth is double cd && cd > 0 && double.IsFinite(cd) ? cd : DefaultHeight(Selected.Result);
+        var pts = SectionPoints.FromRegular(section, height);
+        Selected.BeginUndoStep();
+        Selected.PointsText = StationPointText.Format(pts);
+        Selected.Shape = SectionShape.Irregular;
+        Selected.BeginUndoStep();
+        StatusMessage = $"Converted to {pts.Count} points, {height.ToString("G6", CultureInfo.CurrentCulture)} {Selected.LengthUnit} high" +
+                        (section.ChannelDepth is null ? " (no channel depth was set, so the height is 1.5 × the larger of yn and yc, rounded up)." : " (the channel depth).");
+    }
+
+    private static double DefaultHeight(Hydraulics.UniformFlowResult? r)
+    {
+        double y = r is { Succeeded: true } ? Math.Max(r.Normal.Depth, r.Critical.Depth) : double.NaN;
+        if (!(y > 0) || !double.IsFinite(y)) return 1;
+        double h = 1.5 * y, mag = Math.Pow(10, Math.Floor(Math.Log10(h)) - 1);
+        return Math.Ceiling(h / mag) * mag;
+    }
+
+    /// <summary>Reads points from a text/CSV file (same rules as pasting) into the selected irregular section.</summary>
+    [RelayCommand]
+    private async Task ImportPoints()
+    {
+        if (Dialogs is null || Selected is not { IsIrregular: true }) { StatusMessage = "Select an irregular section to import points into (or use Import LandXML…)."; return; }
+        var path = await Dialogs.PickOpenFileAsync("Import section points", "Text or CSV", "*.csv", "*.txt", "*.tsv", "*.dat");
+        if (path is null) return;
+        string text;
+        try { text = await File.ReadAllTextAsync(path); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Could not read {path}: {ex.Message}"; return; }
+        var parsed = StationPointText.Parse(text);
+        if (parsed.Errors.Count > 0) { StatusMessage = $"Not imported: {parsed.Errors.Count} problem(s). {parsed.Errors[0]}"; return; }
+        Selected.BeginUndoStep();
+        Selected.PointsText = StationPointText.Format(parsed.Points);
+        Selected.BeginUndoStep();
+        StatusMessage = $"Imported {parsed.Points.Count} points from {Path.GetFileName(path)}.";
+    }
+
+    [RelayCommand]
+    private async Task ExportPoints()
+    {
+        if (Dialogs is null || Selected is not { IsIrregular: true } c) return;
+        var parsed = StationPointText.Parse(c.PointsText);
+        if (parsed.Errors.Count > 0) { StatusMessage = "Fix the points first: " + parsed.Errors[0]; return; }
+        var path = await Dialogs.PickSaveAsync(SafeName(c.DisplayTitle) + " points.csv", ".csv", "CSV file");
+        if (path is null) return;
+        try { await File.WriteAllTextAsync(path, StationPointText.ToCsv(parsed.Points)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Points not saved: {ex.Message}"; return; }
+        StatusMessage = $"{parsed.Points.Count} points saved to {path}.";
+    }
+
+    /// <summary>
+    /// Imports every cross-section in a LandXML file (e.g. Civil 3D sample lines) as a new irregular
+    /// calculation, in a folder named after the alignment. Values are not converted.
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportLandXml()
+    {
+        if (Dialogs is null) return;
+        var path = await Dialogs.PickOpenFileAsync("Import cross-sections from LandXML", "LandXML", "*.xml", "*.landxml");
+        if (path is null) return;
+        LandXmlReadResult read;
+        try { await using var fs = File.OpenRead(path); read = LandXmlCrossSections.Read(fs); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Could not read {path}: {ex.Message}"; return; }
+        StatusMessage = ImportCrossSections(read, Path.GetFileName(path));
+    }
+
+    /// <summary>Adds one calculation per cross-section; returns the status text. Public for tests.</summary>
+    public string ImportCrossSections(LandXmlReadResult read, string fileName)
+    {
+        if (read.Sections.Count == 0)
+            return "No cross-sections imported. " + (read.Problems.Count > 0 ? read.Problems[0] : "");
+        var units = read.Units ?? Selected?.Units ?? UnitSystem.USCustomary;
+        CalculationViewModel? first = null;
+        foreach (var x in read.Sections)
+        {
+            var c = new CalculationViewModel
+            {
+                Title = $"{(x.Alignment.Length > 0 ? x.Alignment + " " : "")}{LandXmlCrossSections.StationText(x.Station)}{(x.Surface.Length > 0 ? " (" + x.Surface + ")" : "")}",
+                Folder = x.Alignment,
+                Description = $"Cross-section imported from {fileName}: alignment \"{x.Alignment}\", station {LandXmlCrossSections.StationText(x.Station)}, surface \"{x.Surface}\". Set n, slope and discharge.",
+                Units = units,
+                ManningN = "0.035",
+                PointsText = StationPointText.Format(x.Points),
+                Shape = SectionShape.Irregular,
+            };
+            c.ClearHistory();
+            Add(c);
+            first ??= c;
+        }
+        Selected = first;
+        MarkDirty();
+        RefreshComparison();
+        string unitNote = read.Units is null ? $" Unit system not stated in the file; set to {(units == UnitSystem.SI ? "SI" : "U.S. customary")}, please check." : "";
+        string probNote = read.Problems.Count > 0 && read.Units is not null ? $" {read.Problems.Count} problem(s), first: {read.Problems[0]}" :
+                          read.Problems.Count > 1 ? $" {read.Problems.Count - 1} other problem(s), first: {read.Problems.First(p => !p.StartsWith("The file does not state") && !p.StartsWith("Linear unit"))}" : "";
+        return $"Imported {read.Sections.Count} cross-section(s) from {fileName}.{unitNote}{probNote}";
     }
 
     private static string SafeName(string s)

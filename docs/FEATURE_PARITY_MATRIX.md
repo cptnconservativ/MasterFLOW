@@ -12,6 +12,8 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Triangular (asymmetric) | Wizard → points (obs.) | MVP / Diff | ✅ | |
 | Parabolic | Not seen | Plan | ⬜ | Justify with demand |
 | Irregular station/elevation | Yes (obs., site) | MVP | ✅ | v0.4.0: text-grid editor with Excel paste, stationing notation, vertical walls, pools, end-wall extension with warning |
+| Point grid tools: import/export, shift, zero, sort, mirror | Yes (obs. point-grid toolbar) | Pro | ✅ v0.11.0 | Import text/CSV (tab, comma, semicolon, space, bar or colon), export CSV, shift stations or elevations, zero first station or lowest point, sort by station (n moves with the ground), mirror left/right; each is one undo step |
+| Regular → irregular wizard | Yes (obs. wizard creates points) | Pro | ✅ v0.11.0 | "To points" converts a rectangle, trapezoid or triangle to points at the channel depth (or 1.5 × max(yn, yc) rounded up); yn unchanged (tested to 1e-6) |
 | Per-point n / composite n | Yes; Constant or Flow Conveyance methods (obs.) | Pro | ✅ | v0.4.0: per-segment n; conveyance subdivision (HEC-RAS) or equal velocity (Horton–Einstein); subarea flow table and α in results and report |
 | Circular pipe partial flow | Yes (obs., site) | MVP | ✅ | Diameter in in/mm; true-scale plot |
 | Dual normal depth / max discharge in pipes | Yes (obs.) | MVP | ✅ | Plus error when Q > Qmax and near-crown warning |
@@ -28,6 +30,7 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Input validation / errors | Yes (obs.) | MVP | ✅ | Structured codes |
 | n reference picker | Handbook table (obs.) | Pro | ✅ | v0.5.0: 49 entries, min/normal/max from Chow Table 5-6, original descriptions; picking copies the normal value (undoable) |
 | Rating table depth → Q | Yes | MVP | ✅ | |
+| Rating tables saved as project items | Yes (Store: "rating tables"; obs. saved per item) | Pro | ✅ v0.11.0 | The generated range is saved with its calculation and reproduced in its report, batch PDF and its own Excel sheet |
 | Rating table Q → depth | Inv | MVP | ✅ | |
 | Rating chart | Inv | Pro | ✅ | v0.5.0: in the rating tab and in reports with a rating table |
 | CSV / clipboard export | "Export calculations" | MVP | ✅ | Rating table and results |
@@ -38,6 +41,7 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Duplicate / delete / recycle bin | Yes (obs.) | MVP | ✅ | v0.7.0: delete moves to a recycle bin saved with the project; restore any item; empty with confirmation |
 | Sort names / re-sort | Yes (obs.) | Plan | ✅ | v0.7.0: by folder then title, natural number order |
 | Title expressions | Yes (obs.) | Pro | ✅ v0.8.0 | {field:format} syntax, live preview, unknown fields shown as {?name} |
+| Item number | Yes (obs. field) | Pro | ✅ v0.11.0 | Per calculation; shown in the list, report header and as `{item}` in titles |
 | Templates (factory street sections) | Yes (obs.) | Pro | ✅ v0.8.0 | 10 original generic templates (streets, ditches, flume, pipes, natural channel); user templates per user |
 | Save / open / versioned file | Yes | MVP | ✅ | `.mfproj` schema 1 |
 | Recent files | Yes (obs.) | Pro | ✅ | v0.7.0: last 10, per user, missing files dropped |
@@ -50,7 +54,7 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Logo, footer | Inv | Pro | ✅ | v0.7.0: logo picker (PNG/JPEG/GIF/SVG ≤ 1 MB embedded), watermark, footer and trace option saved with the project |
 | Batch printing | Yes | Pro | ✅ | v0.9.1: one PDF of every ticked calculation; tick also drives comparison and Excel |
 | Calculation trace on report | No | Diff | ✅ | Auditability |
-| Civil 3D integration | Video title only | Inv | ⬜ | Investigate data exchange format |
+| Civil 3D integration | Video title only | Pro | ✅ v0.11.0 | LandXML cross-section import (the open format Civil 3D exports from sample lines): one irregular calculation per section and surface, folder = alignment, values in the file's units, unstated units flagged. *Inference:* how Flow Calc integrates with Civil 3D is not known (only the video title is public); LandXML is our choice, not a copy of their method |
 | Licence activation | Yes | Out | — | Not needed |
 | Telemetry | Licence checks only | Out | — | None |
 | Light / dark theme | Dark-only (obs.) | Plan | ✅ | Follows Windows setting |

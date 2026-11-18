@@ -6,7 +6,7 @@ namespace MasterFlow.Application;
 /// <summary>
 /// Reads and writes station/elevation points as plain text, one point per line:
 ///   station, elevation [, n [, description]]
-/// The delimiter is detected per line: tab (Excel paste), then semicolon, then comma, then spaces.
+/// The delimiter is detected per line: tab (Excel paste), then semicolon, vertical bar, colon, comma, then spaces.
 /// Stations may use surveyor notation "1+25.50" (= 125.50). A first line that is not numeric is
 /// treated as a header and skipped. Blank lines and lines starting with '#' are ignored.
 /// Nothing is guessed: any line that cannot be read is reported with its line number.
@@ -60,10 +60,22 @@ public static class StationPointText
         }));
     }
 
+    /// <summary>Comma-separated text with a header, invariant culture (for files other programs read).</summary>
+    public static string ToCsv(IEnumerable<StationPoint> points)
+    {
+        var inv = CultureInfo.InvariantCulture;
+        static string Q(string s) => s.IndexOfAny([',', '"', '\n', '\r']) >= 0 ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+        var lines = new List<string> { "Station,Elevation,n,Description" };
+        lines.AddRange(points.Select(p => string.Join(",", p.Station.ToString("R", inv), p.Elevation.ToString("R", inv), p.ManningN?.ToString("R", inv) ?? "", Q(p.Description ?? ""))));
+        return string.Join(Environment.NewLine, lines) + Environment.NewLine;
+    }
+
     private static string[] Split(string line)
     {
         if (line.Contains('\t')) return line.Split('\t').Select(c => c.Trim()).ToArray();
         if (line.Contains(';')) return line.Split(';').Select(c => c.Trim()).ToArray();
+        if (line.Contains('|')) return line.Split('|').Select(c => c.Trim()).ToArray();
+        if (line.Contains(':')) return line.Split(':').Select(c => c.Trim()).ToArray();
         // A comma is a delimiter unless the culture uses it as the decimal separator and no spaces separate values.
         if (line.Contains(',') && (CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator != "," || line.Contains(", ")))
             return line.Split(',').Select(c => c.Trim()).ToArray();

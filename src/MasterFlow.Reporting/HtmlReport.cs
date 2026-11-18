@@ -77,6 +77,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
         sb.Append("<header><div>");
         sb.Append($"<h1>{E(calc.Title)}</h1><div class=\"sub\">{E(project.Name)}{(string.IsNullOrWhiteSpace(project.ProjectNumber) ? "" : " · No. " + E(project.ProjectNumber))}</div>");
         sb.Append("<table class=\"meta\">");
+        Meta(sb, "Item No.", calc.ItemNumber);
         Meta(sb, "Client", project.Client);
         Meta(sb, "Prepared by", project.PreparedBy);
         Meta(sb, "Checked by", project.CheckedBy);

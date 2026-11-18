@@ -1,3 +1,4 @@
+using MasterFlow.Application;
 using MasterFlow.Desktop.ViewModels;
 using MasterFlow.Domain;
 using MasterFlow.Hydraulics;
@@ -634,5 +635,137 @@ public class AccessibilityTests
             .Select(e => e.ToString().Split('\n')[0])
             .ToList();
         Assert.Empty(unnamed);
+    }
+}
+
+public class FlowCalcGapTests
+{
+    private static LandXmlReadResult TwoSections(UnitSystem? units) => new(
+        [
+            new LandXmlCrossSection("Ditch A", 100, "EG", [new(-10, 5), new(-2, 0), new(2, 0), new(10, 5)]),
+            new LandXmlCrossSection("Ditch A", 200, "EG", [new(-8, 4), new(0, 0), new(8, 4)]),
+        ], units, units is null ? null : "foot", units is null ? ["The file does not state its linear unit; choose the unit system yourself."] : []);
+
+    [Fact]
+    public void RatingRange_IsSaved_AndUsedForNonSelectedReports_AndWorkbook()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var first = vm.Selected!;
+        vm.RatingMode = RatingTableMode.DischargeFromDepth;
+        (vm.RatingStart, vm.RatingEnd, vm.RatingIncrement) = ("1", "3", "0.5");
+        vm.GenerateRatingTableCommand.Execute(null);
+        Assert.Equal(new RatingRange(RatingDirection.DischargeFromDepth, 1, 3, 0.5), first.Rating);
+        Assert.True(vm.IsDirty);
+
+        vm.AddCalculationCommand.Execute(null);
+        Assert.NotSame(first, vm.Selected);
+        Assert.Contains("Rating table", vm.BuildReportHtml(first));
+        Assert.Equal(5, first.BuildRatingTable()!.Rows.Count);
+
+        // The range survives save and reload, and comes back in the rating panel on selection.
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        Assert.Contains(back.Calculations, c => c.Rating == new RatingRange(RatingDirection.DischargeFromDepth, 1, 3, 0.5));
+        vm.RatingStart = "9";
+        vm.Selected = first;
+        Assert.Equal("1", vm.RatingStart);
+        Assert.Equal(5, vm.RatingTable!.Rows.Count);
+
+        vm.Selected = first;
+        vm.RemoveRatingTableCommand.Execute(null);
+        Assert.Null(first.Rating);
+        Assert.DoesNotContain("Rating table", vm.BuildReportHtml(first));
+    }
+
+    [Fact]
+    public void Workbook_HasARatingSheet_PerCalculationWithARange()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        (vm.RatingStart, vm.RatingEnd, vm.RatingIncrement) = ("1", "2", "0.5");
+        vm.GenerateRatingTableCommand.Execute(null);
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(vm.BuildWorkbook()));
+        var wb = new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open()).ReadToEnd();
+        int sheets = System.Text.RegularExpressions.Regex.Matches(wb, "<sheet ").Count;
+        Assert.Equal(1 + vm.BatchCalculations.Count() + 1, sheets);
+    }
+
+    [Fact]
+    public void ItemNumber_ShowsInTitleField_ListAndReport_AndPersists()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.Title = "Culvert {item}";
+        c.ItemNumber = " C-12 ";
+        Assert.Equal("Culvert C-12", c.DisplayTitle);
+        Assert.StartsWith("No. C-12 · ", c.ListDetail);
+        Assert.True(vm.IsDirty);
+        Assert.Contains("C-12", vm.BuildReportHtml(c));
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        Assert.Equal("C-12", back.Calculations.First(x => x.Title == "Culvert {item}").ItemNumber);
+    }
+
+    [Fact]
+    public void ConvertToIrregular_KeepsNormalDepth()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.Shape = SectionShape.Trapezoidal;
+        (c.BottomWidth, c.LeftSlope, c.RightSlope, c.ChannelDepth) = ("20", "2", "2", "");
+        double yn = c.Result!.Normal.Depth;
+        vm.ConvertToIrregularCommand.Execute(null);
+        Assert.Equal(SectionShape.Irregular, c.Shape);
+        Assert.True(c.HasResult);
+        Assert.Equal(yn, c.Result!.Normal.Depth, 6);
+        c.Undo(); c.Undo();
+        Assert.Equal(SectionShape.Trapezoidal, c.Shape);
+    }
+
+    [Fact]
+    public void PointCommands_EditTheGrid_AndAreUndoable()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.Shape = SectionShape.Irregular;
+        c.PointsText = "10 5\n12 0\n16 0\n20 6";
+        double yn = c.Result!.Normal.Depth;
+        vm.ZeroStationsCommand.Execute(null);
+        Assert.StartsWith("0", c.PointsText.TrimStart());
+        vm.PointShift = "100";
+        vm.ShiftElevationsCommand.Execute(null);
+        Assert.Contains("105", c.PointsText);
+        vm.ReversePointsCommand.Execute(null);
+        Assert.Equal(yn, c.Result!.Normal.Depth, 9);
+        c.Undo(); c.Undo(); c.Undo();
+        Assert.Equal(10, StationPointText.Parse(c.PointsText).Points[0].Station);
+        vm.PointShift = "abc";
+        var before = c.PointsText;
+        vm.ShiftStationsCommand.Execute(null);
+        Assert.Equal(before, c.PointsText);
+    }
+
+    [Fact]
+    public void ImportCrossSections_AddsOneSolvedIrregularCalculationEach_InAlignmentFolder()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        int n0 = vm.Calculations.Count;
+        var status = vm.ImportCrossSections(TwoSections(UnitSystem.USCustomary), "ditch.xml");
+        Assert.StartsWith("Imported 2 cross-section(s) from ditch.xml.", status);
+        Assert.Equal(n0 + 2, vm.Calculations.Count);
+        var added = vm.Calculations.Where(c => c.Folder == "Ditch A").ToList();
+        Assert.Equal(2, added.Count);
+        Assert.All(added, c => { Assert.Equal(SectionShape.Irregular, c.Shape); Assert.False(c.CanUndo); });
+        Assert.Contains(added, c => c.Title == "Ditch A 1+00.00 (EG)");
+        Assert.True(vm.IsDirty);
+    }
+
+    [Fact]
+    public void ImportCrossSections_WithoutUnits_SaysSo_AndEmptyImportChangesNothing()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        Assert.Contains("not stated", vm.ImportCrossSections(TwoSections(null), "x.xml"));
+        var vm2 = MainViewModel.CreateWithSample();
+        int n = vm2.Calculations.Count;
+        Assert.StartsWith("No cross-sections imported.", vm2.ImportCrossSections(new([], null, null, ["Not a LandXML file."]), "x.xml"));
+        Assert.Equal(n, vm2.Calculations.Count);
+        Assert.False(vm2.IsDirty);
     }
 }

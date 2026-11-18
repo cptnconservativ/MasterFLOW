@@ -13,6 +13,7 @@ Reviewed 2026-11-17 unless noted.
 | S6 | https://apps.microsoft.com/detail/9nnz8j1ccr08 | Official listing on third-party store (Microsoft Store) | 2026-11-17 | Body requires JavaScript; only metadata readable |
 | S7 | https://www.youtube.com/@FlowCalc365 | Official channel on third-party platform | 2026-11-17 | Video list not retrievable (stub page; RSS blocked by robots.txt) |
 | S8 | Installed Flow Calc app on the user's Windows PC (displays "Flow Calc 2026", version 26.8.23.0, "Licensed") | Direct observation through the normal UI | 2026-11-17 | Built-in Example Project inspected; see FLOWCALC_UI_INVENTORY.md |
+| S9 | https://storeedgefd.dsx.mp.microsoft.com/v9.0/products/9NNZ8J1CCR08?market=US&locale=en-us&deviceFamily=Windows.Desktop | Official Microsoft Store product record (public JSON) | 2026-11-18 | Release and update dates, description feature list, subscription terms, system requirements |
 | R1 | V. T. Chow, *Open-Channel Hydraulics*, McGraw-Hill, 1959 | Textbook | from knowledge | Geometric elements (Table 2-1), Manning n ranges (Table 5-6), Example 6-2 |
 | R2 | R. P. Brent, *Algorithms for Minimization without Derivatives*, 1973 | Numerical methods | from knowledge | Root-finding algorithm |
 | R3 | USACE EM 1110-2-1601, *Hydraulic Design of Flood Control Channels* | Federal guidance | from knowledge | Near-critical Froude range 0.86–1.13 |

@@ -45,6 +45,17 @@ public partial class MainWindow : Window, IDialogService
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> PickOpenFileAsync(string title, string description, params string[] patterns)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType(description) { Patterns = patterns }, new FilePickerFileType("All files") { Patterns = ["*"] }],
+        });
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
     public async Task<string?> PickOpenProjectAsync()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions

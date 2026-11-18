@@ -38,6 +38,21 @@ calculations · expression builder · Windows 10/11 compatible.
 | Published limitations | Steady uniform flow only; EULA disclaims accuracy | — |
 | Civil 3D | Video "AutoCAD Civil 3D Integration with Flow Calc" | Not inspected |
 
+## Changes over time (reviewed 2026-11-18)
+- **Observation:** no public changelog, release notes or version history exist on the vendor site (S1) or the
+  Store listing (S9). The YouTube channel's video list could not be read (S7).
+- **Observation (S9, Store product record):** first released 2026-06-29, last updated 2026-08-30; the
+  installed copy reports 26.8.23.0 (S8), consistent with a late-August 2026 build. Package about 88 MB,
+  Windows 10 build 17763 or later, x64.
+- **Observation (S9):** the Store description lists rating tables, regular and irregular channels,
+  circular and elliptical pipes, professional reports, wizards and templates, multi-threaded performance,
+  batch printing, watermarks, an expression builder and native PDF export. Every one of these is in
+  MasterFlow v0.11.0 (see the parity matrix).
+- **Contradiction:** the Store lists 1-, 2- and 3-year subscription terms; the vendor site lists 1 month or
+  1 year. Not material to MasterFlow.
+- **Inference:** with one public update in about two months, "changes" can only be judged against the
+  installed 26.8.23 build, which is what the UI inventory and the gap features in v0.11.0 are based on.
+
 ## Contradictions to note
 - The home page says distribution is exclusively through the Microsoft Store, but licences are sold on
   the vendor site; the Store listing says an account is required while the trial says "no registration".

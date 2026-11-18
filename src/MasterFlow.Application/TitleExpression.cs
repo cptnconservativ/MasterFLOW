@@ -20,7 +20,7 @@ public static class TitleExpression
     [
         new("shape", "Section shape name"),
         new("units", "Unit system (U.S. or SI)"),
-        new("folder", "Folder path"),
+        new("folder", "Folder path"), new("item", "Item number"),
         new("Q", "Discharge"), new("Qunit", "Discharge unit"),
         new("yn", "Normal depth"), new("yc", "Critical depth"), new("unit", "Length unit"),
         new("S", "Slope in %"), new("n", "Manning's n"),
@@ -34,7 +34,7 @@ public static class TitleExpression
 
     public static bool HasFields(string? title) => title is not null && title.Contains('{');
 
-    public static string Evaluate(string? template, UniformFlowResult? result, string folder = "", CultureInfo? culture = null)
+    public static string Evaluate(string? template, UniformFlowResult? result, string folder = "", CultureInfo? culture = null, string item = "")
     {
         if (string.IsNullOrEmpty(template) || !template.Contains('{') && !template.Contains('}')) return template ?? "";
         culture ??= CultureInfo.CurrentCulture;
@@ -51,7 +51,7 @@ public static class TitleExpression
             int colon = token.IndexOf(':');
             string name = (colon < 0 ? token : token[..colon]).Trim();
             string? format = colon < 0 ? null : token[(colon + 1)..].Trim();
-            sb.Append(Value(name, format, result, folder, culture));
+            sb.Append(name == "item" ? item : Value(name, format, result, folder, culture));
             i = end;
         }
         return sb.ToString();

@@ -21,6 +21,10 @@ public sealed record ChannelCalculation
     public string Folder { get; init; } = "";
     /// <summary>Included in batch reports, the comparison and the Excel workbook (additive; older files load as true).</summary>
     public bool IncludeInBatch { get; init; } = true;
+    /// <summary>Optional item number shown on reports (e.g. a drainage-structure or sheet reference).</summary>
+    public string ItemNumber { get; init; } = "";
+    /// <summary>Saved rating-table range; when set, reports and the workbook include this calculation's rating table.</summary>
+    public RatingRange? Rating { get; init; }
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
     public required UniformFlowInput Input { get; init; }
 }
@@ -49,3 +53,15 @@ public sealed record ReportSettings
     public string? LogoDataUri { get; init; }
     public bool IncludeCalculationTrace { get; init; } = true;
 }
+
+/// <summary>Direction of a rating table.</summary>
+public enum RatingDirection
+{
+    /// <summary>Rows at fixed depths; discharge computed.</summary>
+    DischargeFromDepth,
+    /// <summary>Rows at fixed discharges; normal depth solved.</summary>
+    DepthFromDischarge,
+}
+
+/// <summary>A saved rating-table range (values in the calculation's units).</summary>
+public sealed record RatingRange(RatingDirection Direction, double Start, double End, double Step);

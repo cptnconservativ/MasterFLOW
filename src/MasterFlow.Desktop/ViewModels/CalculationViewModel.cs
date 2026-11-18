@@ -68,6 +68,22 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     /// <summary>Selection for batch outputs; not an input, so it is not part of undo.</summary>
     [ObservableProperty] private bool _includeInBatch = true;
+
+    /// <summary>Item number (reports, {item} title field); not an undoable input.</summary>
+    [ObservableProperty] private string _itemNumber = "";
+    partial void OnItemNumberChanged(string value)
+    {
+        if (_restoring) return;
+        OnPropertyChanged(nameof(DisplayTitle)); OnPropertyChanged(nameof(ListLabel)); OnPropertyChanged(nameof(ListDetail));
+        Edited?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Saved rating-table range; set when a rating table is generated for this calculation.</summary>
+    [ObservableProperty] private RatingRange? _rating;
+    partial void OnRatingChanged(RatingRange? value) { if (!_restoring) Edited?.Invoke(this, EventArgs.Empty); }
+
+    /// <summary>This calculation's rating table from its saved range and current inputs (null when none is saved or there is no result).</summary>
+    public RatingTable? BuildRatingTable() => Rating is { } rr && Result is { Succeeded: true } r ? RatingTableBuilder.Build(r.Input, rr) : null;
     partial void OnIncludeInBatchChanged(bool value) { if (!_restoring) Edited?.Invoke(this, EventArgs.Empty); }
 
     public static IReadOnlyList<RoughnessEntry> RoughnessEntries { get; } = ManningRoughnessTable.Entries;
@@ -98,6 +114,16 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private bool _hasResult;
 
     public event EventHandler? Edited;
+
+    public bool CanConvertToIrregular => Shape is SectionShape.Rectangular or SectionShape.Trapezoidal or SectionShape.Triangular;
+
+    /// <summary>Makes the current inputs the starting point: no undo history (used after building a calculation in code).</summary>
+    public void ClearHistory()
+    {
+        _undo.Clear(); _redo.Clear(); _lastEditedProp = null;
+        _committed = Capture();
+        OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanRedo));
+    }
 
     public CalculationViewModel()
     {
@@ -136,11 +162,11 @@ public sealed partial class CalculationViewModel : ObservableObject
     public string ListLabel => string.IsNullOrWhiteSpace(Title) ? "(untitled)" : DisplayTitle;
 
     /// <summary>The title with any {field} expressions replaced by live values (see <see cref="TitleExpression"/>).</summary>
-    public string DisplayTitle => TitleExpression.Evaluate(Title, Result, NormaliseFolder(Folder));
+    public string DisplayTitle => TitleExpression.Evaluate(Title, Result, NormaliseFolder(Folder), item: ItemNumber.Trim());
     public bool TitleHasFields => TitleExpression.HasFields(Title);
     public static string TitleFieldHelp { get; } = "Title fields: " + string.Join(", ", TitleExpression.Fields.Select(f => "{" + f.Name + "}")) +
         ". Add a format after a colon, e.g. {Q:F1}. Use {{ and }} for literal braces.";
-    public string ListDetail => (string.IsNullOrWhiteSpace(Folder) ? "" : NormaliseFolder(Folder) + " · ") + (HasResult && Result is { } r
+    public string ListDetail => (string.IsNullOrWhiteSpace(ItemNumber) ? "" : "No. " + ItemNumber.Trim() + " · ") + (string.IsNullOrWhiteSpace(Folder) ? "" : NormaliseFolder(Folder) + " · ") + (HasResult && Result is { } r
         ? $"{Shape} · Q {r.Discharge.ToString("F2", CultureInfo.CurrentCulture)} {DischargeUnit} · yn {r.Normal.Depth.ToString("F3", CultureInfo.CurrentCulture)} {LengthUnit}"
         : $"{Shape} · check inputs");
 
@@ -171,6 +197,8 @@ public sealed partial class CalculationViewModel : ObservableObject
         vm.Description = c.Description;
         vm.Folder = c.Folder;
         vm.IncludeInBatch = c.IncludeInBatch;
+        vm.ItemNumber = c.ItemNumber;
+        vm.Rating = c.Rating;
         vm.Units = i.Units;
         vm.SolveFor = i.SolveFor;
         vm.Shape = i.Section.Shape;
@@ -224,6 +252,8 @@ public sealed partial class CalculationViewModel : ObservableObject
         Description = Description,
         Folder = NormaliseFolder(Folder),
         IncludeInBatch = IncludeInBatch,
+        ItemNumber = ItemNumber.Trim(),
+        Rating = Rating,
         Input = BuildInput(out _),
     };
 
@@ -349,6 +379,9 @@ public sealed partial class CalculationViewModel : ObservableObject
         AfterInputChange();
     }
 
+    /// <summary>Makes the next edit its own undo step (for tool buttons, which are not keystrokes).</summary>
+    public void BeginUndoStep() => _lastEditedProp = null;
+
     public void Undo()
     {
         if (_undo.Count == 0) return;
@@ -382,7 +415,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     private void AfterInputChange()
     {
         Recalculate();
-        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit),
+        foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(CanConvertToIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit),
                      nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(ListDetail), nameof(CanUndo), nameof(CanRedo) })
             OnPropertyChanged(p);
     }

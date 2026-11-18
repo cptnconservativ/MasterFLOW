@@ -29,6 +29,13 @@ public static class RatingTableBuilder
 {
     public const int MaxRows = 5000;
 
+    public static RatingTableMode ModeOf(RatingDirection d) => d == RatingDirection.DischargeFromDepth ? RatingTableMode.DischargeFromDepth : RatingTableMode.DepthFromDischarge;
+    public static RatingDirection DirectionOf(RatingTableMode m) => m == RatingTableMode.DischargeFromDepth ? RatingDirection.DischargeFromDepth : RatingDirection.DepthFromDischarge;
+
+    /// <summary>Rating table for a saved range, using the calculation's current inputs.</summary>
+    public static RatingTable Build(UniformFlowInput input, RatingRange range) =>
+        Build(new RatingTableRequest(input, ModeOf(range.Direction), range.Start, range.End, range.Step));
+
     public static RatingTable Build(RatingTableRequest request)
     {
         var messages = new List<CalcMessage>();
