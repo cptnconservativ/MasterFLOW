@@ -66,6 +66,10 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private string _invertElevation = "";
     [ObservableProperty] private string _folder = "";
 
+    /// <summary>Selection for batch outputs; not an input, so it is not part of undo.</summary>
+    [ObservableProperty] private bool _includeInBatch = true;
+    partial void OnIncludeInBatchChanged(bool value) { if (!_restoring) Edited?.Invoke(this, EventArgs.Empty); }
+
     public static IReadOnlyList<RoughnessEntry> RoughnessEntries { get; } = ManningRoughnessTable.Entries;
 
     /// <summary>Picking a reference entry copies its normal n into the n field (an ordinary, undoable edit).</summary>
@@ -166,6 +170,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         vm.Title = c.Title;
         vm.Description = c.Description;
         vm.Folder = c.Folder;
+        vm.IncludeInBatch = c.IncludeInBatch;
         vm.Units = i.Units;
         vm.SolveFor = i.SolveFor;
         vm.Shape = i.Section.Shape;
@@ -218,6 +223,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         Title = Title,
         Description = Description,
         Folder = NormaliseFolder(Folder),
+        IncludeInBatch = IncludeInBatch,
         Input = BuildInput(out _),
     };
 

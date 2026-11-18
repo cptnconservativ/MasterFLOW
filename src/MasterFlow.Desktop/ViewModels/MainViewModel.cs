@@ -23,7 +23,7 @@ public interface IDialogService
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.9.0";
+    public const string AppVersion = "0.9.1";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
@@ -217,8 +217,11 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Rebuilds the side-by-side comparison of every calculation in the project.</summary>
+    /// <summary>Solved calculations ticked for batch outputs (comparison, batch report, workbook).</summary>
+    public IEnumerable<CalculationViewModel> BatchCalculations => Calculations.Where(c => c.IncludeInBatch && c.Result is not null);
+
     public void RefreshComparison() =>
-        Comparison = Application.Comparison.Build(Calculations.Where(c => c.Result is not null).Select(c => (c.ListLabel, c.Result!)).ToList());
+        Comparison = Application.Comparison.Build(BatchCalculations.Select(c => (c.ListLabel, c.Result!)).ToList());
 
     private void OnCalcEdited(object? sender, EventArgs e)
     {
@@ -608,10 +611,11 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportAllReports()
     {
-        if (Dialogs is null || !Calculations.Any(c => c.Result is not null)) return;
+        if (Dialogs is null) return;
+        if (!BatchCalculations.Any()) { StatusMessage = "No solved calculations are ticked for the batch report."; return; }
         var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + " reports.pdf", ".pdf", "PDF report (all calculations)", HtmlChoice);
         if (path is null) return;
-        var calcs = Calculations.Where(c => c.Result is not null).ToList();
+        var calcs = BatchCalculations.ToList();
         try
         {
             if (IsHtml(path))
@@ -641,7 +645,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public byte[] BuildWorkbook()
     {
-        var items = Calculations.Where(c => c.Result is not null).Select(c => (c.ToModel() with { Title = c.DisplayTitle }, c.Result!)).ToList();
+        var items = BatchCalculations.Select(c => (c.ToModel() with { Title = c.DisplayTitle }, c.Result!)).ToList();
         return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, RatingTable, Selected is null ? null : SafeName(Selected.Title) + " rating"));
     }
 

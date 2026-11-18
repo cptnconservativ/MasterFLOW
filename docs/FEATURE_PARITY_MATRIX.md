@@ -44,11 +44,11 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Backup settings | Yes (obs.) | Plan | 🟡 | Covered by autosave recovery copy; configurable backup folder not planned unless requested |
 | Autosave / recovery | Not seen | Pro | ✅ | v0.7.0: recovery copy every 60 s while unsaved; offered at next start; cleared on save/close |
 | Undo / redo | Not seen | MVP | ✅ | Per calculation |
-| Report | Yes | MVP | ✅ | Original HTML layout |
+| Report | Yes | MVP | ✅ | Original layout; native PDF (v0.9.0) or HTML |
 | PDF | Yes | MVP | ✅ v0.9.0 | Native PDF (selectable text, embedded fonts, page x of N, logo, watermark); HTML still available |
 | Watermark | Yes | Pro | ✅ | |
 | Logo, footer | Inv | Pro | ✅ | v0.7.0: logo picker (PNG/JPEG/GIF/SVG ≤ 1 MB embedded), watermark, footer and trace option saved with the project |
-| Batch printing | Yes | Pro | 🟡 | Batch HTML report done; selection toggle later |
+| Batch printing | Yes | Pro | ✅ | v0.9.1: one PDF of every ticked calculation; tick also drives comparison and Excel |
 | Calculation trace on report | No | Diff | ✅ | Auditability |
 | Civil 3D integration | Video title only | Inv | ⬜ | Investigate data exchange format |
 | Licence activation | Yes | Out | — | Not needed |

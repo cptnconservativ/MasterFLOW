@@ -559,3 +559,33 @@ public class PdfExportViewModelTests
         Assert.True(pages >= vm.Calculations.Count(c => c.Result is not null));
     }
 }
+
+public class BatchSelectionTests
+{
+    [Fact]
+    public void Unticked_IsLeftOutOfComparisonAndWorkbook_AndSaved()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        int all = vm.Comparison!.Titles.Count;
+        var c = vm.Calculations[1];
+        c.IncludeInBatch = false;
+        Assert.True(vm.IsDirty);
+        Assert.Equal(all - 1, vm.Comparison!.Titles.Count);
+        Assert.DoesNotContain(c.ListLabel, vm.Comparison.Titles);
+        Assert.DoesNotContain(c, vm.BatchCalculations);
+        Assert.False(c.CanUndo); // a selection, not an input edit
+
+        var json = ProjectFile.Serialize(vm.ToProject());
+        var back = ProjectFile.Deserialize(json);
+        Assert.False(back.Calculations[1].IncludeInBatch);
+        Assert.True(back.Calculations[0].IncludeInBatch);
+    }
+
+    [Fact]
+    public void OlderFiles_WithoutTheField_IncludeEverything()
+    {
+        var json = ProjectFile.Serialize(MainViewModel.SampleProject()).Replace("\"includeInBatch\": true,", "").Replace("\"IncludeInBatch\": true,", "");
+        Assert.DoesNotContain("ncludeInBatch", json);
+        Assert.All(ProjectFile.Deserialize(json).Calculations, c => Assert.True(c.IncludeInBatch));
+    }
+}

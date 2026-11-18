@@ -19,6 +19,8 @@ public sealed record ChannelCalculation
     public string Description { get; init; } = "";
     /// <summary>Folder path in the project tree, "/"-separated (e.g. "Ditches/Phase 1"); empty = top level.</summary>
     public string Folder { get; init; } = "";
+    /// <summary>Included in batch reports, the comparison and the Excel workbook (additive; older files load as true).</summary>
+    public bool IncludeInBatch { get; init; } = true;
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
     public required UniformFlowInput Input { get; init; }
 }

@@ -132,10 +132,14 @@
         <ListBox ItemsSource="{Binding Calculations}" SelectedItem="{Binding Selected}" Background="Transparent">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:CalculationViewModel">
-              <StackPanel Margin="0,2">
-                <TextBlock Text="{Binding ListLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock Text="{Binding ListDetail}" FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
-              </StackPanel>
+              <DockPanel Margin="0,2">
+                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IncludeInBatch}" MinWidth="0" Margin="0,0,6,0" VerticalAlignment="Center"
+                          ToolTip.Tip="Include in the batch report, comparison and Excel workbook"/>
+                <StackPanel>
+                  <TextBlock Text="{Binding ListLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding ListDetail}" FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+              </DockPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>

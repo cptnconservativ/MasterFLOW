@@ -11,7 +11,7 @@ Froude number and regime; rating tables; versioned project files; printable HTML
 v0.5.0 adds V·y, boundary shear, HGL/EGL elevations, a Manning n reference list and rating curves.
 v0.6.0 adds side-by-side alternative comparison and Excel (.xlsx) export; v0.7.0 adds folders, sorting,
 a recycle bin, recent files, autosave with crash recovery and a report logo; v0.8.0 adds live title
-expressions such as "{shape}, Q = {Q:F1} {Qunit}" and built-in and user templates. v0.9.0 writes reports directly as PDF (single, batch and comparison). Next: Phase G packaging and release work (see [ROADMAP.md](ROADMAP.md)).
+expressions such as "{shape}, Q = {Q:F1} {Qunit}" and built-in and user templates. v0.9.0 writes reports directly as PDF (single, batch and comparison); v0.9.1 adds a per-calculation tick for what goes into batch outputs. Next: Phase G packaging and release work (see [ROADMAP.md](ROADMAP.md)).
 
 > MasterFlow is an independent product. It targets workflow parity with commercial tools such as
 > Flow Calc 365 but contains no code, text, graphics or report layouts from them.
