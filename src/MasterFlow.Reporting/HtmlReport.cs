@@ -10,7 +10,7 @@ namespace MasterFlow.Reporting;
 /// <summary>Options that control report presentation (not calculation).</summary>
 public sealed record ReportOptions
 {
-    public string SoftwareVersion { get; init; } = "0.6.0";
+    public string SoftwareVersion { get; init; } = "0.7.0";
     public string? Watermark { get; init; }
     public string? FooterText { get; init; }
     /// <summary>Optional company logo as a data: URI (PNG/SVG). Embedded, never fetched.</summary>

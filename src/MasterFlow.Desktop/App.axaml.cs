@@ -15,10 +15,17 @@ public partial class App : Avalonia.Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var vm = MainViewModel.CreateWithSample();
+            try { vm.Store = new Persistence.UserDataStore(Persistence.UserDataStore.DefaultDirectory); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException) { /* run without settings */ }
             var window = new MainWindow { DataContext = vm };
+            bool opened = false;
             if (desktop.Args is { Length: > 0 } args && File.Exists(args[0]))
+            {
                 vm.LoadFrom(args[0]);
+                opened = true;
+            }
             desktop.MainWindow = window;
+            if (!opened) window.Opened += async (_, _) => await vm.CheckRecoveryAsync();
         }
         base.OnFrameworkInitializationCompleted();
     }

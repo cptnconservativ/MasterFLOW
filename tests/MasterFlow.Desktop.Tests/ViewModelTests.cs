@@ -1,6 +1,7 @@
 using MasterFlow.Desktop.ViewModels;
 using MasterFlow.Domain;
 using MasterFlow.Hydraulics;
+using MasterFlow.Persistence;
 
 namespace MasterFlow.Desktop.Tests;
 
@@ -353,5 +354,133 @@ public class ComparisonViewModelTests
         var bytes = vm.BuildWorkbook();
         Assert.True(bytes.Length > 1000);
         Assert.Equal((byte)'P', bytes[0]); // zip signature "PK"
+    }
+}
+
+public class ProjectFeatureTests
+{
+    private static string TempDir() { var d = Path.Combine(Path.GetTempPath(), "mf-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(d); return d; }
+
+    [Fact]
+    public void Delete_MovesToRecycleBin_RestoreAndSaveLoad()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var title = vm.Selected!.Title;
+        int n = vm.Calculations.Count;
+        vm.DeleteCommand.Execute(null);
+        Assert.Equal(n - 1, vm.Calculations.Count);
+        Assert.Single(vm.RecycleBin);
+        Assert.True(vm.HasRecycleBin);
+        string dir = TempDir();
+        try
+        {
+            string path = Path.Combine(dir, "p.mfproj");
+            vm.SaveTo(path);
+            var vm2 = new MainViewModel();
+            vm2.LoadFrom(path);
+            Assert.Equal(title, vm2.RecycleBin.Single().Title);
+            vm2.RestoreCommand.Execute(null);
+            Assert.Equal(n, vm2.Calculations.Count);
+            Assert.Empty(vm2.RecycleBin);
+            Assert.Equal(title, vm2.Selected!.Title);
+            Assert.True(vm2.IsDirty);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void Sort_ByFolderThenNaturalTitle()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        foreach (var c in vm.Calculations) c.Folder = "";
+        vm.Calculations[0].Title = "Ditch 10"; vm.Calculations[1].Title = "Ditch 2"; vm.Calculations[2].Title = "a pipe";
+        vm.Calculations[3].Folder = " Zeta / "; vm.Calculations[4].Folder = "Alpha";
+        vm.SortCommand.Execute(null);
+        var order = vm.Calculations.Select(c => (CalculationViewModel.NormaliseFolder(c.Folder), c.Title)).ToList();
+        Assert.Equal("", order[0].Item1);
+        Assert.Equal("a pipe", order[0].Title);
+        Assert.True(order.FindIndex(o => o.Title == "Ditch 2") < order.FindIndex(o => o.Title == "Ditch 10"));
+        Assert.Equal("Alpha", order[^2].Item1);
+        Assert.Equal("Zeta", order[^1].Item1);
+        Assert.Equal("Zeta", vm.Calculations[^1].ToModel().Folder);
+    }
+
+    [Fact]
+    public async Task RecentFiles_And_Autosave_Recovery()
+    {
+        string dir = TempDir();
+        try
+        {
+            var store = new UserDataStore(Path.Combine(dir, "user"));
+            var vm = MainViewModel.CreateWithSample();
+            vm.Store = store;
+            string path = Path.Combine(dir, "a.mfproj");
+            vm.SaveTo(path);
+            Assert.Equal(Path.GetFullPath(path), vm.RecentFiles.Single());
+            Assert.False(vm.Autosave()); // nothing unsaved
+
+            vm.Selected!.Title = "Edited after save";
+            Assert.True(vm.Autosave());
+            Assert.NotNull(store.FindRecovery());
+
+            // Simulated crash: a fresh session finds the recovery copy and restores it (no dialog service → restore).
+            var vm2 = MainViewModel.CreateWithSample();
+            vm2.Store = new UserDataStore(Path.Combine(dir, "user"));
+            Assert.True(await vm2.CheckRecoveryAsync());
+            Assert.Contains(vm2.Calculations, c => c.Title == "Edited after save");
+            Assert.True(vm2.IsDirty);
+            Assert.Equal(Path.GetFullPath(path), vm2.FilePath);
+            Assert.Single(vm2.RecentFiles);
+
+            vm2.SaveTo(path);
+            Assert.Null(store.FindRecovery());
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void CorruptSettings_FallBackToDefaults()
+    {
+        string dir = TempDir();
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "settings.json"), "{ not json");
+            Assert.Empty(new UserDataStore(dir).LoadSettings().RecentFiles);
+            var s = new AppSettings();
+            for (int i = 0; i < 15; i++) s = s.WithRecent(Path.Combine(dir, $"f{i}.mfproj"));
+            Assert.Equal(AppSettings.MaxRecentFiles, s.RecentFiles.Count);
+            Assert.EndsWith("f14.mfproj", s.RecentFiles[0]);
+            s = s.WithRecent(Path.Combine(dir, "f10.mfproj"));
+            Assert.EndsWith("f10.mfproj", s.RecentFiles[0]);
+            Assert.Equal(s.RecentFiles.Count, s.RecentFiles.Distinct().Count());
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void ReportSettings_AndLogo_PersistWithProject()
+    {
+        string dir = TempDir();
+        try
+        {
+            var png = Path.Combine(dir, "logo.png");
+            File.WriteAllBytes(png, [0x89, 0x50, 0x4E, 0x47, 1, 2, 3]);
+            var vm = MainViewModel.CreateWithSample();
+            vm.Watermark = "PRELIMINARY"; vm.FooterText = "Firm"; vm.IncludeCalculationTrace = false;
+            vm.LogoDataUri = MasterFlow.Application.LogoData.FromFile(png);
+            Assert.True(vm.IsDirty);
+            string path = Path.Combine(dir, "p.mfproj");
+            vm.SaveTo(path);
+            var vm2 = new MainViewModel();
+            vm2.LoadFrom(path);
+            Assert.Equal("PRELIMINARY", vm2.Watermark);
+            Assert.False(vm2.IncludeCalculationTrace);
+            Assert.StartsWith("data:image/png;base64,", vm2.LogoDataUri);
+            var html = vm2.BuildReportHtml(vm2.Selected!);
+            Assert.Contains("<img class=\"logo\"", html);
+            Assert.DoesNotContain("Calculation trace</h2>", html);
+            Assert.Throws<InvalidDataException>(() => MasterFlow.Application.LogoData.FromFile(Path.Combine(dir, "x.bmp")));
+        }
+        finally { Directory.Delete(dir, true); }
     }
 }

@@ -64,7 +64,7 @@ public sealed class CrossSectionView : Control
         for (double x = Math.Ceiling(xMin / gx - 1e-9) * gx; x <= xMin + d.Width + 1e-9; x += gx)
         {
             ctx.DrawLine(gridPen, P(x, 0), P(x, d.Height));
-            Text(ctx, x.ToString("0.##", CultureInfo.CurrentCulture), new Point(P(x, 0).X - 8, y0 + 6), muted, 11);
+            Text(ctx, (Math.Abs(x) < 1e-9 * gx ? 0 : x).ToString("0.##", CultureInfo.CurrentCulture), new Point(P(x, 0).X - 8, y0 + 6), muted, 11);
         }
         Text(ctx, Section is IrregularSection ? $"Station ({LengthUnit})" : $"Offset ({LengthUnit})", new Point(x0 + d.Width * sx / 2 - 30, y0 + 22), muted, 11);
         Text(ctx, Section is IrregularSection ir ? $"Height above lowest point {ir.MinElevation.ToString("0.###", CultureInfo.CurrentCulture)} ({LengthUnit})" : $"Depth ({LengthUnit})", new Point(4, 4), muted, 11);

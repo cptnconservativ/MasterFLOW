@@ -17,15 +17,37 @@ public interface IDialogService
     Task SetClipboardAsync(string text);
     void OpenWithShell(string path);
     Task<bool> ConfirmDiscardAsync(string message);
+    Task<string?> PickImageAsync();
 }
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public const string AppVersion = "0.6.0";
+    public const string AppVersion = "0.7.0";
 
     public ObservableCollection<CalculationViewModel> Calculations { get; } = [];
+    public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
+    public ObservableCollection<string> RecentFiles { get; } = [];
 
-    public MainViewModel() => Calculations.CollectionChanged += (_, _) => { if (!_loading) RefreshComparison(); };
+    /// <summary>Per-user settings and autosave location; null in tests and when unavailable.</summary>
+    public UserDataStore? Store
+    {
+        get => _store;
+        set
+        {
+            _store = value;
+            RecentFiles.Clear();
+            if (value is not null) foreach (var f in value.LoadSettings().RecentFiles) RecentFiles.Add(f);
+        }
+    }
+    private UserDataStore? _store;
+
+    public MainViewModel()
+    {
+        Calculations.CollectionChanged += (_, _) => { if (!_loading) RefreshComparison(); };
+        RecentFiles.CollectionChanged += (_, _) => OnPropertyChanged(nameof(NoRecentFiles));
+    }
+
+    public bool NoRecentFiles => RecentFiles.Count == 0;
 
     [ObservableProperty] private CalculationViewModel? _selected;
     [ObservableProperty] private string? _filePath;
@@ -43,6 +65,8 @@ public sealed partial class MainViewModel : ObservableObject
     // Report options
     [ObservableProperty] private string _watermark = "";
     [ObservableProperty] private string _footerText = "";
+    [ObservableProperty] private string? _logoDataUri;
+    [ObservableProperty] private bool _includeCalculationTrace = true;
 
     // Rating table
     [ObservableProperty] private RatingTableMode _ratingMode = RatingTableMode.DischargeFromDepth;
@@ -70,6 +94,13 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnPreparedByChanged(string value) => MarkDirty();
     partial void OnCheckedByChanged(string value) => MarkDirty();
     partial void OnNotesChanged(string value) => MarkDirty();
+    partial void OnWatermarkChanged(string value) => MarkDirty();
+    partial void OnFooterTextChanged(string value) => MarkDirty();
+    partial void OnLogoDataUriChanged(string? value) { MarkDirty(); OnPropertyChanged(nameof(HasLogo)); }
+    partial void OnIncludeCalculationTraceChanged(bool value) => MarkDirty();
+    public bool HasLogo => LogoDataUri is not null;
+    public bool HasRecycleBin => RecycleBin.Count > 0;
+    public string RecycleBinLabel => $"Recycle bin ({RecycleBin.Count})";
     partial void OnRatingModeChanged(RatingTableMode value) { OnPropertyChanged(nameof(RatingStartLabel)); OnPropertyChanged(nameof(RatingEndLabel)); }
 
     partial void OnSelectedChanged(CalculationViewModel? value)
@@ -152,6 +183,10 @@ public sealed partial class MainViewModel : ObservableObject
         Calculations.Clear();
         foreach (var c in p.Calculations) Add(CalculationViewModel.FromModel(c));
         (ProjectName, ProjectNumber, Client, PreparedBy, CheckedBy, Notes) = (p.Info.Name, p.Info.ProjectNumber, p.Info.Client, p.Info.PreparedBy, p.Info.CheckedBy, p.Info.Notes);
+        (Watermark, FooterText, LogoDataUri, IncludeCalculationTrace) = (p.Report.Watermark, p.Report.FooterText, p.Report.LogoDataUri, p.Report.IncludeCalculationTrace);
+        RecycleBin.Clear();
+        foreach (var c in p.RecycleBin) RecycleBin.Add(c);
+        NotifyBin();
         Selected = Calculations.FirstOrDefault();
         FilePath = path;
         _loading = false;
@@ -181,7 +216,65 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Info = new ProjectInfo { Name = ProjectName, ProjectNumber = ProjectNumber, Client = Client, PreparedBy = PreparedBy, CheckedBy = CheckedBy, Notes = Notes },
         Calculations = Calculations.Select(c => c.ToModel()).ToList(),
+        RecycleBin = RecycleBin.ToList(),
+        Report = new ReportSettings { Watermark = Watermark, FooterText = FooterText, LogoDataUri = LogoDataUri, IncludeCalculationTrace = IncludeCalculationTrace },
     };
+
+    private void NotifyBin()
+    {
+        OnPropertyChanged(nameof(HasRecycleBin));
+        OnPropertyChanged(nameof(RecycleBinLabel));
+    }
+
+    private void Remember(string path)
+    {
+        if (Store is null) return;
+        var s = Store.LoadSettings().WithRecent(path);
+        try { Store.SaveSettings(s); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* settings are a convenience */ }
+        RecentFiles.Clear();
+        foreach (var f in s.RecentFiles) RecentFiles.Add(f);
+    }
+
+    // ------------------------------------------------------------ autosave and recovery
+
+    /// <summary>Writes a recovery copy when there are unsaved changes. Called on a timer by the window.</summary>
+    public bool Autosave()
+    {
+        if (!IsDirty || Store is null) return false;
+        try { Store.WriteRecovery(ToProject(), FilePath, AppVersion); return true; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Autosave failed: {ex.Message}"; return false; }
+    }
+
+    /// <summary>At start-up: offers to restore an autosaved copy left by a crash or forced exit.</summary>
+    public async Task<bool> CheckRecoveryAsync()
+    {
+        if (Store?.FindRecovery() is not { } r) return false;
+        string when = r.SavedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+        string what = r.OriginalPath is null ? "an unsaved project" : Path.GetFileName(r.OriginalPath);
+        bool restore = Dialogs is null || await Dialogs.ConfirmDiscardAsync($"MasterFlow found unsaved work in {what} from {when}, probably left by an unexpected exit. Restore it? (Cancel discards it.)");
+        if (!restore) { Store.ClearRecovery(); return false; }
+        try
+        {
+            LoadProject(Store.LoadRecovery(), r.OriginalPath);
+            IsDirty = true;
+            StatusMessage = $"Restored unsaved work from {when}. Save to keep it.";
+            return true;
+        }
+        catch (ProjectFileException ex)
+        {
+            StatusMessage = $"The recovery copy could not be read: {ex.Message}";
+            Store.ClearRecovery();
+            return false;
+        }
+    }
+
+    /// <summary>Called when the window is closing. Returns false to keep the window open.</summary>
+    public async Task<bool> ConfirmCloseAsync()
+    {
+        if (IsDirty && Dialogs is not null && !await Dialogs.ConfirmDiscardAsync("Close without saving? Unsaved changes will be lost.")) return false;
+        Store?.ClearRecovery();
+        return true;
+    }
 
     public void LoadFrom(string path)
     {
@@ -189,6 +282,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             LoadProject(ProjectFile.Load(path), path);
             StatusMessage = $"Opened {path}";
+            Remember(path);
         }
         catch (ProjectFileException ex)
         {
@@ -238,6 +332,8 @@ public sealed partial class MainViewModel : ObservableObject
             FilePath = path;
             IsDirty = false;
             StatusMessage = $"Saved {path}";
+            Store?.ClearRecovery();
+            Remember(path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -267,17 +363,89 @@ public sealed partial class MainViewModel : ObservableObject
         MarkDirty();
     }
 
+    /// <summary>Moves the selected calculation to the project's recycle bin (restorable; saved with the project).</summary>
     [RelayCommand]
-    private async Task Delete()
+    private void Delete()
     {
         if (Selected is null) return;
-        if (Dialogs is not null && !await Dialogs.ConfirmDiscardAsync($"Delete \"{Selected.Title}\"? You can undo by closing without saving.")) return;
         int i = Calculations.IndexOf(Selected);
-        Selected.Edited -= OnCalcEdited;
+        var removed = Selected;
+        removed.Edited -= OnCalcEdited;
         Calculations.RemoveAt(i);
+        RecycleBin.Add(removed.ToModel());
+        NotifyBin();
         Selected = Calculations.Count == 0 ? null : Calculations[Math.Min(i, Calculations.Count - 1)];
+        StatusMessage = $"\"{removed.Title}\" moved to the recycle bin.";
         MarkDirty();
     }
+
+    /// <summary>Restores a calculation from the recycle bin (the most recently deleted when none is given).</summary>
+    [RelayCommand]
+    private void Restore(ChannelCalculation? item)
+    {
+        item ??= RecycleBin.LastOrDefault();
+        if (item is null || !RecycleBin.Remove(item)) return;
+        var c = CalculationViewModel.FromModel(item);
+        Add(c);
+        Selected = c;
+        NotifyBin();
+        StatusMessage = $"Restored \"{item.Title}\".";
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private async Task EmptyRecycleBin()
+    {
+        if (RecycleBin.Count == 0) return;
+        if (Dialogs is not null && !await Dialogs.ConfirmDiscardAsync($"Permanently remove {RecycleBin.Count} deleted calculation(s) from this project? This cannot be undone after saving.")) return;
+        RecycleBin.Clear();
+        NotifyBin();
+        MarkDirty();
+    }
+
+    /// <summary>Sorts calculations by folder, then title, using natural number order ("Ditch 2" before "Ditch 10").</summary>
+    [RelayCommand]
+    private void Sort()
+    {
+        var sel = Selected;
+        var sorted = Calculations.OrderBy(c => CalculationViewModel.NormaliseFolder(c.Folder), NaturalComparer.Instance)
+                                 .ThenBy(c => c.Title, NaturalComparer.Instance).ToList();
+        if (sorted.SequenceEqual(Calculations)) return;
+        _loading = true;
+        Calculations.Clear();
+        foreach (var c in sorted) Calculations.Add(c);
+        _loading = false;
+        Selected = sel;
+        RefreshComparison();
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private async Task OpenRecent(string? path)
+    {
+        if (path is null) return;
+        if (!File.Exists(path))
+        {
+            StatusMessage = $"File not found: {path}";
+            RecentFiles.Remove(path);
+            return;
+        }
+        if (IsDirty && Dialogs is not null && !await Dialogs.ConfirmDiscardAsync("Discard unsaved changes and open another project?")) return;
+        LoadFrom(path);
+    }
+
+    [RelayCommand]
+    private async Task PickLogo()
+    {
+        if (Dialogs is null) return;
+        var path = await Dialogs.PickImageAsync();
+        if (path is null) return;
+        try { LogoDataUri = LogoData.FromFile(path); StatusMessage = "Logo added to the report header."; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException) { StatusMessage = $"Logo not added: {ex.Message}"; }
+    }
+
+    [RelayCommand]
+    private void ClearLogo() => LogoDataUri = null;
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo() { Selected?.Undo(); UndoCommand.NotifyCanExecuteChanged(); RedoCommand.NotifyCanExecuteChanged(); }
@@ -338,6 +506,8 @@ public sealed partial class MainViewModel : ObservableObject
             SoftwareVersion = AppVersion,
             Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark,
             FooterText = string.IsNullOrWhiteSpace(FooterText) ? null : FooterText,
+            LogoDataUri = LogoDataUri,
+            IncludeCalculationTrace = IncludeCalculationTrace,
             RatingTable = ReferenceEquals(calc, Selected) ? RatingTable : null,
         });
 

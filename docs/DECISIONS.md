@@ -27,3 +27,6 @@
 | D-023 | 2026-11-17 | Shear uses γ = 62.4 lb/ft³ / 9810 N/m³ and is computed in the presentation layer from R, y, S | Temperature-dependent γ; engine field | Matches FHWA HEC-15 practice; purely derived values need no solver |
 | D-024 | 2026-11-17 | .xlsx written by a small built-in OpenXML writer (inline strings, full-precision numbers, NaN as empty cells) | ClosedXML / EPPlus | No dependency or licence question (EPPlus is commercial); output checked with openpyxl |
 | D-025 | 2026-11-17 | Comparison never converts between unit systems; mixed systems are flagged | Convert to one system | No hidden unit conversions (brief requirement) |
+| D-026 | 2026-11-17 | New project fields (folder, recycle bin, report settings) are additive and optional; schema stays 1 | Bump to schema 2 | Older files load unchanged; older MasterFlow versions ignore unknown fields rather than misreading them |
+| D-027 | 2026-11-17 | Recent files and autosave live in %APPDATA%\MasterFlow; one recovery copy, cleared on save or close | Autosave over the user's file | Never overwrite the user's file without a Save |
+| D-028 | 2026-11-17 | Avalonia.BuildServices "AvaloniaStats" build target replaced with an empty target (Directory.Build.targets) | Leave it | It sends build statistics to avaloniaui.net during builds; the project's no-telemetry rule (D-012) covers the build too |

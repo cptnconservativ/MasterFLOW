@@ -49,10 +49,10 @@ Dependencies: B (C, D for pipe/irregular rows). Risk L/L.
 
 ## Phase F — Projects and reports
 Dependencies: B. Risk M (PDF library licensing).
-- F1 Folders, sort names, recycle bin, recent files — 2 d — ⬜
-- F2 Autosave and crash recovery — 1.5 d — ⬜
+- F1 Folders, sort names, recycle bin, recent files — 2 d — ✅ v0.7.0 (tree view deferred to UI pass)
+- F2 Autosave and crash recovery — 1.5 d — ✅ v0.7.0
 - F3 Native PDF (decide QuestPDF licence vs. PDFsharp/MigraDoc) — 3 d — ⬜
-- F4 Batch selection, logo picker, footer and watermark settings — 1.5 d — 🟡 (batch report, footer, watermark done)
+- F4 Batch selection, logo picker, footer and watermark settings — 1.5 d — 🟡 v0.7.0 logo picker and persisted report settings; batch selection toggle remains
 - F5 Title expression builder with live preview — 2 d — ⬜
 - F6 Original templates and user templates — 2 d — ⬜
 

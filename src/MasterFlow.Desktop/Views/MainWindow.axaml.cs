@@ -14,6 +14,35 @@ public partial class MainWindow : Window, IDialogService
     {
         InitializeComponent();
         DataContextChanged += (_, _) => { if (DataContext is MainViewModel vm) vm.Dialogs = this; };
+        // Autosave a recovery copy every minute while there are unsaved changes.
+        var timer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+        timer.Tick += (_, _) => (DataContext as MainViewModel)?.Autosave();
+        timer.Start();
+        Closing += OnClosing;
+    }
+
+    private bool _closeConfirmed;
+
+    private async void OnClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_closeConfirmed || DataContext is not MainViewModel vm) return;
+        e.Cancel = true;
+        if (await vm.ConfirmCloseAsync())
+        {
+            _closeConfirmed = true;
+            Close();
+        }
+    }
+
+    public async Task<string?> PickImageAsync()
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose a logo image",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg"] }],
+        });
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
     public async Task<string?> PickOpenProjectAsync()

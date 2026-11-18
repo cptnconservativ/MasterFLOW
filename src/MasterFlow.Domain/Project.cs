@@ -17,6 +17,8 @@ public sealed record ChannelCalculation
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Title { get; init; } = "New channel";
     public string Description { get; init; } = "";
+    /// <summary>Folder path in the project tree, "/"-separated (e.g. "Ditches/Phase 1"); empty = top level.</summary>
+    public string Folder { get; init; } = "";
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
     public required UniformFlowInput Input { get; init; }
 }
@@ -29,4 +31,19 @@ public sealed record Project
 {
     public ProjectInfo Info { get; init; } = new();
     public IReadOnlyList<ChannelCalculation> Calculations { get; init; } = [];
+
+    /// <summary>Deleted calculations, kept with the project until the recycle bin is emptied.</summary>
+    public IReadOnlyList<ChannelCalculation> RecycleBin { get; init; } = [];
+
+    public ReportSettings Report { get; init; } = new();
+}
+
+/// <summary>Report appearance saved with the project.</summary>
+public sealed record ReportSettings
+{
+    public string Watermark { get; init; } = "";
+    public string FooterText { get; init; } = "";
+    /// <summary>Company logo as a data: URI (PNG/JPEG/SVG), embedded so the project file stays self-contained.</summary>
+    public string? LogoDataUri { get; init; }
+    public bool IncludeCalculationTrace { get; init; } = true;
 }

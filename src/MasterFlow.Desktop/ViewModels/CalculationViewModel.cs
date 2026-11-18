@@ -20,7 +20,7 @@ public sealed record FieldState(
     string BottomWidth, string LeftSlope, string RightSlope, string ChannelDepth, string Diameter,
     bool EllipseStandard, EllipticalPipeSize EllipseSize, bool EllipseVertical, string EllipseRise, string EllipseSpan,
     string ManningN, string SlopePercent, string Discharge, string Depth,
-    string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance, string InvertElevation = "");
+    string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance, string InvertElevation = "", string Folder = "");
 
 /// <summary>
 /// Editable state of one calculation. Fields are held as text so that partially typed or invalid
@@ -33,7 +33,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     [
         nameof(Title), nameof(Description), nameof(Shape), nameof(Units), nameof(SolveFor), nameof(BottomWidth), nameof(LeftSlope),
         nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(EllipseStandard), nameof(EllipseSize), nameof(EllipseVertical), nameof(EllipseRise), nameof(EllipseSpan), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
-        nameof(PointsText), nameof(RoughnessMethod), nameof(InvertElevation),
+        nameof(PointsText), nameof(RoughnessMethod), nameof(InvertElevation), nameof(Folder),
     ];
 
     private readonly Stack<FieldState> _undo = new();
@@ -64,6 +64,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private string _pointsText = "0\t5\n10\t0\n20\t0\n30\t5";
     [ObservableProperty] private CompositeRoughnessMethod _roughnessMethod = CompositeRoughnessMethod.Conveyance;
     [ObservableProperty] private string _invertElevation = "";
+    [ObservableProperty] private string _folder = "";
 
     public static IReadOnlyList<RoughnessEntry> RoughnessEntries { get; } = ManningRoughnessTable.Entries;
 
@@ -129,9 +130,9 @@ public sealed partial class CalculationViewModel : ObservableObject
     public bool SlopeIsInput => SolveFor != SolveFor.Slope;
     public bool RoughnessIsInput => SolveFor != SolveFor.Roughness;
     public string ListLabel => string.IsNullOrWhiteSpace(Title) ? "(untitled)" : Title;
-    public string ListDetail => HasResult && Result is { } r
+    public string ListDetail => (string.IsNullOrWhiteSpace(Folder) ? "" : NormaliseFolder(Folder) + " · ") + (HasResult && Result is { } r
         ? $"{Shape} · Q {r.Discharge.ToString("F2", CultureInfo.CurrentCulture)} {DischargeUnit} · yn {r.Normal.Depth.ToString("F3", CultureInfo.CurrentCulture)} {LengthUnit}"
-        : $"{Shape} · check inputs";
+        : $"{Shape} · check inputs");
 
     /// <summary>The solved value, formatted, shown in place of the disabled input field.</summary>
     public string SolvedValueText => Result is { Succeeded: true } r
@@ -158,6 +159,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         vm.CreatedUtc = c.CreatedUtc;
         vm.Title = c.Title;
         vm.Description = c.Description;
+        vm.Folder = c.Folder;
         vm.Units = i.Units;
         vm.SolveFor = i.SolveFor;
         vm.Shape = i.Section.Shape;
@@ -209,8 +211,13 @@ public sealed partial class CalculationViewModel : ObservableObject
         CreatedUtc = CreatedUtc,
         Title = Title,
         Description = Description,
+        Folder = NormaliseFolder(Folder),
         Input = BuildInput(out _),
     };
+
+    /// <summary>Trims each folder level and drops empty levels: " Ditches / /Phase 1 " → "Ditches/Phase 1".</summary>
+    public static string NormaliseFolder(string? folder) =>
+        string.Join("/", (folder ?? "").Split('/', '\\').Select(p => p.Trim()).Where(p => p.Length > 0));
 
     private static string N(double v) => double.IsFinite(v) ? v.ToString("G10", CultureInfo.CurrentCulture) : "";
 
@@ -311,7 +318,7 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ undo / redo
 
-    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod, InvertElevation);
+    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod, InvertElevation, Folder);
 
     private void Restore(FieldState s)
     {
@@ -320,7 +327,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         (BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter) = (s.BottomWidth, s.LeftSlope, s.RightSlope, s.ChannelDepth, s.Diameter);
         (EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan) = (s.EllipseStandard, s.EllipseSize, s.EllipseVertical, s.EllipseRise, s.EllipseSpan);
         (ManningN, SlopePercent, Discharge, Depth) = (s.ManningN, s.SlopePercent, s.Discharge, s.Depth);
-        (PointsText, RoughnessMethod, InvertElevation) = (s.PointsText, s.RoughnessMethod, s.InvertElevation);
+        (PointsText, RoughnessMethod, InvertElevation, Folder) = (s.PointsText, s.RoughnessMethod, s.InvertElevation, s.Folder);
         _restoring = false;
         _committed = s;
         _lastEditedProp = null;
@@ -361,7 +368,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     {
         Recalculate();
         foreach (var p in new[] { nameof(Constants), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit),
-                     nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(CanUndo), nameof(CanRedo) })
+                     nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(ListDetail), nameof(CanUndo), nameof(CanRedo) })
             OnPropertyChanged(p);
     }
 }

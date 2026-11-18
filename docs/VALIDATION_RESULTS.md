@@ -7,10 +7,10 @@ Run 2026-11-17, .NET 10.0.115, Linux x64. Command: `dotnet test MasterFlow.slnx`
 | MasterFlow.Hydraulics.Tests | 107 | 0 |
 | MasterFlow.Application.Tests | 24 | 0 |
 | MasterFlow.IntegrationTests | 14 | 0 |
-| MasterFlow.Desktop.Tests | 24 | 0 |
-| **Total** | **169** | **0** |
+| MasterFlow.Desktop.Tests | 29 | 0 |
+| **Total** | **174** | **0** |
 
-(Updated for v0.6.0 comparison and Excel export; .xlsx independently read back with openpyxl 3.1.5,
+(Updated for v0.7.0 project features: recycle bin, sort, recent files, autosave recovery, report settings. v0.6.0 added comparison and Excel export; .xlsx independently read back with openpyxl 3.1.5,
 validation/check_xlsx.py: yn = 3.360967840282236 ft at full precision. v0.5.0 was 165/165; v0.4.0 was 159/159, v0.3.0 129/129, v0.2.0 91/91, the first slice 72/72.)
 Shear check by hand: rectangle b = 10 ft, y = 2 ft, S = 0.01: τ = 62.4 × (20/14) × 0.01 = 0.89143 lb/ft²,
 τmax = 1.248 lb/ft²; SI rectangle b = 3 m, y = 1 m, S = 0.001: τ = 9810 × 0.6 × 0.001 = 5.886 N/m². Pass.

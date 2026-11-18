@@ -1,0 +1,8 @@
+<Project>
+  <!--
+    Avalonia.BuildServices (a transitive build-time package) sends anonymous build statistics to
+    avaloniaui.net from its "AvaloniaStats" target. MasterFlow sends nothing anywhere (decision D-012),
+    so the target is replaced with an empty one. This affects builds only; the shipped app never had it.
+  -->
+  <Target Name="AvaloniaStats" />
+</Project>

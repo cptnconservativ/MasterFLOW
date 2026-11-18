@@ -34,20 +34,20 @@ Classes: **MVP** = required for MVP · **Pro** = required for initial profession
 | Excel (.xlsx) export | Inv | Plan | ✅ | v0.6.0: comparison sheet, one sheet per calculation (inputs, results, points, subareas, messages), rating table; full-precision numbers |
 | Quick calculator | Not found | Plan / Diff | ⬜ | Deferred; calculations already solve live |
 | Alternative comparison | Not found | Pro / Diff | ✅ | v0.6.0: Compare tab, landscape comparison report, Excel sheet; no unit conversion between systems |
-| Project tree, folders | Yes (obs.) | Pro | 🟡 | Flat list now; folders Phase F |
-| Duplicate / delete / recycle bin | Yes (obs.) | MVP | 🟡 | Duplicate + delete; no recycle bin (undo instead, Phase F) |
-| Sort names / re-sort | Yes (obs.) | Plan | ⬜ | |
+| Project tree, folders | Yes (obs.) | Pro | 🟡 | v0.7.0: folder path per calculation ("Ditches/Phase 1"), shown in the list and used by Sort; a collapsible tree view is UI work, deferred |
+| Duplicate / delete / recycle bin | Yes (obs.) | MVP | ✅ | v0.7.0: delete moves to a recycle bin saved with the project; restore any item; empty with confirmation |
+| Sort names / re-sort | Yes (obs.) | Plan | ✅ | v0.7.0: by folder then title, natural number order |
 | Title expressions | Yes (obs.) | Pro | ⬜ | Builder with preview |
 | Templates (factory street sections) | Yes (obs.) | Pro | ⬜ | Original templates; user templates |
 | Save / open / versioned file | Yes | MVP | ✅ | `.mfproj` schema 1 |
-| Recent files | Yes (obs.) | Pro | ⬜ | |
-| Backup settings | Yes (obs.) | Plan | ⬜ | |
-| Autosave / recovery | Not seen | Pro | ⬜ | Phase F |
+| Recent files | Yes (obs.) | Pro | ✅ | v0.7.0: last 10, per user, missing files dropped |
+| Backup settings | Yes (obs.) | Plan | 🟡 | Covered by autosave recovery copy; configurable backup folder not planned unless requested |
+| Autosave / recovery | Not seen | Pro | ✅ | v0.7.0: recovery copy every 60 s while unsaved; offered at next start; cleared on save/close |
 | Undo / redo | Not seen | MVP | ✅ | Per calculation |
 | Report | Yes | MVP | ✅ | Original HTML layout |
 | PDF | Yes | MVP | 🟡 | Via browser print; native Phase F |
 | Watermark | Yes | Pro | ✅ | |
-| Logo, footer | Inv | Pro | 🟡 | Footer done; logo supported in engine, no picker |
+| Logo, footer | Inv | Pro | ✅ | v0.7.0: logo picker (PNG/JPEG/GIF/SVG ≤ 1 MB embedded), watermark, footer and trace option saved with the project |
 | Batch printing | Yes | Pro | 🟡 | Batch HTML report done; selection toggle later |
 | Calculation trace on report | No | Diff | ✅ | Auditability |
 | Civil 3D integration | Video title only | Inv | ⬜ | Investigate data exchange format |
