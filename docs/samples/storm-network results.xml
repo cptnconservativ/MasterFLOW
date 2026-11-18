@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LandXML version="1.2" date="2026-11-18" time="18:39:37" xmlns="http://www.landxml.org/schema/LandXML-1.2">
+  <Units>
+    <Imperial areaUnit="squareFoot" linearUnit="foot" volumeUnit="cubicFeet" temperatureUnit="fahrenheit" pressureUnit="inHG" diameterUnit="foot" velocityUnit="feetPerSecond" flowUnit="cubicFeetSecond" angularUnit="decimal degrees" directionUnit="decimal degrees" />
+  </Units>
+  <Application name="MasterFlow" manufacturer="MasterFlow" version="0.11.0" />
+  <PipeNetworks>
+    <PipeNetwork name="Storm A" pipeNetType="storm">
+      <Structs>
+        <Struct name="CB-1" desc="Inlet" elevRim="105.2" elevSump="100.5">
+          <Center>5000 2000</Center>
+          <InletStruct />
+          <Invert elev="100.5" flowDir="out" refPipe="P-1" />
+          <StructFlow lossIn="0.895762" lossOut="0" desc="MasterFlow: lossIn = structure head loss; hglIn = HGL in the structure; hglOut = HGL entering the outlet pipe" hglIn="103.060487" hglOut="102.164725" />
+          <Feature name="MasterFlow hydraulics" code="MasterFlow" source="MasterFlow">
+            <Property label="HGL" value="103.060487" />
+            <Property label="EGL" value="103.060487" />
+            <Property label="HGL leaving" value="102.164725" />
+            <Property label="Structure loss" value="0.895762" />
+            <Property label="Loss method" value="IDCM Fig. 4-7 Case VI, beginning of line" />
+            <Property label="Rim minus HGL" value="2.139513" />
+            <Property label="Rim minus EGL" value="2.139513" />
+            <Property label="Outfall" value="no" />
+            <Property label="Check" value="OK" />
+          </Feature>
+        </Struct>
+        <Struct name="MH-1" desc="Manhole (circular)" elevRim="104.8" elevSump="99.4">
+          <Center>5100 2050</Center>
+          <CircStruct diameter="4" />
+          <Invert elev="99.5" flowDir="in" refPipe="P-1" />
+          <Invert elev="99.4" flowDir="out" refPipe="P-2" />
+          <StructFlow lossIn="0.061399" lossOut="0" desc="MasterFlow: lossIn = structure head loss; hglIn = HGL in the structure; hglOut = HGL entering the outlet pipe" hglIn="100.606817" hglOut="100.545417" />
+          <Feature name="MasterFlow hydraulics" code="MasterFlow" source="MasterFlow">
+            <Property label="HGL" value="100.606817" />
+            <Property label="EGL" value="101.644878" />
+            <Property label="HGL leaving" value="100.545417" />
+            <Property label="Structure loss" value="0.061399" />
+            <Property label="Loss method" value="IDCM Fig. 4-6 Case I, on main line" />
+            <Property label="Rim minus HGL" value="4.193183" />
+            <Property label="Rim minus EGL" value="3.155122" />
+            <Property label="Outfall" value="no" />
+            <Property label="Check" value="OK" />
+          </Feature>
+        </Struct>
+        <Struct name="OUT-1" desc="Outlet" elevRim="101" elevSump="98.4">
+          <Center>5200 2100</Center>
+          <OutletStruct />
+          <Invert elev="98.4" flowDir="in" refPipe="P-2" />
+          <StructFlow lossIn="0" lossOut="0" desc="MasterFlow: lossIn = structure head loss; hglIn = HGL in the structure; hglOut = HGL entering the outlet pipe" hglIn="99.344266" hglOut="99.344266" />
+          <Feature name="MasterFlow hydraulics" code="MasterFlow" source="MasterFlow">
+            <Property label="HGL" value="99.344266" />
+            <Property label="EGL" value="100.115075" />
+            <Property label="HGL leaving" value="99.344266" />
+            <Property label="Loss method" value="Outfall" />
+            <Property label="Rim minus HGL" value="1.655734" />
+            <Property label="Rim minus EGL" value="0.884925" />
+            <Property label="Outfall" value="yes" />
+            <Property label="Check" value="OK" />
+          </Feature>
+        </Struct>
+      </Structs>
+      <Pipes>
+        <Pipe name="P-1" refEnd="MH-1" refStart="CB-1" length="100" slope="0.01">
+          <CircPipe diameter="1.5" mannings="0.013" />
+          <PipeFlow flowIn="12" depthCritical="1.314283" desc="MasterFlow design storm" hglDown="100.814283" hglUp="102.164725" />
+          <Feature name="MasterFlow hydraulics" code="MasterFlow" source="MasterFlow">
+            <Property label="Q" value="12" />
+            <Property label="Q full" value="10.504338" />
+            <Property label="Q/Q full" value="1.142" />
+            <Property label="Manning n" value="0.013" />
+            <Property label="V up" value="6.790611" />
+            <Property label="V down" value="7.310753" />
+            <Property label="V full" value="6.790611" />
+            <Property label="Depth up" value="1.664725" />
+            <Property label="Depth down" value="1.314283" />
+            <Property label="Critical depth" value="1.314283" />
+            <Property label="HGL up" value="102.164725" />
+            <Property label="HGL down" value="100.814283" />
+            <Property label="EGL up" value="102.881335" />
+            <Property label="EGL down" value="101.644878" />
+            <Property label="Friction loss" value="1.236457" />
+            <Property label="Regime" value="Pressure" />
+            <Property label="Condition" value="Partly full, pressurised at the outlet end" />
+            <Property label="Flows full" value="yes" />
+            <Property label="Check" value="W-NW-005" />
+          </Feature>
+        </Pipe>
+        <Pipe name="P-2" refEnd="OUT-1" refStart="MH-1" length="125" slope="0.008">
+          <ElliPipe height="1.9333" span="3.0833" mannings="0.013" />
+          <PipeFlow flowIn="16" depthCritical="1.145417" desc="MasterFlow design storm" hglDown="99.344266" hglUp="100.545417" />
+          <Feature name="MasterFlow hydraulics" code="MasterFlow" source="MasterFlow">
+            <Property label="Q" value="16" />
+            <Property label="Q full" value="33.533917" />
+            <Property label="Q/Q full" value="0.477" />
+            <Property label="Manning n" value="0.013" />
+            <Property label="V up" value="5.538455" />
+            <Property label="V down" value="7.042728" />
+            <Property label="V full" value="3.417551" />
+            <Property label="Depth up" value="1.145417" />
+            <Property label="Depth down" value="0.944266" />
+            <Property label="Normal depth" value="0.941947" />
+            <Property label="Critical depth" value="1.145417" />
+            <Property label="HGL up" value="100.545417" />
+            <Property label="HGL down" value="99.344266" />
+            <Property label="EGL up" value="101.022114" />
+            <Property label="EGL down" value="100.115075" />
+            <Property label="Friction loss" value="0.907039" />
+            <Property label="Regime" value="Steep" />
+            <Property label="Condition" value="Supercritical (entrance control)" />
+            <Property label="Flows full" value="no" />
+            <Property label="Check" value="W-NW-007" />
+          </Feature>
+        </Pipe>
+      </Pipes>
+      <Feature name="MasterFlow hydraulics" code="MasterFlow" source="MasterFlow">
+        <Property label="Units" value="ft, cfs, ft/s" />
+        <Property label="Criteria" value="City of Rapid City Infrastructure Design Criteria Manual (Jan. 2012) §4.6" />
+        <Property label="Tailwater" value="FreeOutfall" />
+        <Property label="Warnings" value="2" />
+        <Property label="Computed" value="2026-11-18 18:39" />
+      </Feature>
+    </PipeNetwork>
+  </PipeNetworks>
+</LandXML>
