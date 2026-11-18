@@ -107,7 +107,7 @@ storm sewer designer are typing a Q into every pipe, resizing pipes by hand unti
 | Rank | Item | Gain | Effort (d) | Gain/effort | Branch | Status |
 |---|---|---|---|---|---|---|
 | 1 | R1 **Flow accumulation**: inflow Q at each structure (inlet captured flow), pipe Q = inflow + all upstream pipes unless typed; shown in tables, reports, Excel | 5 | 1 | 5.0 | `feature/network-flow-accumulation` | 🟡 PR |
-| 2 | R2 **Minor-storm check flow**: a second inflow (2-yr in Rapid City) accumulated the same way; the minimum-velocity check uses it (IDCM 4.6: 2.5 fps for the 2-year storm) | 4 | 1 | 4.0 | `feature/minor-storm-velocity` | ⬜ |
+| 2 | R2 **Minor-storm check flow**: a second inflow (2-yr in Rapid City) accumulated the same way; the minimum-velocity check uses it (IDCM 4.6: 2.5 fps for the 2-year storm) | 4 | 1 | 4.0 | `feature/minor-storm-velocity` | 🟡 PR |
 | 3 | R3 **Automatic pipe sizing** to the criteria: smallest standard size that carries Q open-channel within the velocity limits, never smaller than upstream, then upsizes along any path where the HGL is too close to the rim; inverts kept | 5 | 2 | 2.5 | `feature/network-pipe-sizing` | ⬜ |
 | 4 | H6 **LandXML alignments** (lines, curves, spirals) → station and offset of every structure | 4 | 2 | 2.0 | `feature/landxml-alignments` | ⬜ |
 | 5 | H2 **Sensitivity table** for single calculations (yn, V, Fr, Q for n ± 10/20 % and slope ± 25/50 %) | 3 | 1 | 3.0 | `feature/sensitivity-table` | ⬜ |

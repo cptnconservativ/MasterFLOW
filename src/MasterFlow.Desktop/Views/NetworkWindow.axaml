@@ -36,7 +36,7 @@
     <Grid ColumnDefinitions="520,4,*" IsVisible="{Binding SelectedNetwork, Converter={x:Static ObjectConverters.IsNotNull}}">
       <ScrollViewer Grid.Column="0" Margin="8,8,0,8">
         <StackPanel Spacing="6" DataContext="{Binding SelectedNetwork}" x:DataType="vm:NetworkViewModel">
-          <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+          <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
             <TextBlock Text="Name" VerticalAlignment="Center"/>
             <TextBox Grid.Column="1" Text="{Binding Name}" AutomationProperties.Name="Network name"/>
             <TextBlock Grid.Row="1" Text="Units" VerticalAlignment="Center"/>
@@ -51,6 +51,8 @@
             <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TailwaterElevation}" IsVisible="{Binding IsElevationTailwater}" AutomationProperties.Name="Tailwater elevation"/>
             <TextBlock Grid.Row="4" Text="Default K" VerticalAlignment="Center" ToolTip.Tip="K for structures set to StandardK without their own K (hs = K·Vo²/2g)"/>
             <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DefaultJunctionK}" AutomationProperties.Name="Default junction K"/>
+            <TextBlock Grid.Row="5" Text="Minor storm" VerticalAlignment="Center" ToolTip.Tip="Name of the check storm whose flows (Q minor, minor inflow) are used for the minimum-velocity check"/>
+            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding MinorStormName}" AutomationProperties.Name="Minor storm name"/>
           </Grid>
 
           <Border Classes="card">

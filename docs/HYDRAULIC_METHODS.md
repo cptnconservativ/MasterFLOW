@@ -230,7 +230,11 @@ Rows that fail are omitted and reported, never interpolated. Limit 5000 rows.
 Steady flow through a tree-shaped network of circular and elliptical pipes draining to one or more
 outfalls. Each pipe carries a design Q: typed, or accumulated as Qpipe = Qinflow(upstream structure) +
 Σ Q(pipes into that structure), using typed values where given. No hydrology or routing is computed (peak
-flows are added as entered, a conservative simplification the user should be aware of).
+flows are added as entered, a conservative simplification the user should be aware of). An optional
+minor-storm (check) flow is accumulated the same way and used only for the minimum-velocity check: the
+mean velocity at normal depth for that flow (full-flow velocity if it exceeds the full-flow capacity), as
+the IDCM's 2.5 fps minimum applies to the 2-year storm. Without a minor flow the design-flow velocity is
+checked and the message says so.
 
 **Outfall.** Tailwater rule per network: free outfall (depth = yc), a known tailwater elevation, (yc + D)/2
 above the outlet invert (the HEC-22 convention) or the outlet crown. The depth at any pipe outlet is never

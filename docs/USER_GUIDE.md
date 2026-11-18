@@ -253,9 +253,12 @@ as text.
    Size or rise (in. or mm), Span (elliptical only), Length, Invert up, Invert down, n, Q*. Leave Q blank
    to have it added up from the structure inflows (a pipe carries the inflow at its upstream structure plus
    every pipe entering that structure; a typed Q overrides this and is carried on downstream). Accumulated
-   values are marked Σ in the tables. Tab, semicolon
+   values are marked Σ in the tables. An optional last column, *Q minor*, is the check-storm flow (the
+   2-year storm in Rapid City) used only for the minimum-velocity check; leave it blank to add it up
+   from the structures' minor inflows. Tab, semicolon
    or comma separated, so a range copied from Excel can be pasted straight in.
-3. Structures: *Structure, Type, Rim, Loss method, K, Inflow Q*. Leave the loss method blank for *Auto*; the list
+3. Structures: *Structure, Type, Rim, Loss method, K, Inflow Q, Minor inflow Q*. Name the minor storm
+   in *Minor storm* (the Rapid City preset sets "2-yr"). Leave the loss method blank for *Auto*; the list
    of methods is under the table (IDCM Figs. 4-6/4-7 cases, bends, or StandardK with K).
 4. Tailwater rule and, for a known tailwater, its elevation.
 5. Criteria: type values or press **Rapid City IDCM 2012** (HGL 1 ft below the rim, 2.5 to 20 fps,

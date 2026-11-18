@@ -28,6 +28,8 @@ public sealed record StormNetwork
     public double? TailwaterElevation { get; init; }
     /// <summary>K for structures using <see cref="StructureLossMethod.StandardK"/> without their own K (hs = K·Vo²/2g, IDCM Eq. 4-6-1).</summary>
     public double DefaultJunctionK { get; init; } = 0.5;
+    /// <summary>Name of the minor (check) storm, e.g. "2-yr".</summary>
+    public string MinorStormName { get; init; } = "minor storm";
     public NetworkCriteria Criteria { get; init; } = new();
 }
 
@@ -112,6 +114,8 @@ public sealed record NetworkStructure
     public double? JunctionK { get; init; }
     /// <summary>Flow entering the network at this structure (e.g. inlet captured flow). Pipes with no typed Q carry the sum of the inflows upstream.</summary>
     public double? Inflow { get; init; }
+    /// <summary>Inflow for the minor (check) storm, e.g. the 2-year storm for Rapid City's minimum velocity.</summary>
+    public double? MinorInflow { get; init; }
     public double? Northing { get; init; }
     public double? Easting { get; init; }
 }
@@ -136,4 +140,6 @@ public sealed record NetworkPipe
     public double ManningN { get; init; } = 0.013;
     /// <summary>Design discharge in the pipe (cfs or m³/s); NaN (blank) = accumulate from structure inflows upstream.</summary>
     public double Discharge { get; init; }
+    /// <summary>Minor-storm (check) discharge used only for the minimum-velocity check; NaN = accumulate from minor inflows, or none.</summary>
+    public double MinorDischarge { get; init; } = double.NaN;
 }

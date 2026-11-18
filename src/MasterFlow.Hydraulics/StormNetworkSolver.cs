@@ -17,6 +17,9 @@ public sealed record PipeHydraulicResult
     public double FullFlowCapacity { get; init; }     // NaN for flat/adverse pipes
     public double FullFlowVelocity { get; init; }
     public double NormalVelocity { get; init; }       // NaN when there is no normal depth
+    /// <summary>Minor-storm discharge (NaN when none) and its mean velocity at normal depth (full-flow velocity if it would flow full).</summary>
+    public double MinorDischarge { get; init; } = double.NaN;
+    public double MinorVelocity { get; init; } = double.NaN;
     /// <summary>Mild, Steep, Flat/adverse or Pressure (Q above free-surface capacity).</summary>
     public string Regime { get; init; } = "";
     /// <summary>Plain-language flow condition, e.g. "Part full (subcritical backwater)", "Full (pressure)".</summary>
@@ -177,7 +180,24 @@ public static class StormNetworkSolver
             }
             return qOf[p.Name] = q;
         }
-        net = net with { Pipes = net.Pipes.Select(p => p with { Discharge = Q(p) }).ToList() };
+        // minor (check) storm, accumulated the same way; optional
+        var q2Of = new Dictionary<string, double>(StringComparer.Ordinal);
+        double Q2(NetworkPipe p)
+        {
+            if (q2Of.TryGetValue(p.Name, out double q)) return q;
+            if (double.IsFinite(p.MinorDischarge)) q = p.MinorDischarge;
+            else
+            {
+                double? inflow = structs[p.From].MinorInflow;
+                var ups = inflows.TryGetValue(p.From, out var list) ? list : [];
+                var upq = ups.Select(Q2).ToList();
+                q = inflow is null && upq.All(double.IsNaN) ? double.NaN : (inflow ?? 0) + upq.Where(double.IsFinite).Sum();
+                if (double.IsFinite(q) && upq.Any(double.IsNaN))
+                    messages.Add(CalcMessage.Warning("W-NW-009", F($"Pipe \"{p.Name}\": some pipes upstream have no {net.MinorStormName} flow; its {net.MinorStormName} Q ({q:G6}) counts only those that do.")));
+            }
+            return q2Of[p.Name] = q;
+        }
+        net = net with { Pipes = net.Pipes.Select(p => p with { Discharge = Q(p), MinorDischarge = Q2(p) }).ToList() };
         foreach (var p in net.Pipes.Where(p => !double.IsFinite(p.Discharge)))
             messages.Add(CalcMessage.Error("E-NW-007", $"Pipe \"{p.Name}\": no design Q. Type Q for the pipe, or an inflow at \"{p.From}\" or a structure upstream of it."));
         if (messages.Any(m => m.Severity == MessageSeverity.Error)) return Fail();
@@ -228,7 +248,7 @@ public static class StormNetworkSolver
         foreach (var s in structs.Values.Where(s => !structResults.ContainsKey(s.Name)))
             messages.Add(CalcMessage.Info("I-NW-001", $"Structure \"{s.Name}\" is not connected to any pipe; not computed."));
 
-        var pipes = net.Pipes.Where(p => pipeResults.ContainsKey(p.Name)).Select(p => pipeResults[p.Name]).ToList();
+        var pipes = net.Pipes.Where(p => pipeResults.ContainsKey(p.Name)).Select(p => WithMinor(pipeResults[p.Name], c, trace)).ToList();
         var structures = net.Structures.Where(s => structResults.ContainsKey(s.Name)).Select(s => structResults[s.Name]).ToList();
         messages.AddRange(Checks(net, c, pipes, structures));
         return new StormNetworkResult { Succeeded = true, Network = net, Constants = c, Pipes = pipes, Structures = structures, Messages = messages, Trace = trace, AccumulatedPipes = accumulated };
@@ -332,6 +352,17 @@ public static class StormNetworkSolver
         return (label, m == StructureLossMethod.StandardK ? F($"hs = K·Vo²/2g, K = {kb}") : F($"hj = {kb}·V2²/2g"), kb * hv2);
     }
 
+    /// <summary>Normal-depth velocity at the minor-storm Q (full-flow velocity if that Q exceeds the full-flow capacity).</summary>
+    private static PipeHydraulicResult WithMinor(PipeHydraulicResult r, UnitConstants c, List<string> trace)
+    {
+        double q2 = r.Pipe.MinorDischarge;
+        if (!double.IsFinite(q2)) return r;
+        var h = new PipeHydraulics(r.Pipe with { Discharge = q2 }, c);
+        double v = double.IsFinite(h.Vn) ? h.Vn : h.Vfull;
+        trace.Add(F($"Pipe {r.Pipe.Name}: minor-storm Q = {q2:G6}, mean velocity {v:F4} ({(double.IsFinite(h.Vn) ? "normal depth" : "full flow")})."));
+        return r with { MinorDischarge = q2, MinorVelocity = v };
+    }
+
     private static StructureHydraulicResult Check(StormNetwork net, UnitConstants c, StructureHydraulicResult r) =>
         r.Structure.RimElevation is { } rim ? r with { HglClearance = rim - r.Hgl, EglClearance = rim - r.Egl } : r;
 
@@ -358,9 +389,20 @@ public static class StormNetworkSolver
             double vmax = Math.Max(p.VelocityUp, p.VelocityDown);
             if (k.MaxVelocity is { } mx && vmax > mx)
                 yield return CalcMessage.Warning("W-NW-003", F($"Pipe \"{n}\": velocity {vmax:F2} {V} exceeds {mx:F2} {V}."));
-            double vref = double.IsFinite(p.NormalVelocity) ? p.NormalVelocity : p.FullFlowVelocity;
-            if (k.MinVelocity is { } mn && p.Pipe.Discharge > 0 && vref < mn)
-                yield return CalcMessage.Warning("W-NW-004", F($"Pipe \"{n}\": mean velocity {vref:F2} {V} is below {mn:F2} {V} (check with the storm the minimum applies to)."));
+            if (k.MinVelocity is { } mn)
+            {
+                if (double.IsFinite(p.MinorDischarge))
+                {
+                    if (p.MinorDischarge > 0 && p.MinorVelocity < mn)
+                        yield return CalcMessage.Warning("W-NW-004", F($"Pipe \"{n}\": mean velocity {p.MinorVelocity:F2} {V} at the {net.MinorStormName} flow ({p.MinorDischarge:G4} {c.Discharge}) is below {mn:F2} {V}."));
+                }
+                else
+                {
+                    double vref = double.IsFinite(p.NormalVelocity) ? p.NormalVelocity : p.FullFlowVelocity;
+                    if (p.Pipe.Discharge > 0 && vref < mn)
+                        yield return CalcMessage.Warning("W-NW-004", F($"Pipe \"{n}\": mean velocity {vref:F2} {V} at the design flow is below {mn:F2} {V} (no {net.MinorStormName} flow entered; the minimum may apply to a smaller storm)."));
+                }
+            }
             if (!k.AllowSurcharge && p.FlowsFull)
                 yield return CalcMessage.Warning("W-NW-005", F($"Pipe \"{n}\" flows full or under pressure (HGL above the crown); the criteria require open-channel flow."));
             if (k.MinPipeRise is { } mr && p.Pipe.Rise < mr - 1e-9)
