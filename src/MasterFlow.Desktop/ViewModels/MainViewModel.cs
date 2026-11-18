@@ -126,6 +126,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private RatingTable? _ratingTable;
     [ObservableProperty] private ComparisonTable? _comparison;
     [ObservableProperty] private string _ratingStatus = "Choose a range and press Generate.";
+    [ObservableProperty] private SensitivityTable? _sensitivityTable;
 
     public IDialogService? Dialogs { get; set; }
 
@@ -155,6 +156,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnSelectedChanged(CalculationViewModel? value)
     {
+        SensitivityTable = value?.BuildSensitivity();
         RatingTable = null;
         RatingStatus = "Choose a range and press Generate.";
         if (value?.Rating is { } rr)
@@ -280,6 +282,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnCalcEdited(object? sender, EventArgs e)
     {
         RefreshComparison();
+        if (ReferenceEquals(sender, Selected)) SensitivityTable = Selected!.BuildSensitivity();
         MarkDirty();
         UndoCommand.NotifyCanExecuteChanged();
         RedoCommand.NotifyCanExecuteChanged();
@@ -754,6 +757,26 @@ public sealed partial class MainViewModel : ObservableObject
         StatusMessage = "Results copied to the clipboard (tab-separated).";
     }
 
+    // ------------------------------------------------------------ sensitivity
+
+    /// <summary>Recomputes the sensitivity table for the selected calculation's current result.</summary>
+    [RelayCommand]
+    private void RefreshSensitivity()
+    {
+        SensitivityTable = Selected?.BuildSensitivity();
+        StatusMessage = SensitivityTable is null ? "Solve the calculation first; the sensitivity table varies its inputs." : $"Sensitivity: {SensitivityTable.Rows.Count} cases.";
+    }
+
+    [RelayCommand]
+    private async Task CopySensitivity()
+    {
+        if (Selected is null || Dialogs is null) return;
+        SensitivityTable ??= Selected.BuildSensitivity();
+        if (SensitivityTable is null) return;
+        await Dialogs.SetClipboardAsync(SensitivityAnalysis.ToDelimited(SensitivityTable, Selected.Constants));
+        StatusMessage = "Sensitivity table copied (tab-separated; paste into Excel).";
+    }
+
     // ------------------------------------------------------------ rating table
 
     [RelayCommand]
@@ -810,6 +833,7 @@ public sealed partial class MainViewModel : ObservableObject
         LogoDataUri = LogoDataUri,
         IncludeCalculationTrace = IncludeCalculationTrace,
         RatingTable = calc.BuildRatingTable(),
+        Sensitivity = calc.Sensitivity ? calc.BuildSensitivity() : null,
     };
 
     private ChannelCalculation ReportModel(CalculationViewModel calc) => calc.ToModel() with { Title = calc.DisplayTitle };
