@@ -281,6 +281,14 @@ step-by-step trace. Under each profile a band gives the station, HGL, EGL and th
 structures is a straight line between rims, and at a structure the upstream-side value is read. The same
 numbers go to the app, PDF, HTML and Excel (readings and profile points as numbers).
 
+**Automatic sizing.** Pass 1 (upstream first): the smallest standard circular size, not below the minimum
+size or any pipe upstream, with Qfull = (k/n)(πD²/4)(D/4)^⅔S^½ ≥ Q when pressure flow is not allowed and
+normal-depth velocity ≤ the maximum. Pass 2: for each structure failing the HGL criterion (or each pipe
+flowing full when not allowed), every circular pipe on its path to the outfall is tried one size larger
+(pipes downstream kept at least as large) with a full re-solve, and the change that lowers that structure's
+water level most is kept; repeated until met or no change helps. Sizes whose crown would rise above a rim
+are not used. Greedy, so the result is a sound design, not a proven minimum-cost one.
+
 **Limits.** Tree networks only (no loops, one outlet pipe per structure); no hydrology, routing or
 inlet capacity (H7); no partial-flow correction to junction losses beyond the equations above; no
 gradually varied flow in open channels downstream of the outfall.

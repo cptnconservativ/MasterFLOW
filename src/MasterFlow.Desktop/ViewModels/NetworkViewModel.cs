@@ -58,6 +58,10 @@ public sealed partial class NetworkViewModel : ObservableObject
     public ObservableCollection<CalcMessage> Messages { get; } = [];
     public ObservableCollection<string> Paths { get; } = [];
     public ObservableCollection<string> Trace { get; } = [];
+    /// <summary>Changes and notes from the last automatic sizing.</summary>
+    public ObservableCollection<string> SizingReport { get; } = [];
+    private string? _pipesBeforeSizing;
+    [ObservableProperty] private bool _canUndoSizing;
 
     public string PipesHeader => NetworkText.PipeHeader(Units).Replace('\t', '|');
     public string StructuresHeader => NetworkText.StructureHeader.Replace('\t', '|');
@@ -85,7 +89,7 @@ public sealed partial class NetworkViewModel : ObservableObject
         if (_loading) return;
         if (e.PropertyName is nameof(Result) or nameof(Status) or nameof(SelectedPath) or nameof(Profile) or nameof(PipesHeader) or nameof(StructuresHeader)
             or nameof(LengthUnit) or nameof(VelocityUnit) or nameof(SizeUnit) or nameof(IsElevationTailwater) or nameof(PipeColumns) or nameof(StructureColumns)
-            or nameof(CriteriaSummary) or nameof(HasResult)) return;
+            or nameof(CriteriaSummary) or nameof(HasResult) or nameof(CanUndoSizing)) return;
         Edited?.Invoke(this, EventArgs.Empty);
     }
 
@@ -198,6 +202,43 @@ public sealed partial class NetworkViewModel : ObservableObject
               (n.Criteria.HglBelowRim is null ? "No HGL criterion set. " : fails == 0 ? "HGL criterion met at every structure with a rim. " : $"HGL criterion FAILS at {fails} structure(s). ") +
               (warn > 0 ? $"{warn} warning(s)." : "No warnings.") + (errs.Count > 0 ? $" {errs.Count} input problem(s) listed." : "");
         OnPropertyChanged(nameof(PipeColumns)); OnPropertyChanged(nameof(StructureColumns)); OnPropertyChanged(nameof(CriteriaSummary)); OnPropertyChanged(nameof(HasResult));
+    }
+
+    /// <summary>
+    /// Sizes the circular pipes to the criteria (<see cref="NetworkSizer"/>), replaces the pipe sizes in the
+    /// grid, solves, and lists every change; <see cref="UndoSizing"/> restores the previous grid.
+    /// </summary>
+    [RelayCommand]
+    public void SizePipes()
+    {
+        var (n, errs) = BuildModel();
+        SizingReport.Clear();
+        if (errs.Count > 0) { Status = $"Not sized: {errs.Count} input problem(s); fix them first."; foreach (var e in errs) SizingReport.Add(e); return; }
+        var r = NetworkSizer.Size(n);
+        double k = NetworkText.SizeToBase(Units);
+        string u = NetworkText.SizeUnit(Units);
+        foreach (var c in r.Changes) SizingReport.Add($"{c.Pipe}: {(c.OldRise / k).ToString("0.##", Inv)} → {(c.NewRise / k).ToString("0.##", Inv)} {u} ({c.Reason})");
+        foreach (var note in r.Notes) SizingReport.Add(note);
+        if (r.Changes.Count > 0)
+        {
+            _pipesBeforeSizing = PipesText;
+            PipesText = NetworkText.FormatPipes(r.Network);
+            CanUndoSizing = true;
+        }
+        Solve();
+        Status = (r.Changes.Count == 0 ? "Sizing: no changes needed or possible. " : $"Sized: {r.Changes.Count} pipe(s) changed (see Sizing). ") + Status;
+    }
+
+    [RelayCommand]
+    public void UndoSizing()
+    {
+        if (_pipesBeforeSizing is null) return;
+        PipesText = _pipesBeforeSizing;
+        _pipesBeforeSizing = null;
+        CanUndoSizing = false;
+        SizingReport.Clear();
+        Solve();
+        Status = "Sizing undone. " + Status;
     }
 
     /// <summary>Tab-separated pipes and structures tables (for pasting into Excel).</summary>

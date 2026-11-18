@@ -265,6 +265,21 @@ as text.
    12 in. minimum, slopes below critical, no surcharge).
 6. **Solve** (F5). The status line says whether the HGL criterion is met everywhere.
 
+**Size pipes** picks circular sizes for you: the smallest standard size (12 to 108 in., or 300 to 3000 mm)
+that carries the design Q part full (when pressure flow is not allowed) within the velocity limits and is
+never smaller than a pipe upstream; then, wherever a structure's HGL is too close to its rim or a pipe still
+flows full, it tries one size up on each pipe between that structure and the outfall and keeps the one that
+lowers the water level most, repeating until the criteria are met or nothing more helps. Inverts, n, lengths
+and elliptical pipes are kept, and no crown is put above a rim. Every change, and anything it could not fix
+(for example an inlet too shallow for the 1 ft rule), is listed on the **Sizing** tab; **Undo sizing**
+restores the previous sizes.
+
+**LandXML…** writes the network as a LandXML 1.2 pipe network (units stated as foot or meter, sizes,
+lengths, inverts at each structure, rims, sumps at the lowest invert, coordinates, structure types; HGL, EGL
+and Q as Feature properties). In Civil 3D use *Insert → LandXML* and pick a parts list that has the sizes;
+Civil 3D creates a new pipe network from it. Structures need northing/easting (they come with a LandXML
+import); the export warns about any that do not.
+
 Results: **Profile** (choose the path; HGL solid, EGL dashed, rim/ground dashed brown, the criterion line
 as an orange tick at each structure; an HGL label in red fails the criterion; under the graph a band
 lists the station, HGL, EGL and the Rapid City limit (rim/ground − 1 ft) every 50 ft, or 15 m in SI, with
