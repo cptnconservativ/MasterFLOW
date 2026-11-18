@@ -22,3 +22,4 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Detention pond routing | IDCM §4.10, modified rational | [detention-routing.md](detention-routing.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
 | Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
+| Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
