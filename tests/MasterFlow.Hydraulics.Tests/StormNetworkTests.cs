@@ -241,4 +241,45 @@ public class StormNetworkTests
         Assert.Equal(0.8, StormNetworkSolver.Loss(new NetworkStructure { LossMethod = StructureLossMethod.StandardK }, net, 1, 2.0, 0).Loss, 12);
         Assert.Equal(3.0, StormNetworkSolver.Loss(new NetworkStructure { LossMethod = StructureLossMethod.StandardK, JunctionK = 1.5 }, net, 1, 2.0, 0).Loss, 12);
     }
+
+    [Fact]
+    public void FlowAccumulation_FromStructureInflows_MatchesTypedQ()
+    {
+        var typed = StormNetworkSolver.Solve(NetA());
+        var acc = NetA() with
+        {
+            Pipes = NetA().Pipes.Select(p => p with { Discharge = double.NaN }).ToList(),
+            Structures = Structs.Select(s => s.Name switch { "CB-3" => s with { Inflow = 12 }, "CB-4" => s with { Inflow = 8 }, _ => s }).ToList(),
+        };
+        var r = StormNetworkSolver.Solve(acc);
+        Assert.True(r.Succeeded, string.Join("; ", r.Messages.Select(m => m.Text)));
+        Assert.Equal(20, r.Pipe("P1")!.Pipe.Discharge, 12);   // 0 at MH-2 + 12 + 8
+        Assert.Equal(["P1", "P2", "P3"], r.AccumulatedPipes.OrderBy(x => x));
+        Assert.Equal(typed.Structure("CB-3")!.Hgl, r.Structure("CB-3")!.Hgl, 12);
+        Assert.Contains(r.Trace, t => t.Contains("Pipe P1: Q = 0 (inflow at MH-2) + 12 (P2) + 8 (P3) = 20"));
+    }
+
+    [Fact]
+    public void FlowAccumulation_TypedQOverrides_AndInflowAddsAtJunction()
+    {
+        var n = NetA() with
+        {
+            Pipes = NetA().Pipes.Select(p => p.Name == "P1" ? p with { Discharge = double.NaN } : p).ToList(),
+            Structures = Structs.Select(s => s.Name == "MH-2" ? s with { Inflow = 3 } : s).ToList(),
+        };
+        var r = StormNetworkSolver.Solve(n);
+        Assert.Equal(23, r.Pipe("P1")!.Pipe.Discharge, 12);   // 3 + typed 12 + typed 8
+        Assert.Equal(["P1"], r.AccumulatedPipes);
+    }
+
+    [Fact]
+    public void FlowAccumulation_NoQAnywhere_IsAnError()
+    {
+        var n = NetA() with { Pipes = NetA().Pipes.Select(p => p.Name == "P2" ? p with { Discharge = double.NaN } : p).ToList() };
+        var r = StormNetworkSolver.Solve(n);
+        Assert.False(r.Succeeded);
+        Assert.Contains(r.Messages, m => m.Code == "E-NW-007" && m.Text.Contains("CB-3"));
+        var neg = StormNetworkSolver.Solve(NetA() with { Structures = Structs.Select(s => s with { Inflow = -1 }).ToList() });
+        Assert.Contains(neg.Messages, m => m.Code == "E-NW-014");
+    }
 }

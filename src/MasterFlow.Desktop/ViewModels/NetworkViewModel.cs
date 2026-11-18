@@ -182,7 +182,7 @@ public sealed partial class NetworkViewModel : ObservableObject
         if (r.Succeeded)
         {
             foreach (var row in NetworkTables.PipeRows(r)) PipeRows.Add(new NetworkTableRow(row, false));
-            foreach (var row in NetworkTables.StructureRows(r)) StructureRows.Add(new NetworkTableRow(row, row[7] == "FAILS"));
+            foreach (var row in NetworkTables.StructureRows(r)) StructureRows.Add(new NetworkTableRow(row, row[NetworkTables.StructureCheckColumn] == "FAILS"));
             foreach (var p in NetworkProfile.PathStarts(r)) Paths.Add(p);
         }
         SelectedPath = Paths.FirstOrDefault();

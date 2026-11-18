@@ -66,6 +66,8 @@ public sealed record StormNetworkResult
     public IReadOnlyList<StructureHydraulicResult> Structures { get; init; } = [];
     public IReadOnlyList<CalcMessage> Messages { get; init; } = [];
     public IReadOnlyList<string> Trace { get; init; } = [];
+    /// <summary>Pipes whose Q was accumulated from structure inflows (not typed).</summary>
+    public IReadOnlySet<string> AccumulatedPipes { get; init; } = new HashSet<string>();
 
     public PipeHydraulicResult? Pipe(string name) => Pipes.FirstOrDefault(p => p.Pipe.Name == name);
     public StructureHydraulicResult? Structure(string name) => Structures.FirstOrDefault(s => s.Structure.Name == name);
@@ -129,7 +131,7 @@ public static class StormNetworkSolver
             if (p.Shape == NetworkPipeShape.Elliptical && !(p.Span > 0)) messages.Add(CalcMessage.Error("E-NW-004", $"{w}: elliptical span must be a positive number."));
             if (!(p.Length > 0) || !double.IsFinite(p.Length)) messages.Add(CalcMessage.Error("E-NW-005", $"{w}: length must be a positive number."));
             if (!(p.ManningN > 0) || !double.IsFinite(p.ManningN)) messages.Add(CalcMessage.Error("E-NW-006", $"{w}: Manning's n must be a positive number."));
-            if (!(p.Discharge >= 0) || !double.IsFinite(p.Discharge)) messages.Add(CalcMessage.Error("E-NW-007", $"{w}: design discharge must be zero or more (enter it for every pipe)."));
+            if (double.IsFinite(p.Discharge) && !(p.Discharge >= 0)) messages.Add(CalcMessage.Error("E-NW-007", $"{w}: design discharge must be zero or more."));
             if (!double.IsFinite(p.UpstreamInvert) || !double.IsFinite(p.DownstreamInvert)) messages.Add(CalcMessage.Error("E-NW-008", $"{w}: both inverts are required."));
         }
         if (messages.Any(m => m.Severity == MessageSeverity.Error)) return Fail();
@@ -153,7 +155,34 @@ public static class StormNetworkSolver
         if (net.Pipes.Count == 0) messages.Add(CalcMessage.Error("E-NW-012", "The network has no pipes."));
         if (net.Tailwater == TailwaterRule.Elevation && net.TailwaterElevation is not { } twe0)
             messages.Add(CalcMessage.Error("E-NW-013", "Tailwater rule is a known elevation, but no tailwater elevation is entered."));
+        foreach (var s in net.Structures)
+            if (s.Inflow is { } qi && (!double.IsFinite(qi) || qi < 0)) messages.Add(CalcMessage.Error("E-NW-014", $"Structure \"{s.Name}\": inflow must be zero or more."));
         if (messages.Any(m => m.Severity == MessageSeverity.Error)) return Fail();
+
+        // ---- flow accumulation: a pipe without a typed Q carries its upstream structure's inflow plus every pipe into that structure
+        var accumulated = new HashSet<string>(StringComparer.Ordinal);
+        var qOf = new Dictionary<string, double>(StringComparer.Ordinal);
+        double Q(NetworkPipe p)
+        {
+            if (qOf.TryGetValue(p.Name, out double q)) return q;
+            if (double.IsFinite(p.Discharge)) q = p.Discharge;
+            else
+            {
+                double? inflow = structs[p.From].Inflow;
+                var ups = inflows.TryGetValue(p.From, out var list) ? list : [];
+                q = (inflow ?? 0) + ups.Sum(Q);
+                if (inflow is null && ups.Count == 0) q = double.NaN;
+                accumulated.Add(p.Name);
+                trace.Add(F($"Pipe {p.Name}: Q = {(inflow ?? 0):G6} (inflow at {p.From}){string.Concat(ups.Select(u => F($" + {Q(u):G6} ({u.Name})")))} = {q:G6}."));
+            }
+            return qOf[p.Name] = q;
+        }
+        net = net with { Pipes = net.Pipes.Select(p => p with { Discharge = Q(p) }).ToList() };
+        foreach (var p in net.Pipes.Where(p => !double.IsFinite(p.Discharge)))
+            messages.Add(CalcMessage.Error("E-NW-007", $"Pipe \"{p.Name}\": no design Q. Type Q for the pipe, or an inflow at \"{p.From}\" or a structure upstream of it."));
+        if (messages.Any(m => m.Severity == MessageSeverity.Error)) return Fail();
+        outlet = net.Pipes.GroupBy(p => p.From).ToDictionary(g => g.Key, g => g.First());
+        inflows = net.Pipes.GroupBy(p => p.To).ToDictionary(g => g.Key, g => g.ToList());
 
         trace.Add(F($"Units {(net.Units == UnitSystem.SI ? "SI" : "U.S. customary")}: k = {c.ManningK}, g = {c.Gravity}. Outfalls: {string.Join(", ", outfalls)}. Tailwater rule: {net.Tailwater}{(net.Tailwater == TailwaterRule.Elevation ? F($" ({net.TailwaterElevation:G10})") : "")}."));
 
@@ -202,7 +231,7 @@ public static class StormNetworkSolver
         var pipes = net.Pipes.Where(p => pipeResults.ContainsKey(p.Name)).Select(p => pipeResults[p.Name]).ToList();
         var structures = net.Structures.Where(s => structResults.ContainsKey(s.Name)).Select(s => structResults[s.Name]).ToList();
         messages.AddRange(Checks(net, c, pipes, structures));
-        return new StormNetworkResult { Succeeded = true, Network = net, Constants = c, Pipes = pipes, Structures = structures, Messages = messages, Trace = trace };
+        return new StormNetworkResult { Succeeded = true, Network = net, Constants = c, Pipes = pipes, Structures = structures, Messages = messages, Trace = trace, AccumulatedPipes = accumulated };
 
         // Structure at the upstream end of `outPipe`: loss, then every inflow pipe.
         void Upstream(string name, PipeHydraulicResult outPipe)

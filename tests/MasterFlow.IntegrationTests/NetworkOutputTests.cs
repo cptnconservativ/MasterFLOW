@@ -51,12 +51,18 @@ public class NetworkOutputTests
             Assert.Equal(n.Pipes[i].UpstreamInvert, pipes[i].UpstreamInvert, 9);
             Assert.Equal(n.Pipes[i].Discharge, pipes[i].Discharge, 9);
         }
-        var withLoss = n with { Structures = [n.Structures[0], n.Structures[1] with { LossMethod = StructureLossMethod.StandardK, JunctionK = 0.8 }] };
+        var withLoss = n with { Structures = [n.Structures[0], n.Structures[1] with { LossMethod = StructureLossMethod.StandardK, JunctionK = 0.8, Inflow = 4.5 }] };
         var (structs, se) = NetworkText.ParseStructures(NetworkText.FormatStructures(withLoss));
         Assert.Empty(se);
         Assert.Equal(StructureLossMethod.StandardK, structs[1].LossMethod);
         Assert.Equal(0.8, structs[1].JunctionK);
         Assert.Equal(106.0, structs[1].RimElevation);
+        Assert.Equal(4.5, structs[1].Inflow);
+        Assert.Null(structs[0].Inflow);
+        // A blank Q means "accumulate".
+        var (blank, be) = NetworkText.ParsePipes("P1\tA\tB\tCircular\t24\t\t200\t101\t100\t0.013\t", UnitSystem.USCustomary);
+        Assert.Empty(be);
+        Assert.True(double.IsNaN(blank[0].Discharge));
     }
 
     [Fact]
@@ -126,9 +132,9 @@ public class NetworkOutputTests
     {
         var r = StormNetworkSolver.Solve(NetA());
         var rows = NetworkTables.StructureRows(r);
-        Assert.Equal("FAILS", rows.Single(x => x[0] == "CB-3")[7]);
-        Assert.Equal("OK", rows.Single(x => x[0] == "MH-2")[7]);
-        Assert.Equal("104.51", rows.Single(x => x[0] == "MH-2")[3]);
+        Assert.Equal("FAILS", rows.Single(x => x[0] == "CB-3")[NetworkTables.StructureCheckColumn]);
+        Assert.Equal("OK", rows.Single(x => x[0] == "MH-2")[NetworkTables.StructureCheckColumn]);
+        Assert.Equal("104.51", rows.Single(x => x[0] == "MH-2")[4]);
         Assert.Contains("Rapid City", NetworkTables.CriteriaText(r.Network, r.Constants));
     }
 

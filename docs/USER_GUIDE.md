@@ -248,11 +248,14 @@ as text.
 
 1. **New** adds an empty network, or **Import LandXML** in the main window sets one up from a Civil 3D
    pipe network (pipes, sizes, lengths, inverts, structures and rims). Imported pipes have no design Q:
-   type it in the last column.
+   give each inlet its inflow (see 3), or type a Q per pipe.
 2. Pipes: one per line, columns *Pipe, From (upstream structure), To (downstream structure), Shape,
-   Size or rise (in. or mm), Span (elliptical only), Length, Invert up, Invert down, n, Q*. Tab, semicolon
+   Size or rise (in. or mm), Span (elliptical only), Length, Invert up, Invert down, n, Q*. Leave Q blank
+   to have it added up from the structure inflows (a pipe carries the inflow at its upstream structure plus
+   every pipe entering that structure; a typed Q overrides this and is carried on downstream). Accumulated
+   values are marked Σ in the tables. Tab, semicolon
    or comma separated, so a range copied from Excel can be pasted straight in.
-3. Structures: *Structure, Type, Rim, Loss method, K*. Leave the loss method blank for *Auto*; the list
+3. Structures: *Structure, Type, Rim, Loss method, K, Inflow Q*. Leave the loss method blank for *Auto*; the list
    of methods is under the table (IDCM Figs. 4-6/4-7 cases, bends, or StandardK with K).
 4. Tailwater rule and, for a known tailwater, its elevation.
 5. Criteria: type values or press **Rapid City IDCM 2012** (HGL 1 ft below the rim, 2.5 to 20 fps,
