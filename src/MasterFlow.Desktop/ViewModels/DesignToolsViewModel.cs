@@ -99,15 +99,17 @@ public sealed partial class DesignToolsViewModel : ObservableObject
     }
 
     public string? BuildHtml() => Result is null ? null : ToolReport.ToHtml(_main.ToProject().Info, Result, InputText, MainViewModel.AppVersion);
+    public byte[]? BuildPdf() => Result is null ? null : ToolReport.ToPdf(_main.ToProject().Info, Result, InputText, _main.NetworkReportOptions());
     public byte[]? BuildWorkbook() => Result is null ? null : XlsxWriter.ToBytes(ToolReport.ToSheets(Result));
 
     [RelayCommand]
     private async Task SaveReport()
     {
         if (Result is null || _main.Dialogs is null) return;
-        var path = await _main.Dialogs.PickSaveAsync(Safe(SelectedTool?.Name ?? "tool") + ".html", ".html", "HTML report (print to PDF from the browser)", (".xlsx", "Excel workbook"));
+        var path = await _main.Dialogs.PickSaveAsync(Safe(SelectedTool?.Name ?? "tool") + ".html", ".html", "HTML report", (".pdf", "PDF report"), (".xlsx", "Excel workbook"));
         if (path is null) return;
         if (path.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildWorkbook()!);
+        else if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildPdf()!);
         else await File.WriteAllTextAsync(path, BuildHtml()!);
         _main.StatusMessage = $"Saved {path}.";
     }

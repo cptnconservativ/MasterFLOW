@@ -2,6 +2,8 @@ using System.Net;
 using System.Text;
 using MasterFlow.Application.Tools;
 using MasterFlow.Domain;
+using MasterFlow.Hydraulics;
+using SkiaSharp;
 
 namespace MasterFlow.Reporting;
 
@@ -16,10 +18,14 @@ public static class ToolReport
           .Append("body{font-family:Segoe UI,Arial,sans-serif;color:#1d2733;margin:24px;font-size:13px}h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;color:#1f5f8b;border-bottom:1px solid #c9d3dd;padding-bottom:3px;margin-top:20px}")
           .Append("table{border-collapse:collapse;margin:6px 0}th,td{border-bottom:1px solid #dde3ea;padding:3px 7px;text-align:left;vertical-align:top}th{background:#eef3f8;font-weight:600}td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}")
           .Append(".note{color:#5b6876;font-size:12px;margin:2px 0}.msg{padding:4px 8px;margin:3px 0;border-left:3px solid #1f5f8b;background:#eef5fb}.msg.Warning{border-color:#b7791f;background:#fff7e0}.msg.Error{border-color:#b42318;background:#fdecea}")
-          .Append("pre{background:#f5f7f9;padding:8px;font-size:11px;white-space:pre-wrap}.sub{color:#5b6876}@media print{body{margin:0}}</style></head><body>");
+          .Append("figure.chart{margin:10px 0}figure.chart figcaption{font-weight:600;color:#1f5f8b;margin-bottom:2px}figure.chart svg{max-width:100%;height:auto}pre{background:#f5f7f9;padding:8px;font-size:11px;white-space:pre-wrap}.sub{color:#5b6876}@media print{body{margin:0}}</style></head><body>");
         sb.Append($"<h1>{E(r.Title)}</h1><div class=\"sub\">{E(project.Name)} {E(project.ProjectNumber)} · Prepared by {E(project.PreparedBy)} · Checked by {E(project.CheckedBy)} · {(when ?? DateTimeOffset.Now):yyyy-MM-dd HH:mm} · MasterFlow {E(softwareVersion)}</div>");
         foreach (var s in r.Summary) sb.Append($"<p>{E(s)}</p>");
-        foreach (var ch in r.Charts) sb.Append($"<h2>{E(ch.Title)}</h2>").Append(ChartSvg(ch));
+        if (r.Charts.Count > 0)
+        {
+            sb.Append("<h2>Charts</h2>");
+            foreach (var c in r.Charts) sb.Append(ToolChartLayout.ToSvg(c));
+        }
         foreach (var t in r.Tables)
         {
             sb.Append($"<h2>{E(t.Title)}</h2><table><tr>");
@@ -44,70 +50,140 @@ public static class ToolReport
         return sb.ToString();
     }
 
-    private static readonly string[] SeriesColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"];
-
     /// <summary>
-    /// A static SVG line chart: one y axis, recessive grid, legend, the last point of each series labelled, and a
-    /// tooltip (SVG title) on every point. Reference series are drawn dashed in grey and labelled at their left end.
+    /// The result as a PDF: title block, summary, charts, every table (landscape letter, headers repeat across pages),
+    /// messages and the input. Same content as the HTML report.
     /// </summary>
-    public static string ChartSvg(ToolChart ch)
+    public static byte[] ToPdf(ProjectInfo project, ToolResult r, string input, ReportOptions? options = null)
     {
-        static string F(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-        static string E(string? s) => WebUtility.HtmlEncode(s ?? "");
-        var pts = ch.Series.SelectMany(s => s.Points).Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y)).ToList();
-        if (pts.Count < 2) return "";
-        const double W = 760, H = 360, L = 64, R = 190, T = 14, B = 46;
-        double x0 = pts.Min(p => p.X), x1 = pts.Max(p => p.X), y0 = pts.Min(p => p.Y), y1 = pts.Max(p => p.Y);
-        if (x1 <= x0) x1 = x0 + 1;
-        if (y1 <= y0) y1 = y0 + 1;
-        var (xt, xs) = Ticks(x0, x1); var (yt, ys) = Ticks(y0, y1);
-        x0 = xt[0]; x1 = xt[^1]; y0 = yt[0]; y1 = yt[^1];
-        double X(double v) => L + (v - x0) / (x1 - x0) * (W - L - R);
-        double Y(double v) => H - B - (v - y0) / (y1 - y0) * (H - T - B);
-        var sb = new StringBuilder($"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {W} {H}\" width=\"{W}\" style=\"max-width:100%;height:auto;font-family:Segoe UI,Arial,sans-serif;font-size:11px\" role=\"img\" aria-label=\"{E(ch.Title)}\">");
-        foreach (var t in yt) sb.Append($"<line x1=\"{L}\" x2=\"{W - R}\" y1=\"{F(Y(t))}\" y2=\"{F(Y(t))}\" stroke=\"#e3e8ee\"/><text x=\"{L - 6}\" y=\"{F(Y(t) + 4)}\" text-anchor=\"end\" fill=\"#5b6876\">{F(t)}</text>");
-        foreach (var t in xt) sb.Append($"<text x=\"{F(X(t))}\" y=\"{H - B + 16}\" text-anchor=\"middle\" fill=\"#5b6876\">{F(t)}</text>");
-        sb.Append($"<line x1=\"{L}\" x2=\"{W - R}\" y1=\"{H - B}\" y2=\"{H - B}\" stroke=\"#9aa7b4\"/>");
-        sb.Append($"<text x=\"{F((L + W - R) / 2)}\" y=\"{H - 8}\" text-anchor=\"middle\" fill=\"#1d2733\">{E(ch.XLabel)}</text>");
-        sb.Append($"<text transform=\"translate(14 {F((T + H - B) / 2)}) rotate(-90)\" text-anchor=\"middle\" fill=\"#1d2733\">{E(ch.YLabel)}</text>");
-        int li = 0;
-        // Envelopes first so the lines they summarise draw on top.
-        foreach (var s in ch.Series.Where(x => x.Envelope).Concat(ch.Series.Where(x => !x.Envelope)))
+        options ??= new ReportOptions();
+        var fonts = new PdfFonts();
+        var pager = new PdfPager(fonts, PdfReport.LetterHeight, PdfReport.LetterWidth); // landscape
+        pager.StartSection($"{r.Title} — {project.Name}", PdfReport.Context(options));
+        pager.Add(new TextBlock(fonts, r.Title, fonts.Bold, PdfStyle.H1, PdfStyle.Ink, 2));
+        string sub = string.Join(" · ", new[] { project.Name, project.ProjectNumber, string.IsNullOrWhiteSpace(project.PreparedBy) ? "" : "Prepared by " + project.PreparedBy,
+            string.IsNullOrWhiteSpace(project.CheckedBy) ? "" : "Checked by " + project.CheckedBy, "MasterFlow " + options.SoftwareVersion, PdfReport.Stamp(options) }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        pager.Add(new TextBlock(fonts, sub, fonts.Regular, PdfStyle.Body, PdfStyle.Muted, 6));
+        foreach (var s in r.Summary) pager.Paragraph(s, spaceAfter: 2);
+        for (int i = 0; i < r.Charts.Count; i += 2)
         {
-            string color = s.Reference ? "#7d8a97" : SeriesColors[ch.Series.Where(x => !x.Reference).ToList().IndexOf(s) % SeriesColors.Length];
-            var good = s.Points.Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y)).ToList();
-            if (good.Count == 0) continue;
-            var d = new StringBuilder();
-            bool pen = false;
-            foreach (var p in s.Points)
+            var left = new ChartBlock(fonts, r.Charts[i]);
+            IPdfBlock? right = i + 1 < r.Charts.Count ? new ChartBlock(fonts, r.Charts[i + 1]) : null;
+            pager.Space(6);
+            pager.Add(new DrawBlock(Math.Max(left.Height(0), right?.Height(0) ?? 0), (c, x, y, w) =>
             {
-                if (!double.IsFinite(p.Y) || !double.IsFinite(p.X)) { pen = false; continue; }
-                d.Append(pen ? " L" : " M").Append(F(X(p.X))).Append(' ').Append(F(Y(p.Y)));
-                pen = true;
-            }
-            sb.Append($"<path d=\"{d}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{(s.Envelope ? 8 : 2)}\" stroke-linejoin=\"round\" stroke-linecap=\"round\"{(s.Envelope ? " stroke-opacity=\"0.3\"" : "")}{(s.Reference ? " stroke-dasharray=\"6 4\"" : "")}/>");
-            if (s.Reference)
-            {
-                var first = good[0];
-                sb.Append($"<text x=\"{F(X(first.X) + 4)}\" y=\"{F(Y(first.Y) - 5)}\" fill=\"#5b6876\">{E(s.Name)}</text>");
-                continue;
-            }
-            if (!s.Envelope)
-                foreach (var p in good)
-                    sb.Append($"<circle cx=\"{F(X(p.X))}\" cy=\"{F(Y(p.Y))}\" r=\"4\" fill=\"{color}\" stroke=\"#fff\" stroke-width=\"2\"><title>{E(s.Name)}: {E(ch.XLabel)} {F(p.X)}, {E(ch.YLabel)} {F(p.Y)}</title></circle>");
-            double ly = T + 6 + 18 * li++;
-            sb.Append($"<line x1=\"{W - R + 12}\" x2=\"{W - R + 32}\" y1=\"{F(ly)}\" y2=\"{F(ly)}\" stroke=\"{color}\" stroke-width=\"{(s.Envelope ? 8 : 2)}\"{(s.Envelope ? " stroke-opacity=\"0.3\"" : "")}/><text x=\"{W - R + 38}\" y=\"{F(ly + 4)}\" fill=\"#1d2733\">{E(s.Name)}</text>");
+                float half = (w - 16) / 2;
+                left.Draw(c, x, y, half);
+                right?.Draw(c, x + half + 16, y, half);
+            }));
         }
-        return sb.Append("</svg>").ToString();
-
-        static (double[] Ticks, double Step) Ticks(double lo, double hi)
+        foreach (var t in r.Tables)
         {
-            double raw = (hi - lo) / 6, mag = Math.Pow(10, Math.Floor(Math.Log10(raw))), n = raw / mag;
-            double step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
-            double a = Math.Floor(lo / step) * step, b = Math.Ceiling(hi / step) * step;
-            var t = new List<double>();
-            for (double v = a; v <= b + step * 1e-9; v += step) t.Add(Math.Round(v / step) * step);
-            return (t.ToArray(), step);
+            pager.Heading(t.Title);
+            // Width: the longest cell or header word, or half the header (headers wrap), within 4 to 40 characters.
+            var cols = t.Headers.Select((h, k) => new PdfColumn(Math.Clamp(Math.Max(Math.Max((h.Length + 1) / 2, h.Split(' ').Max(w => w.Length)),
+                    t.Rows.Count == 0 ? 0 : t.Rows.Max(row => k < row.Count ? DesignTools.Cell(row[k]).Length : 0)), 4, 40) / 10f,
+                t.Rows.Count > 0 && t.Rows.All(row => k >= row.Count || row[k] is null or double))).ToList();
+            pager.AddTable(new TableBlock(fonts, cols, t.Headers, t.Rows.Select(row => ((IReadOnlyList<PdfCell>)row.Select(c => new PdfCell(DesignTools.Cell(c))).ToList(),
+                row.Any(c => c is string s && s.StartsWith("FAILS", StringComparison.Ordinal)))).ToList(), PdfStyle.Small));
+            foreach (var n in t.Notes ?? []) pager.Paragraph(n, size: PdfStyle.Small, color: PdfStyle.Muted, spaceAfter: 1);
+        }
+        pager.Heading("Messages");
+        if (r.Messages.Count == 0) pager.Paragraph("None.");
+        foreach (var m in r.Messages)
+        {
+            var (bar, fill) = m.Severity switch
+            {
+                MessageSeverity.Error => (PdfStyle.Red, SKColor.Parse("#fdecea")),
+                MessageSeverity.Warning => (PdfStyle.Amber, SKColor.Parse("#fff7e0")),
+                _ => (PdfStyle.Accent, SKColor.Parse("#eef5fb")),
+            };
+            pager.Add(new MessageBlock(fonts, $"{m.Severity} [{m.Code}]", m.Text, bar, fill));
+        }
+        pager.Heading("Input");
+        foreach (var line in (input ?? "").Replace("\r", "").Split('\n'))
+            pager.Paragraph(line.Replace("\t", "    ").Length == 0 ? " " : line.Replace("\t", "    "), fonts.Mono, PdfStyle.Small, PdfStyle.Muted, 0);
+        using var ms = new MemoryStream();
+        var when = (options.Timestamp ?? DateTimeOffset.Now).UtcDateTime;
+        using (var doc = SKDocument.CreatePdf(ms, new SKDocumentPdfMetadata
+        {
+            Title = r.Title, Author = project.PreparedBy, Subject = project.Name,
+            Creator = "MasterFlow " + options.SoftwareVersion, Producer = "MasterFlow " + options.SoftwareVersion, Creation = when, Modified = when, RasterDpi = 300,
+        }))
+        {
+            pager.Render(doc);
+            doc.Close();
+        }
+        return ms.ToArray();
+    }
+
+    /// <summary>A <see cref="ToolChart"/> drawn with the same layout as the HTML SVG.</summary>
+    private sealed class ChartBlock(PdfFonts fonts, ToolChart chart) : IPdfBlock
+    {
+        private const float H = 205;
+        public float Height(float width) => H + 14;
+        public void Draw(SKCanvas c, float x, float y, float width)
+        {
+            fonts.Draw(c, chart.Title, x, y + PdfStyle.Body, fonts.Bold, PdfStyle.Body, PdfStyle.Accent);
+            y += 14;
+            var g = new ToolChartLayout(chart, width, H);
+            SKPoint P(double px, double py) => new(x + g.MapX(px), y + g.MapY(py));
+            using (var bg = new SKPaint { Color = PdfStyle.PlotBg }) c.DrawRect(x + ToolChartLayout.PadL, y + ToolChartLayout.PadT, g.PlotW, g.PlotH, bg);
+            using (var gp = new SKPaint { Color = PdfStyle.Rule, StrokeWidth = 0.4f })
+            {
+                foreach (var t in g.YTicks)
+                {
+                    var a = P(g.X0, t); c.DrawLine(a, P(g.X1, t), gp);
+                    string s = ToolChartLayout.Tick(t, g.YTicks);
+                    fonts.Draw(c, s, a.X - 4 - fonts.Measure(s, fonts.Regular, 6.5f), a.Y + 2.5f, fonts.Regular, 6.5f, PdfStyle.Muted);
+                }
+                foreach (var t in g.XTicks)
+                {
+                    var a = P(t, g.Y0); c.DrawLine(a, P(t, g.Y1), gp);
+                    string s = ToolChartLayout.Tick(t, g.XTicks);
+                    fonts.Draw(c, s, a.X - fonts.Measure(s, fonts.Regular, 6.5f) / 2, a.Y + 10, fonts.Regular, 6.5f, PdfStyle.Muted);
+                }
+            }
+            float xl = fonts.Measure(chart.XLabel, fonts.Regular, 7f);
+            fonts.Draw(c, chart.XLabel, x + ToolChartLayout.PadL + g.PlotW / 2 - xl / 2, y + H - 4, fonts.Regular, 7f, PdfStyle.Ink);
+            c.Save();
+            c.Translate(x + 10, y + ToolChartLayout.PadT + g.PlotH / 2 + fonts.Measure(chart.YLabel, fonts.Regular, 7f) / 2);
+            c.RotateDegrees(-90);
+            fonts.Draw(c, chart.YLabel, 0, 0, fonts.Regular, 7f, PdfStyle.Ink);
+            c.Restore();
+            foreach (var l in (chart.Lines ?? []).Where(l => !chart.LogY || l.Y > 0))
+            {
+                using var lp = new SKPaint { Color = PdfStyle.Amber, StrokeWidth = 0.8f, PathEffect = SKPathEffect.CreateDash([2f, 2.5f], 0) };
+                var a = P(g.X0, l.Y); var b = P(g.X1, l.Y);
+                c.DrawLine(a, b, lp);
+                string s = $"{l.Label} {l.Y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}";
+                fonts.Draw(c, s, b.X - 3 - fonts.Measure(s, fonts.Regular, 6.5f), a.Y - 2, fonts.Regular, 6.5f, PdfStyle.Amber);
+            }
+            float lx = x + ToolChartLayout.PadL;
+            for (int i = 0; i < chart.Series.Count; i++)
+            {
+                var s = chart.Series[i];
+                var col = SKColor.Parse(ToolChartLayout.Color(s, i));
+                using var paint = new SKPaint { Color = col, StrokeWidth = 1.2f, IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeJoin = SKStrokeJoin.Round };
+                if (s.Dashed) paint.PathEffect = SKPathEffect.CreateDash([5f, 2.5f], 0);
+                var pts = s.Points.Where(g.Plottable).ToList();
+                if (s.MarkersOnly)
+                {
+                    using var dot = new SKPaint { Color = col, IsAntialias = true, Style = SKPaintStyle.Fill };
+                    foreach (var q in pts) c.DrawCircle(P(q.X, q.Y), 2.5f, dot);
+                    c.DrawCircle(lx + 8, y + 9, 2.5f, dot);
+                }
+                else if (pts.Count >= 2)
+                {
+                    using var path = new SKPath();
+                    path.MoveTo(P(pts[0].X, pts[0].Y));
+                    foreach (var q in pts.Skip(1)) path.LineTo(P(q.X, q.Y));
+                    c.DrawPath(path, paint);
+                }
+                if (!s.MarkersOnly) c.DrawLine(lx, y + 9, lx + 16, y + 9, paint);
+                fonts.Draw(c, s.Name, lx + 20, y + 11.5f, fonts.Regular, 7f, PdfStyle.Ink);
+                lx += 20 + fonts.Measure(s.Name, fonts.Regular, 7f) + 12;
+            }
         }
     }
 

@@ -325,9 +325,9 @@ public sealed class CulvertTool : IDesignTool
                 sIn.Add((q, up + pt.Inlet.Headwater)); sOut.Add((q, up + ho)); sHw.Add((q, pt.HeadwaterElevation));
             }
         }
-        var series = new List<ToolSeries> { new("Inlet control", sIn), new("Outlet control", sOut), new("Controlling headwater", sHw, Envelope: true) };
-        if (road is not null && sHw.Count > 0) series.Add(new("Roadway low point", [(0, road.LowPoint), (qMax, road.LowPoint)], Reference: true));
-        if (sHw.Count > 0) series.Add(new("Top of barrel at inlet", [(0, up + rise), (qMax, up + rise)], Reference: true));
+        var series = new List<ChartSeries> { new("Inlet control", sIn), new("Outlet control", sOut), new("Controlling headwater (with overtopping)", sHw, Dashed: true) };
+        var lines = new List<ChartLine> { new("Top of barrel at inlet", up + rise) };
+        if (road is not null) lines.Add(new ChartLine("Roadway low point", road.LowPoint));
 
         if (method == "hds5" && results.Any(r => r.Point.Control == "outlet" && r.Point.TailwaterDepth < rise && Math.Abs(r.Point.Outlet.HeadwaterBackwater - r.Point.Outlet.Headwater) > 0.05 * rise))
             msgs.Add(CalcMessage.Info("I-CV-003", "Outlet control with a partly full outlet: the HDS-5 equation (ho = (dc + D)/2) and the backwater computation differ by more than 5 % of D. HDS-5 recommends the backwater computation when HW < D + (1 + Ke)V²/2g; set outlet method = backwater to use it."));
@@ -349,7 +349,7 @@ public sealed class CulvertTool : IDesignTool
 
         return new ToolResult(title, sum, tables, msgs)
         {
-            Charts = curve.Count > 0 ? [new ToolChart("Performance curve", $"Total flow ({Qu})", "Headwater elevation", series)] : [],
+            Charts = curve.Count > 0 ? [new ToolChart("Performance curve", $"Total flow ({Qu})", "Headwater elevation", series, lines)] : [],
         };
     }
 
