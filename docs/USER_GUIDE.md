@@ -242,6 +242,32 @@ inputs, cross-section, results, warnings and assumptions, the rating table when 
 Numbers in Excel are stored at full precision; non-finite values are left empty rather than written
 as text.
 
+## 6a. Storm networks (HGL and EGL)
+
+**Storm networks…** opens a separate window for storm sewer hydraulic grade lines.
+
+1. **New** adds an empty network, or **Import LandXML** in the main window sets one up from a Civil 3D
+   pipe network (pipes, sizes, lengths, inverts, structures and rims). Imported pipes have no design Q:
+   type it in the last column.
+2. Pipes: one per line, columns *Pipe, From (upstream structure), To (downstream structure), Shape,
+   Size or rise (in. or mm), Span (elliptical only), Length, Invert up, Invert down, n, Q*. Tab, semicolon
+   or comma separated, so a range copied from Excel can be pasted straight in.
+3. Structures: *Structure, Type, Rim, Loss method, K*. Leave the loss method blank for *Auto*; the list
+   of methods is under the table (IDCM Figs. 4-6/4-7 cases, bends, or StandardK with K).
+4. Tailwater rule and, for a known tailwater, its elevation.
+5. Criteria: type values or press **Rapid City IDCM 2012** (HGL 1 ft below the rim, 2.5 to 20 fps,
+   12 in. minimum, slopes below critical, no surcharge).
+6. **Solve** (F5). The status line says whether the HGL criterion is met everywhere.
+
+Results: **Profile** (choose the path; HGL solid, EGL dashed, rim/ground dashed brown, the criterion line
+as an orange tick at each structure; an HGL label in red fails the criterion; under the graph a band
+lists the station, HGL, EGL and the Rapid City limit (rim/ground − 1 ft) every 50 ft, or 15 m in SI, with
+the HGL in red wherever it is above the limit), **Pipes**, **Structures**
+(failing rows shaded red), **Messages** and **Trace**. **Report…** saves a PDF (or HTML) with a profile per
+path and both tables; **Copy tables** puts them on the clipboard; **Excel…** adds sheets for the pipes,
+structures, the 50 ft readings (with limit − HGL and OK/FAILS), every profile point (station, invert, crown, HGL, EGL) and messages. Networks are saved with
+the project.
+
 ## 7. Projects, templates and safety nets
 
 | Task | How |

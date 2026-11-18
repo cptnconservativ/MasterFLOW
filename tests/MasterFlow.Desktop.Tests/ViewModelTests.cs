@@ -814,6 +814,73 @@ public class PipeNetworkImportTests
     }
 
     [Fact]
+    public void Import_SetsUpStormNetwork_ForHgl()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var status = vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        Assert.Contains("1 storm network(s) set up for HGL/EGL", status);
+        var n = Assert.Single(vm.Networks);
+        Assert.Same(n, vm.SelectedNetwork);
+        Assert.Equal("Storm A", n.Name);
+        var model = n.ToModel();
+        Assert.Equal(["P-1", "P-2"], model.Pipes.Select(p => p.Name));
+        Assert.Equal(1.5, model.Pipes[0].Rise, 9);
+        Assert.Equal(100.5, model.Pipes[0].UpstreamInvert, 9);
+        Assert.True(double.IsNaN(model.Pipes[0].Discharge));      // design Q is entered by the user
+        Assert.Equal(104.8, model.Structures.Single(s => s.Name == "MH-1").RimElevation);
+        Assert.Equal(5100.0, model.Structures.Single(s => s.Name == "MH-1").Northing);
+
+        // Without Q the network does not solve, and says why.
+        n.Solve();
+        Assert.False(n.HasResult);
+        Assert.StartsWith("Not solved", n.Status);
+
+        // Enter Q (last column), apply the Rapid City criteria and solve.
+        var lines = n.PipesText.Split('\n');
+        n.PipesText = string.Join('\n', lines.Select((l, i) => i == 0 ? l : l + (i == 1 ? "6" : "10")));
+        n.ApplyRapidCityCommand.Execute(null);
+        n.Tailwater = TailwaterRule.FreeOutfall;
+        n.Solve();
+        Assert.True(n.HasResult, n.Status);
+        Assert.Equal(2, n.PipeRows.Count);
+        Assert.Equal(3, n.StructureRows.Count);
+        Assert.Equal("CB-1", n.SelectedPath);
+        Assert.NotNull(n.Profile);
+        Assert.Equal(225, n.Profile!.Length, 9);
+        Assert.Equal(1.0, n.ToModel().Criteria.HglBelowRim);
+        Assert.Contains("Rapid City", n.ToModel().Criteria.Source);
+        Assert.Contains("\t", n.ResultsText());
+
+        // Saved with the project and reloaded; edits mark the project changed; reports and workbook build.
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        var saved = Assert.Single(back.Networks);
+        Assert.Equal(10, saved.Pipes[1].Discharge);
+        Assert.Equal(TailwaterRule.FreeOutfall, saved.Tailwater);
+        Assert.NotNull(vm.BuildNetworkPdf(n));
+        Assert.Contains("<svg", vm.BuildNetworkHtml(n));
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(vm.BuildWorkbook()));
+        Assert.Contains("Storm A profile", new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open()).ReadToEnd());
+    }
+
+    [Fact]
+    public void NewNetwork_EditMarksDirty_DeleteRemoves()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        Assert.False(vm.IsDirty);
+        vm.NewNetworkCommand.Execute(null);
+        var n = Assert.Single(vm.Networks);
+        vm.IsDirty = false;
+        n.HglBelowRim = "1";
+        Assert.True(vm.IsDirty);
+        vm.IsDirty = false;
+        n.Solve();                       // solving is not an edit
+        Assert.False(vm.IsDirty);
+        vm.DeleteNetworkCommand.Execute(null);   // no dialog service in tests: deletes without asking
+        Assert.Empty(vm.Networks);
+        Assert.Null(vm.SelectedNetwork);
+    }
+
+    [Fact]
     public void Import_FileWithNothingUseful_ChangesNothing()
     {
         var vm = MainViewModel.CreateWithSample();

@@ -75,9 +75,9 @@ effort, adjusted where one item feeds another.
 
 | Rank | Item | Gain | Effort (d) | Gain/effort | Branch | Status |
 |---|---|---|---|---|---|---|
-| 1 | H1 Lining shear and freeboard check (HEC-15 permissible shear, required freeboard, pass/fail in results and report) | 4 | 1.5 | 2.7 | `feature/lining-freeboard-check` | ✅ PR open |
+| 1 | H1 Lining shear and freeboard check (HEC-15 permissible shear, required freeboard, pass/fail in results and report) | 4 | 1.5 | 2.7 | `feature/lining-freeboard-check` | ✅ merged (PR #1) |
 | 2 | H2 Sensitivity table (yn, V, Fr for n ± 10/20 %, slope range) | 3 | 1 | 3.0 | `feature/sensitivity-table` | ⬜ |
-| 3 | H3 Checker sign-off (prepared/checked by and date per calculation; cleared by any later input edit) | 3 | 1 | 3.0 | `feature/checker-signoff` | ⬜ |
+| 3 | ~~H3 Checker sign-off~~ dropped (Kyle, 2026-11-18: not needed) | | | | | ❌ |
 | 4 | H4 **LandXML pipe networks** → one pipe calculation per pipe (shape, size, n, slope from inverts, length) and a structure list with inlet locations (northing/easting, rim, sump, inverts) | 5 | 2.5 | 2.0 | `feature/landxml-pipe-networks` | ✅ PR open |
 | 5 | H5 **LandXML profiles** → slope for imported cross-sections and pipes from the profile grade at their station | 4 | 2 | 2.0 | `feature/landxml-profiles` | ⬜ |
 | 6 | H6 **LandXML alignments** (lines, arcs, spirals) → station and offset of each inlet/structure along the road | 3 | 2 | 1.5 | `feature/landxml-alignments` | ⬜ |
@@ -85,7 +85,7 @@ effort, adjusted where one item feeds another.
 | 8 | H8 **LandXML corridors**: Civil 3D has no corridor element in LandXML; it exports corridor *surfaces* (TIN) and feature lines. Read the gutter flowline feature line for longitudinal slope and cut the corridor surface at each inlet for cross slope, feeding H7 | 4 | 4 | 1.0 | `feature/landxml-corridor-surfaces` | ⬜ |
 | 9 | H9 Batch from spreadsheet (CSV/xlsx of pipes or ditches → calculations) | 3 | 2 | 1.5 | `feature/batch-import` | ⬜ |
 | 10 | H10 Culvert inlet/outlet control (FHWA HDS-5) | 5 | 6 | 0.8 | `feature/hds5-culverts` | ⬜ |
-| 11 | H11 Storm sewer HGL through an imported pipe network (junction losses, tailwater) | 5 | 10 | 0.5 | `feature/storm-sewer-hgl` | ⬜ |
+| 11 | H11 **Storm sewer HGL/EGL** through a typed or imported pipe network (Rapid City IDCM structure losses, tailwater, criteria; tables and profiles in app, PDF, HTML, Excel). Kyle moved this to the top (2026-11-18) | 5 | 10 | 0.5 | `feature/storm-sewer-hgl` | 🟡 PR |
 
 Why this order: H1–H3 use values MasterFlow already computes, so they are almost free. H4–H6 and H8 are
 the Civil 3D chain Kyle asked for; H4 comes first because pipe capacity works with what MasterFlow has

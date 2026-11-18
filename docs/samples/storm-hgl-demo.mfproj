@@ -1,0 +1,123 @@
+{
+  "format": "MasterFlow.Project",
+  "schemaVersion": 1,
+  "savedBy": "MasterFlow 0.11.0",
+  "savedUtc": "2026-11-18T05:20:26.1921016+00:00",
+  "project": {
+    "info": {
+      "name": "HGL demo",
+      "projectNumber": "26-001",
+      "client": "",
+      "preparedBy": "MasterFlow",
+      "checkedBy": "",
+      "notes": ""
+    },
+    "calculations": [],
+    "recycleBin": [],
+    "report": {
+      "watermark": "",
+      "footerText": "",
+      "logoDataUri": null,
+      "includeCalculationTrace": true
+    },
+    "structures": [],
+    "networks": [
+      {
+        "name": "Main St storm",
+        "units": "usCustomary",
+        "structures": [
+          {
+            "name": "OUT",
+            "kind": "Outlet",
+            "rimElevation": 105,
+            "lossMethod": "auto",
+            "junctionK": null,
+            "northing": null,
+            "easting": null
+          },
+          {
+            "name": "MH-2",
+            "kind": "Manhole",
+            "rimElevation": 106,
+            "lossMethod": "auto",
+            "junctionK": null,
+            "northing": null,
+            "easting": null
+          },
+          {
+            "name": "CB-3",
+            "kind": "Inlet",
+            "rimElevation": 106.5,
+            "lossMethod": "auto",
+            "junctionK": null,
+            "northing": null,
+            "easting": null
+          },
+          {
+            "name": "CB-4",
+            "kind": "Inlet",
+            "rimElevation": 104,
+            "lossMethod": "auto",
+            "junctionK": null,
+            "northing": null,
+            "easting": null
+          }
+        ],
+        "pipes": [
+          {
+            "name": "P1",
+            "from": "MH-2",
+            "to": "OUT",
+            "shape": "circular",
+            "rise": 2,
+            "span": 2,
+            "length": 200,
+            "upstreamInvert": 100.8,
+            "downstreamInvert": 100,
+            "manningN": 0.013,
+            "discharge": 20
+          },
+          {
+            "name": "P2",
+            "from": "CB-3",
+            "to": "MH-2",
+            "shape": "circular",
+            "rise": 1.5,
+            "span": 1.5,
+            "length": 150,
+            "upstreamInvert": 102,
+            "downstreamInvert": 101.1,
+            "manningN": 0.013,
+            "discharge": 12
+          },
+          {
+            "name": "P3",
+            "from": "CB-4",
+            "to": "MH-2",
+            "shape": "circular",
+            "rise": 1.25,
+            "span": 1.25,
+            "length": 60,
+            "upstreamInvert": 101.8,
+            "downstreamInvert": 101.3,
+            "manningN": 0.013,
+            "discharge": 8
+          }
+        ],
+        "tailwater": "elevation",
+        "tailwaterElevation": 102.5,
+        "defaultJunctionK": 0.5,
+        "criteria": {
+          "hglBelowRim": 1,
+          "eglBelowRim": null,
+          "minVelocity": 2.5,
+          "maxVelocity": 20,
+          "allowSurcharge": false,
+          "minPipeRise": 1,
+          "flagSupercritical": true,
+          "source": "City of Rapid City Infrastructure Design Criteria Manual (Jan. 2012) \u00A74.6"
+        }
+      }
+    ]
+  }
+}

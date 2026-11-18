@@ -32,6 +32,10 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Drainage structures imported from pipe networks (listed and exported, not solved).</summary>
     public ObservableCollection<StructureRow> Structures { get; } = [];
     public bool HasStructures => Structures.Count > 0;
+
+    /// <summary>Storm sewer networks solved for HGL/EGL (Storm networks window).</summary>
+    public ObservableCollection<NetworkViewModel> Networks { get; } = [];
+    [ObservableProperty] private NetworkViewModel? _selectedNetwork;
     public ObservableCollection<ChannelCalculation> RecycleBin { get; } = [];
     public ObservableCollection<string> RecentFiles { get; } = [];
 
@@ -242,6 +246,10 @@ public sealed partial class MainViewModel : ObservableObject
         Structures.Clear();
         foreach (var s in p.Structures) Structures.Add(new StructureRow(s));
         OnPropertyChanged(nameof(HasStructures));
+        foreach (var n in Networks) n.Edited -= OnNetworkEdited;
+        Networks.Clear();
+        foreach (var n in p.Networks) AddNetwork(NetworkViewModel.FromModel(n));
+        SelectedNetwork = Networks.FirstOrDefault();
         NotifyBin();
         Selected = Calculations.FirstOrDefault();
         FilePath = path;
@@ -277,6 +285,7 @@ public sealed partial class MainViewModel : ObservableObject
         Calculations = Calculations.Select(c => c.ToModel()).ToList(),
         RecycleBin = RecycleBin.ToList(),
         Structures = Structures.Select(r => r.Structure).ToList(),
+        Networks = Networks.Select(n => n.ToModel()).ToList(),
         Report = new ReportSettings { Watermark = Watermark, FooterText = FooterText, LogoDataUri = LogoDataUri, IncludeCalculationTrace = IncludeCalculationTrace },
     };
 
@@ -293,6 +302,115 @@ public sealed partial class MainViewModel : ObservableObject
         try { Store.SaveSettings(s); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* settings are a convenience */ }
         RecentFiles.Clear();
         foreach (var f in s.RecentFiles) RecentFiles.Add(f);
+    }
+
+    // ------------------------------------------------------------ storm networks (HGL/EGL)
+
+    private void AddNetwork(NetworkViewModel n)
+    {
+        n.Edited += OnNetworkEdited;
+        Networks.Add(n);
+    }
+
+    private void OnNetworkEdited(object? sender, EventArgs e) => MarkDirty();
+
+    [RelayCommand]
+    private void NewNetwork()
+    {
+        var units = Selected?.Units ?? UnitSystem.USCustomary;
+        var n = NetworkViewModel.FromModel(new StormNetwork { Name = $"Storm network {Networks.Count + 1}", Units = units });
+        AddNetwork(n);
+        SelectedNetwork = n;
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private async Task DeleteNetwork()
+    {
+        if (SelectedNetwork is not { } n) return;
+        if (Dialogs is not null && !await Dialogs.ConfirmDiscardAsync($"Delete the storm network \"{n.Name}\"? This cannot be undone.")) return;
+        n.Edited -= OnNetworkEdited;
+        int i = Networks.IndexOf(n);
+        Networks.Remove(n);
+        SelectedNetwork = Networks.Count == 0 ? null : Networks[Math.Min(i, Networks.Count - 1)];
+        MarkDirty();
+    }
+
+    /// <summary>One storm network per LandXML pipe network (replacing one of the same name); returns how many.</summary>
+    private int AddNetworksFromImport(LandXmlNetworkReadResult read, UnitSystem units)
+    {
+        int count = 0;
+        foreach (var g in read.Pipes.GroupBy(p => p.Network))
+        {
+            string name = g.Key.Length > 0 ? g.Key : "Imported network";
+            var structs = read.Structures.Where(s => s.Network == g.Key).Select(s => new NetworkStructure
+            {
+                Name = s.Name, Kind = s.Kind, RimElevation = s.RimElevation, Northing = s.Northing, Easting = s.Easting,
+            }).ToList();
+            var pipes = g.Select(p => new NetworkPipe
+            {
+                Name = p.Name, From = p.StartStructure, To = p.EndStructure, Shape = p.Shape, Rise = p.Rise, Span = p.Span,
+                Length = p.Length ?? double.NaN, UpstreamInvert = p.StartInvert ?? double.NaN, DownstreamInvert = p.EndInvert ?? double.NaN,
+                ManningN = 0.013, Discharge = double.NaN,
+            }).ToList();
+            var model = new StormNetwork { Name = name, Units = units, Pipes = pipes, Structures = structs };
+            var old = Networks.FirstOrDefault(n => n.Name == name);
+            if (old is not null) { old.Edited -= OnNetworkEdited; Networks.Remove(old); }
+            var vm = NetworkViewModel.FromModel(model);
+            AddNetwork(vm);
+            SelectedNetwork = vm;
+            count++;
+        }
+        return count;
+    }
+
+    private ReportOptions NetworkReportOptions() => new()
+    {
+        SoftwareVersion = AppVersion,
+        Watermark = string.IsNullOrWhiteSpace(Watermark) ? null : Watermark,
+        FooterText = string.IsNullOrWhiteSpace(FooterText) ? null : FooterText,
+        LogoDataUri = LogoDataUri,
+        IncludeCalculationTrace = IncludeCalculationTrace,
+    };
+
+    /// <summary>PDF (landscape) of the selected network: profiles, pipes and structures tables, messages. Public for tests.</summary>
+    public byte[]? BuildNetworkPdf(NetworkViewModel n)
+    {
+        n.Solve();
+        return n.Result is { Succeeded: true } r ? NetworkReport.ToPdf(ToProject().Info, r, NetworkReportOptions()) : null;
+    }
+
+    public string? BuildNetworkHtml(NetworkViewModel n)
+    {
+        n.Solve();
+        return n.Result is { Succeeded: true } r ? NetworkReport.ToHtml(ToProject().Info, r, NetworkReportOptions()) : null;
+    }
+
+    [RelayCommand]
+    private async Task ExportNetworkReport()
+    {
+        if (SelectedNetwork is not { } n || Dialogs is null) return;
+        n.Solve();
+        if (!n.HasResult) { StatusMessage = "The network did not solve; see its messages."; return; }
+        var path = await Dialogs.PickSaveAsync(SafeName(n.Name) + " HGL.pdf", ".pdf", "PDF network report", HtmlChoice);
+        if (path is null) return;
+        try
+        {
+            if (IsHtml(path)) await File.WriteAllTextAsync(path, BuildNetworkHtml(n)!);
+            else await File.WriteAllBytesAsync(path, BuildNetworkPdf(n)!);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Report not saved: {ex.Message}"; return; }
+        StatusMessage = $"Network report saved to {path}.{LogoNote(path)}";
+        Dialogs.OpenWithShell(path);
+    }
+
+    [RelayCommand]
+    private async Task CopyNetworkResults()
+    {
+        if (SelectedNetwork is not { } n || Dialogs is null) return;
+        if (n.Result is null) n.Solve();
+        await Dialogs.SetClipboardAsync(n.ResultsText());
+        StatusMessage = "Network tables copied (tab-separated).";
     }
 
     // ------------------------------------------------------------ autosave and recovery
@@ -689,18 +807,20 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportWorkbook()
     {
-        if (Dialogs is null || Calculations.Count == 0) return;
+        if (Dialogs is null || (Calculations.Count == 0 && Networks.Count == 0)) return;
         var path = await Dialogs.PickSaveAsync(SafeName(ProjectName) + ".xlsx", ".xlsx", "Excel workbook");
         if (path is null) return;
-        await File.WriteAllBytesAsync(path, BuildWorkbook());
-        StatusMessage = $"Workbook saved to {path} (comparison, one sheet per calculation and one per saved rating table).";
+        try { await File.WriteAllBytesAsync(path, BuildWorkbook()); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Workbook not saved: {ex.Message}"; return; }
+        StatusMessage = $"Workbook saved to {path} (comparison, one sheet per calculation, saved rating tables and storm network pipes, structures and HGL/EGL profile points).";
     }
 
     public byte[] BuildWorkbook()
     {
         var items = BatchCalculations.Select(c => (c.ToModel() with { Title = c.DisplayTitle }, c.Result!)).ToList();
         var ratings = BatchCalculations.Select(c => (Title: SafeName(c.DisplayTitle) + " rating", Table: c.BuildRatingTable())).Where(t => t.Table is not null).Select(t => (t.Title, t.Table!)).ToList();
-        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, ratings, Structures.Select(r => r.Structure).ToList()));
+        var networks = Networks.Select(n => { n.Solve(); return n.Result; }).Where(r => r is { Succeeded: true }).Select(r => r!).ToList();
+        return XlsxWriter.ToBytes(ProjectWorkbook.Build(ToProject().Info, items, ratings, Structures.Select(r => r.Structure).ToList(), networks));
     }
 
     [RelayCommand]
@@ -879,6 +999,7 @@ public sealed partial class MainViewModel : ObservableObject
             Structures.Add(new StructureRow(s));
         }
         OnPropertyChanged(nameof(HasStructures));
+        int nets = AddNetworksFromImport(read, units);
         if (first is not null) Selected = first;
         MarkDirty();
         RefreshComparison();
@@ -886,7 +1007,8 @@ public sealed partial class MainViewModel : ObservableObject
         string unitNote = read.Units is null ? $" Unit system not stated in the file; set to {(units == UnitSystem.SI ? "SI" : "U.S. customary")}, please check." : "";
         var other = read.Problems.Where(p => !p.StartsWith("The file does not state") && !p.StartsWith("Linear unit")).ToList();
         string probNote = other.Count > 0 ? $" {other.Count} problem(s), first: {other[0]}" : "";
-        return $"Imported {read.Pipes.Count} pipe(s) and {read.Structures.Count} structure(s) ({inlets} inlet(s)) from {fileName}.{unitNote}{probNote}";
+        string netNote = nets > 0 ? $" {nets} storm network(s) set up for HGL/EGL (Storm networks window; enter the design Q for each pipe)." : "";
+        return $"Imported {read.Pipes.Count} pipe(s) and {read.Structures.Count} structure(s) ({inlets} inlet(s)) from {fileName}.{netNote}{unitNote}{probNote}";
     }
 
     /// <summary>Adds one calculation per cross-section; returns the status text. Public for tests.</summary>

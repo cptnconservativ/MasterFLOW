@@ -68,6 +68,9 @@ public sealed record Project
 
     /// <summary>Drainage structures (inlets, manholes, outlets) imported from a pipe network; listed and exported, not solved.</summary>
     public IReadOnlyList<DrainageStructure> Structures { get; init; } = [];
+
+    /// <summary>Storm sewer networks for HGL/EGL computation (additive; older files have none).</summary>
+    public IReadOnlyList<StormNetwork> Networks { get; init; } = [];
 }
 
 /// <summary>
