@@ -100,8 +100,19 @@ public sealed class PlanReviewTool : IDesignTool
             if (pipeRes.TryGetValue(x.Name, out var r))
             {
                 if (r.Regime == "Steep") Add("Slope below critical", "§4.6.6(4)", item, Math.Round(r.Slope, 5), null, false, "steep: entrance control and a possible jump in the line", warnOnly: true);
-                double vMin = 2.5 * ft, vCheck = double.IsFinite(r.MinorVelocity) ? r.MinorVelocity : r.NormalVelocity;
-                if (double.IsFinite(vCheck)) Add("Minimum velocity at the 2-yr flow", "§4.6.2(3)a", item, Math.Round(vCheck, 2), vMin, vCheck >= vMin - 1e-9, double.IsFinite(r.MinorVelocity) ? $"at the {net.MinorStormName} flow" : "no minor-storm flow entered: checked at the design flow");
+                double vMin = 2.5 * ft;
+                if (double.IsFinite(r.MinorVelocity))
+                    Add("Minimum velocity at the 2-yr flow", "§4.6.2(3)a", item, Math.Round(r.MinorVelocity, 2), vMin, r.MinorVelocity >= vMin - 1e-9, $"at the {net.MinorStormName} flow");
+                else
+                {
+                    // No 2-yr evidence: the check stays unresolved. The design-flow velocity is reported on its own row, never as the 2-yr result.
+                    f.Add(new Finding("Minimum velocity at the 2-yr flow", "§4.6.2(3)a", item, null, vMin, "REVIEW",
+                        "not checked: no minor-storm (2-yr) flow for this pipe. Enter it (or use the rational method tool's Apply to network) and solve again."));
+                    double vd = double.IsFinite(r.NormalVelocity) ? r.NormalVelocity : r.FullFlowVelocity;   // full-flow velocity when Q exceeds Qfull
+                    if (double.IsFinite(vd))
+                        Add("Velocity at the design flow (information, not the 2-yr check)", "§4.6.2(3)a", item, Math.Round(vd, 2), vMin, vd >= vMin - 1e-9,
+                            "the 2-yr velocity is lower than this", warnOnly: true);
+                }
                 bool lateral = !net.Pipes.Any(u => u.To.Equals(x.From, StringComparison.OrdinalIgnoreCase));
                 double vMax = Math.Max(r.VelocityUp, r.VelocityDown);
                 if (!lateral) Add("Maximum velocity, collectors and mains", "§4.6.2(3)b, Table 4-13", item, Math.Round(vMax, 2), 20 * ft, vMax <= 20 * ft + 1e-9);
@@ -110,11 +121,17 @@ public sealed class PlanReviewTool : IDesignTool
             foreach (bool up in new[] { true, false })
             {
                 var s = structs.GetValueOrDefault(up ? x.From : x.To);
-                if (s?.RimElevation is not { } rim) continue;
+                if (s?.RimElevation is not { } rim)
+                {
+                    f.Add(new Finding("Minimum cover over the crown", "§4.6.2(2) (manufacturer)", $"{item} at {(up ? x.From : x.To)}", null, minCover, "REVIEW", "not checked: no rim elevation at this structure"));
+                    continue;
+                }
                 double cover = rim - Crown(x, up);
                 Add("Minimum cover over the crown", "§4.6.2(2) (manufacturer)", $"{item} at {(up ? x.From : x.To)}", Math.Round(cover, 2), minCover, cover >= minCover - 1e-9);
             }
         }
+        foreach (var s in res.Structures.Where(s => !s.IsOutfall && s.HglClearance is null))
+            f.Add(new Finding("HGL at least 1 ft below the rim", "§4.6.7", s.Structure.Name, null, 1.0 * ft, "REVIEW", s.Structure.RimElevation is null ? "not checked: no rim elevation" : "not checked: no HGL at this structure"));
         foreach (var s in res.Structures.Where(s => !s.IsOutfall && s.HglClearance is not null))
             Add("HGL at least 1 ft below the rim", "§4.6.7", s.Structure.Name, Math.Round(s.HglClearance!.Value, 2), 1.0 * ft, s.HglClearance >= 1.0 * ft - 1e-9);
 

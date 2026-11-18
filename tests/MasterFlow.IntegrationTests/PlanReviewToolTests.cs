@@ -51,4 +51,36 @@ public class PlanReviewToolTests
         var r = new PlanReviewTool().Run("", new DesignToolContext(UnitSystem.USCustomary));
         Assert.False(r.Succeeded);
     }
+
+    /// <summary>Review finding: with no 2-yr flow, the 2-yr velocity check reported OK from the design velocity (6.08 fps).</summary>
+    [Fact]
+    public void MissingMinorFlow_LeavesTwoYearCheckUnresolved_AndReportsDesignVelocitySeparately()
+    {
+        var rows = Rows("show passing = no");
+        var p1 = rows.Single(r => (string)r[1]! == "Minimum velocity at the 2-yr flow" && ((string)r[3]!).StartsWith("P1"));
+        Assert.Equal("REVIEW", p1[0]);
+        Assert.Null(p1[4]);
+        Assert.DoesNotContain(rows, r => (string)r[1]! == "Minimum velocity at the 2-yr flow" && (string)r[0]! == "OK");
+        var all = Rows("show passing = yes");
+        var design = all.Where(r => ((string)r[1]!).StartsWith("Velocity at the design flow")).ToList();
+        Assert.NotEmpty(design);
+        Assert.All(design, r => Assert.True(r[4] is double));
+        // With a 2-yr flow entered, the check is resolved at that flow.
+        var n = NetworkOutputTests.NetA();
+        n = n with { MinorStormName = "2-yr", Pipes = n.Pipes.Select(x => x with { MinorDischarge = 3 }).ToList() };
+        var withQ2 = Rows("show passing = yes", n);
+        Assert.Contains(withQ2, r => (string)r[1]! == "Minimum velocity at the 2-yr flow" && ((string)r[3]!).StartsWith("P1") && r[4] is double);
+        Assert.DoesNotContain(withQ2, r => (string)r[1]! == "Minimum velocity at the 2-yr flow" && (string)r[0]! == "REVIEW");
+    }
+
+    /// <summary>Review finding: a structure with no rim silently skipped cover and HGL; both must show as unresolved.</summary>
+    [Fact]
+    public void MissingRim_CoverAndHgl_AreReview()
+    {
+        var n = NetworkOutputTests.NetA();
+        n = n with { Structures = n.Structures.Select(s => s.Name == "CB-3" ? s with { RimElevation = null } : s).ToList() };
+        var rows = Rows("", n);
+        Assert.Contains(rows, r => (string)r[0]! == "REVIEW" && (string)r[1]! == "Minimum cover over the crown" && ((string)r[3]!).EndsWith("at CB-3"));
+        Assert.Contains(rows, r => (string)r[0]! == "REVIEW" && ((string)r[1]!).StartsWith("HGL") && (string)r[3]! == "CB-3");
+    }
 }
