@@ -6,9 +6,9 @@ Run 2026-11-18, .NET 10.0.115, Linux x64. Command: `dotnet test MasterFlow.slnx`
 |---|---|---|
 | MasterFlow.Hydraulics.Tests | 133 | 0 |
 | MasterFlow.Application.Tests | 58 | 0 |
-| MasterFlow.IntegrationTests | 51 | 0 |
+| MasterFlow.IntegrationTests | 52 | 0 |
 | MasterFlow.Desktop.Tests | 51 | 0 |
-| **Total** | **293** | **0** |
+| **Total** | **294** | **0** |
 
 (Branch feature/storm-sewer-hgl, which includes H4 and merged H1. Storm sewer HGL/EGL: engine against an independent
 implementation, validation/storm_hgl.py (bisection, 10× finer steps; output storm_hgl_output.txt), with

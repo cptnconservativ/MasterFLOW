@@ -108,8 +108,9 @@ public static class NetworkReport
             foreach (var start in NetworkProfile.PathStarts(r))
                 if (NetworkProfile.Build(r, start) is { } prof)
                 {
-                    pager.Heading($"Profile: {prof.From} to {prof.To}", keepWithNext: 260);
-                    pager.Add(new ProfileBlock(fonts, prof, c.Length));
+                    var block = new ProfileBlock(fonts, prof, c.Length);
+                    pager.Heading($"Profile: {prof.From} to {prof.To}", keepWithNext: block.Height(pager.Width));
+                    pager.Add(block);
                 }
             pager.Heading("Pipes");
             pager.AddTable(new TableBlock(fonts, [new(0.8f), new(1.5f), new(0.6f, true), new(0.6f, true), new(0.6f, true), new(0.55f, true), new(0.6f, true), new(0.65f, true),
@@ -194,10 +195,14 @@ public static class NetworkReport
     /// <summary>The same profile drawing as the PDF: ground, structures, pipe, HGL (solid) and EGL (dashed).</summary>
     private sealed class ProfileBlock(PdfFonts fonts, NetworkProfile p, string unit) : IPdfBlock
     {
-        public float Height(float width) => 250;
+        private const float BandFont = 6.5f;
+        private float TextW => fonts.Measure("0000.00", fonts.Regular, BandFont);
+        private float BandHeight(float width) => ProfileFrame.BandRows(p).Count * ProfileFrame.Of(p, width, 230).BandLayout(p, TextW, BandFont).RowHeight;
+        public float Height(float width) => 262 + BandHeight(width) + 24;
         public void Draw(SKCanvas c, float x, float y, float width)
         {
             var g = ProfileFrame.Of(p, width, 230);
+            DrawBand(c, x, y + 236, width, g);
             using (var bg = new SKPaint { Color = PdfStyle.PlotBg }) c.DrawRect(x, y, width, 230, bg);
             SKPoint P(double s, double z) { var (px, py) = g.Map(s, z); return new(x + px, y + py); }
             void Line(IReadOnlyList<(double S, double Z)> pts, SKColor col, float w, float[]? dash = null)
@@ -259,7 +264,45 @@ public static class NetworkReport
             }
             Key("HGL", PdfStyle.Accent, null, 0); Key("EGL", PdfStyle.Red, [4f, 2.5f], 48); Key("Rim/ground", SKColor.Parse("#7a5c2e"), [5f, 2f], 96);
             if (p.Structures.Any(s => s.CriteriaLine is not null)) Key("Criteria", PdfStyle.Amber, null, 178);
-            fonts.Draw(c, $"Station from the outfall ({unit}); elevation ({unit}); vertical scale exaggerated", x + 4, y + 244, fonts.Regular, PdfStyle.Small, PdfStyle.Muted);
+            float cy = y + 236 + BandHeight(width) + 10;
+            fonts.Draw(c, $"Station from the outfall ({unit}); elevation ({unit}); vertical scale exaggerated.", x + 4, cy, fonts.Regular, PdfStyle.Small, PdfStyle.Muted);
+            var cap = ProfileFrame.BandCaption(p, unit).Split('\n');
+            for (int i = 0; i < cap.Length; i++) fonts.Draw(c, cap[i], x + 4, cy + 10 * (i + 1), fonts.Regular, PdfStyle.Small, PdfStyle.Muted);
+        }
+
+        /// <summary>Station, HGL, EGL and limit values at each reading station, under the plot.</summary>
+        private void DrawBand(SKCanvas c, float x, float top, float width, ProfileFrame g)
+        {
+            var rows = ProfileFrame.BandRows(p);
+            var (rot, rh) = g.BandLayout(p, TextW, BandFont);
+            var readings = p.Readings();
+            using var rule = new SKPaint { Color = PdfStyle.Rule, StrokeWidth = 0.5f };
+            using var tick = new SKPaint { Color = PdfStyle.Rule, StrokeWidth = 0.4f, PathEffect = SKPathEffect.CreateDash([2f, 2f], 0) };
+            foreach (var rd in readings) { var a = g.Map(rd.Station, g.Z1); var b = g.Map(rd.Station, g.Z0); c.DrawLine(x + a.X, top - 236 + a.Y, x + b.X, top - 236 + b.Y, tick); }
+            for (int i = 0; i < rows.Count; i++)
+            {
+                float ry = top + i * rh;
+                c.DrawLine(x, ry, x + width, ry, rule);
+                var (label, value, isHgl) = rows[i];
+                fonts.Draw(c, label, x + 2, ry + (rot ? rh / 2 + 2.5f : rh - 4), fonts.Bold, BandFont, PdfStyle.Ink);
+                foreach (var rd in readings)
+                {
+                    string t = ProfileFrame.BandText(value(rd), i == 0);
+                    var col = isHgl && !rd.MeetsCriteria ? PdfStyle.Red : PdfStyle.Ink;
+                    float px = x + g.Map(rd.Station, g.Z0).X;
+                    float tw = fonts.Measure(t, fonts.Regular, BandFont);
+                    if (!rot) fonts.Draw(c, t, px - tw / 2, ry + rh - 4, fonts.Regular, BandFont, col);
+                    else
+                    {
+                        c.Save();
+                        c.Translate(px + 2.3f, ry + rh - 3);
+                        c.RotateDegrees(-90);
+                        fonts.Draw(c, t, 0, 0, fonts.Regular, BandFont, col);
+                        c.Restore();
+                    }
+                }
+            }
+            c.DrawLine(x, top + rows.Count * rh, x + width, top + rows.Count * rh, rule);
         }
     }
 }
@@ -267,17 +310,45 @@ public static class NetworkReport
 /// <summary>Scales shared by the PDF block, the SVG and the app control.</summary>
 public sealed record ProfileFrame(double S0, double S1, double Z0, double Z1, float Width, float Height, float PadL, float PadR, float PadT, float PadB)
 {
-    public static ProfileFrame Of(NetworkProfile p, float width, float height)
+    public static ProfileFrame Of(NetworkProfile p, float width, float height, float padLeft = 86)
     {
         double s1 = Math.Max(p.Length, 1), z0 = p.MinZ, z1 = p.MaxZ;
         double pad = Math.Max(0.5, 0.08 * (z1 - z0));
-        return new ProfileFrame(0, s1, Math.Floor(z0 - pad), Math.Ceiling(z1 + pad), width, height, 36, 52, 22, 18);
+        return new ProfileFrame(0, s1, Math.Floor(z0 - pad), Math.Ceiling(z1 + pad), width, height, padLeft, 52, 22, 18);
     }
     public (float X, float Y) Map(double s, double z) =>
         (PadL + (float)((s - S0) / (S1 - S0)) * (Width - PadL - PadR), PadT + (float)((Z1 - z) / (Z1 - Z0)) * (Height - PadT - PadB));
     private static double Step(double range, int n) { double raw = range / n, m = Math.Pow(10, Math.Floor(Math.Log10(raw))); double f = raw / m; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * m; }
     public IEnumerable<double> ZTicks { get { double st = Step(Z1 - Z0, 6); for (double z = Math.Ceiling(Z0 / st) * st; z <= Z1 + 1e-9; z += st) yield return z; } }
     public IEnumerable<double> STicks { get { double st = Step(S1 - S0, 8); for (double s = 0; s <= S1 + 1e-9; s += st) yield return s; } }
+
+    /// <summary>Rows of the reading band under the profile: station, HGL, EGL and (when a criterion is set) the limit.</summary>
+    public static IReadOnlyList<(string Label, Func<ProfileReading, double?> Value, bool IsHgl)> BandRows(NetworkProfile p)
+    {
+        var rows = new List<(string, Func<ProfileReading, double?>, bool)>
+        {
+            ("Station", r => r.Station, false), ("HGL", r => r.Hgl, true), ("EGL", r => r.Egl, false),
+        };
+        if (p.LimitBelowGround is not null) rows.Add((p.LimitLabel, r => r.Limit, false));
+        return rows;
+    }
+
+    public static string BandText(double? v, bool station) =>
+        v is not { } x || !double.IsFinite(x) ? "—" : station ? x.ToString("0.#", CultureInfo.InvariantCulture) : x.ToString("F2", CultureInfo.InvariantCulture);
+
+    /// <summary>Horizontal labels when a reading's column is wide enough, otherwise rotated (as on plan-profile sheets).</summary>
+    public (bool Rotated, float RowHeight) BandLayout(NetworkProfile p, float textWidth, float fontSize)
+    {
+        var st = p.Readings().Select(r => r.Station).ToList();
+        double gap = st.Count < 2 ? p.ReadingInterval : st.Zip(st.Skip(1), (a, b) => b - a).Min();
+        float dx = Map(gap, Z0).X - Map(0, Z0).X;
+        bool rot = dx < textWidth + 4;
+        return (rot, rot ? textWidth + 6 : fontSize + 5);
+    }
+
+    public static string BandCaption(NetworkProfile p, string unit) =>
+        $"Readings every {p.ReadingInterval.ToString("0.#", CultureInfo.InvariantCulture)} {unit} and at the upstream end (unless within {(0.2 * p.ReadingInterval).ToString("0.#", CultureInfo.InvariantCulture)} {unit} of the last); at a structure the value on its upstream side." +
+        (p.LimitBelowGround is { } c ? $"\n{p.LimitLabel} = rim/ground − {c.ToString("0.##", CultureInfo.InvariantCulture)} {unit} (maximum HGL), ground taken straight between rims; HGL in red where it is above the limit." : "");
 }
 
 public static class ProfileSvg
@@ -289,7 +360,11 @@ public static class ProfileSvg
         string Pt(double s, double z) { var (x, y) = g.Map(s, z); return x.ToString("F1", Inv) + "," + y.ToString("F1", Inv); }
         string Poly(IReadOnlyList<(double S, double Z)> pts, string stroke, double w, string dash = "") =>
             pts.Count < 2 ? "" : $"<polyline fill=\"none\" stroke=\"{stroke}\" stroke-width=\"{w.ToString(Inv)}\"{(dash.Length > 0 ? $" stroke-dasharray=\"{dash}\"" : "")} points=\"{string.Join(" ", pts.Select(q => Pt(q.S, q.Z)))}\"/>";
-        var sb = new StringBuilder($"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {width} {height + 16}\" width=\"100%\" role=\"img\" aria-label=\"HGL and EGL profile from {WebUtility.HtmlEncode(p.From)} to {WebUtility.HtmlEncode(p.To)}\">");
+        var rows = ProfileFrame.BandRows(p);
+        var (rot, rh) = g.BandLayout(p, 34f, 9f);
+        float bandH = rows.Count * rh;
+        var readings = p.Readings();
+        var sb = new StringBuilder($"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {width} {(height + bandH + 47).ToString("F0", Inv)}\" width=\"100%\" role=\"img\" aria-label=\"HGL and EGL profile from {WebUtility.HtmlEncode(p.From)} to {WebUtility.HtmlEncode(p.To)}\">");
         sb.Append($"<rect width=\"{width}\" height=\"{height}\" fill=\"#f6f8fa\"/>");
         foreach (var z in g.ZTicks) { var (_, y) = g.Map(0, z); sb.Append($"<line x1=\"{g.PadL}\" x2=\"{width - g.PadR}\" y1=\"{y.ToString("F1", Inv)}\" y2=\"{y.ToString("F1", Inv)}\" stroke=\"#c9d1da\" stroke-width=\"0.5\"/><text x=\"2\" y=\"{(y + 3).ToString("F1", Inv)}\" font-size=\"9\" fill=\"#5b6876\">{z.ToString("0.#", Inv)}</text>"); }
         foreach (var s in g.STicks) { var (x, _) = g.Map(s, g.Z0); sb.Append($"<text x=\"{(x - 6).ToString("F1", Inv)}\" y=\"{height - 4}\" font-size=\"9\" fill=\"#5b6876\">{s.ToString("0", Inv)}</text>"); }
@@ -307,7 +382,35 @@ public static class ProfileSvg
         }
         sb.Append(Poly(p.Egl, "#b3261e", 1.2, "4 2.5")).Append(Poly(p.Hgl, "#1f5f8b", 1.6));
         sb.Append($"<text x=\"{width - 300}\" y=\"14\" font-size=\"9\"><tspan fill=\"#1f5f8b\">━ HGL</tspan>  <tspan fill=\"#b3261e\">╍ EGL</tspan>  <tspan fill=\"#7a5c2e\">╍ Rim/ground</tspan>  <tspan fill=\"#c98a00\">━ Criteria</tspan></text>");
-        sb.Append($"<text x=\"4\" y=\"{height + 13}\" font-size=\"9\" fill=\"#5b6876\">Station from the outfall ({unit}); elevation ({unit}); vertical scale exaggerated</text></svg>");
+        foreach (var rd in readings)
+        {
+            var (x, y0) = g.Map(rd.Station, g.Z1); var (_, y1) = g.Map(rd.Station, g.Z0);
+            sb.Append($"<line x1=\"{x.ToString("F1", Inv)}\" x2=\"{x.ToString("F1", Inv)}\" y1=\"{y0.ToString("F1", Inv)}\" y2=\"{y1.ToString("F1", Inv)}\" stroke=\"#c9d1da\" stroke-width=\"0.5\" stroke-dasharray=\"2 2\"/>");
+        }
+        float bandTop = height + 4;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            float ry = bandTop + i * rh;
+            var (label, value, isHgl) = rows[i];
+            sb.Append($"<line x1=\"0\" x2=\"{width}\" y1=\"{ry.ToString("F1", Inv)}\" y2=\"{ry.ToString("F1", Inv)}\" stroke=\"#c9d1da\" stroke-width=\"0.5\"/>");
+            sb.Append($"<text x=\"2\" y=\"{(ry + (rot ? rh / 2 + 3 : rh - 4)).ToString("F1", Inv)}\" font-size=\"9\" font-weight=\"700\">{WebUtility.HtmlEncode(label)}</text>");
+            foreach (var rd in readings)
+            {
+                var (x, _) = g.Map(rd.Station, g.Z0);
+                string t = ProfileFrame.BandText(value(rd), i == 0);
+                string fill = isHgl && !rd.MeetsCriteria ? "#b3261e" : "#1d2733";
+                sb.Append(rot
+                    ? $"<text transform=\"translate({(x + 3).ToString("F1", Inv)},{(ry + rh - 3).ToString("F1", Inv)}) rotate(-90)\" font-size=\"9\" fill=\"{fill}\">{t}</text>"
+                    : $"<text x=\"{x.ToString("F1", Inv)}\" y=\"{(ry + rh - 4).ToString("F1", Inv)}\" font-size=\"9\" text-anchor=\"middle\" fill=\"{fill}\">{t}</text>");
+            }
+        }
+        float by = bandTop + bandH;
+        sb.Append($"<line x1=\"0\" x2=\"{width}\" y1=\"{by.ToString("F1", Inv)}\" y2=\"{by.ToString("F1", Inv)}\" stroke=\"#c9d1da\" stroke-width=\"0.5\"/>");
+        sb.Append($"<text x=\"4\" y=\"{(by + 13).ToString("F1", Inv)}\" font-size=\"9\" fill=\"#5b6876\">Station from the outfall ({unit}); elevation ({unit}); vertical scale exaggerated.</text>");
+        var cap = ProfileFrame.BandCaption(p, unit).Split('\n');
+        for (int i = 0; i < cap.Length; i++)
+            sb.Append($"<text x=\"4\" y=\"{(by + 26 + 13 * i).ToString("F1", Inv)}\" font-size=\"9\" fill=\"#5b6876\">{WebUtility.HtmlEncode(cap[i])}</text>");
+        sb.Append("</svg>");
         return sb.ToString();
     }
 }

@@ -92,6 +92,36 @@ public class NetworkOutputTests
     }
 
     [Fact]
+    public void Readings_Every50Ft_WithRapidCityLimit()
+    {
+        var r = StormNetworkSolver.Solve(NetA());
+        var p = NetworkProfile.Build(r, "CB-3")!;
+        Assert.Equal(50, p.ReadingInterval);
+        Assert.Equal("Rapid City limit", p.LimitLabel);
+        var rd = p.Readings();
+        Assert.Equal([0.0, 50, 100, 150, 200, 250, 300, 350], rd.Select(x => x.Station));
+        // Station 0: outlet HGL = tailwater 102.50 (pipe full); rim 105 − 1 ft.
+        Assert.Equal(102.50, rd[0].Hgl, 3);
+        Assert.Equal(104.0, rd[0].Limit!.Value, 9);
+        // Station 100: P1 is under pressure, so the HGL is linear between 102.50 and 104.063193 (independent values);
+        // ground straight between rims 105 and 106 → 105.5, limit 104.5.
+        Assert.Equal((102.50 + 104.063193) / 2, rd[2].Hgl, 2);
+        Assert.Equal(105.5, rd[2].Ground!.Value, 9);
+        Assert.Equal(104.5, rd[2].Limit!.Value, 9);
+        Assert.True(rd[2].MeetsCriteria);
+        // Station 200 (MH-2): the structure level on the upstream side; 350 (CB-3) fails.
+        Assert.Equal(104.513873, rd[4].Hgl, 2);
+        Assert.Equal(105.0, rd[4].Limit!.Value, 9);
+        Assert.Equal(107.367201, rd[7].Hgl, 2);
+        Assert.False(rd[7].MeetsCriteria);
+        Assert.All(rd, x => Assert.True(x.Egl >= x.Hgl - 1e-9));
+        // SI networks read every 15 m; no criterion → no limit.
+        var si = NetworkProfile.Build(StormNetworkSolver.Solve(NetA() with { Units = UnitSystem.SI, Criteria = new() }), "CB-3")!;
+        Assert.Equal(15, si.ReadingInterval);
+        Assert.All(si.Readings(), x => Assert.Null(x.Limit));
+    }
+
+    [Fact]
     public void Tables_ShowCriteriaCheck()
     {
         var r = StormNetworkSolver.Solve(NetA());
@@ -123,6 +153,8 @@ public class NetworkOutputTests
         Assert.Contains("FAILS", html);
         Assert.Contains("Rapid City", html);
         Assert.Contains("profile from CB-4", html); // one profile per path
+        Assert.Contains("Rapid City limit", html);  // reading band under each profile
+        Assert.Contains(">105.50<", html);          // CB-3 limit: rim 106.5 − 1 ft
     }
 
     [Fact]
@@ -137,6 +169,7 @@ public class NetworkOutputTests
         Assert.Contains("Main St profile", wb);
         var all = string.Concat(zip.Entries.Where(e => e.FullName.StartsWith("xl/worksheets/")).Select(e => new StreamReader(e.Open()).ReadToEnd()));
         Assert.Contains("<v>104.51", all);   // MH-2 HGL as a number, not text
+        Assert.Contains("Main St readings", wb);
         Assert.Contains("FAILS", all);
     }
 

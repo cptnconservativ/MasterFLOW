@@ -79,6 +79,21 @@ public static class NetworkWorkbook
         }
         sheets.Add(new XlsxSheet($"{name} profile", prof, 2, [12, 10, 12, 12, 12, 12, 12]));
 
+        var starts = NetworkProfile.PathStarts(r);
+        var first = starts.Count > 0 ? NetworkProfile.Build(r, starts[0]) : null;
+        double interval = NetworkProfile.DefaultInterval(n.Units);
+        var rd = new List<IReadOnlyList<object?>>
+        {
+            new object?[] { $"{name}: readings every {interval.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} {c.Length} (as labelled under the profile). " +
+                (first is null ? "" : ProfileFrame.BandCaption(first, c.Length).Replace('\n', ' ')) },
+            new object?[] { "Path from", $"Station ({c.Length})", $"HGL ({c.Length})", $"EGL ({c.Length})", $"Ground/rim ({c.Length})", $"{first?.LimitLabel ?? "HGL limit"} ({c.Length})", $"Limit − HGL ({c.Length})", "Check" },
+        };
+        foreach (var start in starts)
+            if (NetworkProfile.Build(r, start) is { } pathProfile)
+                foreach (var x in pathProfile.Readings())
+                    rd.Add([start, x.Station, x.Hgl, x.Egl, x.Ground, x.Limit, x.Limit - x.Hgl, x.Limit is null ? "" : x.MeetsCriteria ? "OK" : "FAILS"]);
+        sheets.Add(new XlsxSheet($"{name} readings", rd, 2, [12, 12, 12, 12, 14, 18, 14, 10]));
+
         var msg = new List<IReadOnlyList<object?>> { new object?[] { "Severity", "Code", "Message" } };
         foreach (var m in r.Messages) msg.Add([m.Severity.ToString(), m.Code, m.Text]);
         sheets.Add(new XlsxSheet($"{name} messages", msg, 1, [10, 10, 100]));

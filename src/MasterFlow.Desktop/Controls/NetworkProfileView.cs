@@ -38,8 +38,13 @@ public sealed class NetworkProfileView : Control
             CrossSectionView.Text(ctx, "Solve the network to see the HGL/EGL profile.", new Point(8, 8), muted, 12);
             return;
         }
-        float w = (float)Math.Max(100, Bounds.Width), h = (float)Math.Max(80, Bounds.Height - 16);
-        var g = ProfileFrame.Of(p, w, h);
+        float w = (float)Math.Max(100, Bounds.Width);
+        const float bandFont = 10f, textW = 42f;
+        var rows = ProfileFrame.BandRows(p);
+        var (rot, rh) = ProfileFrame.Of(p, w, 300, 128).BandLayout(p, textW, bandFont);
+        float bandH = rows.Count * rh;
+        float h = (float)Math.Max(80, Bounds.Height - bandH - 48);
+        var g = ProfileFrame.Of(p, w, h, 128);
         Point P(double s, double z) { var (x, y) = g.Map(s, z); return new Point(x, y); }
         var gridPen = new Pen(new SolidColorBrush(gridC), 1);
         foreach (var z in g.ZTicks) { var a = P(g.S0, z); ctx.DrawLine(gridPen, a, P(g.S1, z)); CrossSectionView.Text(ctx, z.ToString("0.#", CultureInfo.CurrentCulture), new Point(2, a.Y - 7), muted, 10); }
@@ -78,6 +83,32 @@ public sealed class NetworkProfileView : Control
         Line(p.Egl, eglC, 1.3, new DashStyle([4, 2.5], 0));
         Line(p.Hgl, hglC, 1.8);
 
+        // Reading band: station, HGL, EGL and the criterion limit every reading interval.
+        var readings = p.Readings();
+        var tickPen = new Pen(new SolidColorBrush(gridC), 1, new DashStyle([2, 2], 0));
+        foreach (var rd in readings) ctx.DrawLine(tickPen, P(rd.Station, g.Z1), P(rd.Station, g.Z0));
+        double bandTop = h + 2;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            double ry = bandTop + i * rh;
+            ctx.DrawLine(gridPen, new Point(0, ry), new Point(w, ry));
+            var (label, value, isHgl) = rows[i];
+            var ft = new FormattedText(label, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface(Typeface.Default.FontFamily, weight: FontWeight.SemiBold), bandFont, new SolidColorBrush(ink));
+            ctx.DrawText(ft, new Point(2, ry + (rh - ft.Height) / 2));
+            foreach (var rd in readings)
+            {
+                string t = ProfileFrame.BandText(value(rd), i == 0);
+                var col = isHgl && !rd.MeetsCriteria ? eglC : ink;
+                var tx = new FormattedText(t, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface.Default, bandFont, new SolidColorBrush(col));
+                double px = P(rd.Station, g.Z0).X;
+                if (!rot) ctx.DrawText(tx, new Point(px - tx.Width / 2, ry + (rh - tx.Height) / 2));
+                else
+                    using (ctx.PushTransform(Matrix.CreateRotation(-Math.PI / 2) * Matrix.CreateTranslation(px - tx.Height / 2, ry + rh - 3)))
+                        ctx.DrawText(tx, new Point(0, 0));
+            }
+        }
+        ctx.DrawLine(gridPen, new Point(0, bandTop + bandH), new Point(w, bandTop + bandH));
+
         double lx = w - 290, ly = 8;
         void Key(string t, Color col, IDashStyle? dash, double off)
         {
@@ -86,7 +117,9 @@ public sealed class NetworkProfileView : Control
         }
         Key("HGL", hglC, null, 0); Key("EGL", eglC, new DashStyle([4, 2.5], 0), 56); Key("Rim/ground", groundC, new DashStyle([5, 2], 0), 112);
         if (p.Structures.Any(s => s.CriteriaLine is not null)) Key("Criteria", critC, null, 210);
-        CrossSectionView.Text(ctx, $"Station from the outfall ({LengthUnit}); elevation ({LengthUnit}); vertical scale exaggerated. Red HGL label: rim criterion not met.",
-            new Point(4, h + 1), muted, 10);
+        CrossSectionView.Text(ctx, $"Station from the outfall ({LengthUnit}); elevation ({LengthUnit}); vertical scale exaggerated. Red HGL: criterion not met.",
+            new Point(4, bandTop + bandH + 2), muted, 10);
+        var cap = ProfileFrame.BandCaption(p, LengthUnit).Split('\n');
+        for (int i = 0; i < cap.Length; i++) CrossSectionView.Text(ctx, cap[i], new Point(4, bandTop + bandH + 16 + 14 * i), muted, 10);
     }
 }

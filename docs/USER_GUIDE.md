@@ -260,10 +260,12 @@ as text.
 6. **Solve** (F5). The status line says whether the HGL criterion is met everywhere.
 
 Results: **Profile** (choose the path; HGL solid, EGL dashed, rim/ground dashed brown, the criterion line
-as an orange tick at each structure; an HGL label in red fails the criterion), **Pipes**, **Structures**
+as an orange tick at each structure; an HGL label in red fails the criterion; under the graph a band
+lists the station, HGL, EGL and the Rapid City limit (rim/ground − 1 ft) every 50 ft, or 15 m in SI, with
+the HGL in red wherever it is above the limit), **Pipes**, **Structures**
 (failing rows shaded red), **Messages** and **Trace**. **Report…** saves a PDF (or HTML) with a profile per
 path and both tables; **Copy tables** puts them on the clipboard; **Excel…** adds sheets for the pipes,
-structures, every profile point (station, invert, crown, HGL, EGL) and messages. Networks are saved with
+structures, the 50 ft readings (with limit − HGL and OK/FAILS), every profile point (station, invert, crown, HGL, EGL) and messages. Networks are saved with
 the project.
 
 ## 7. Projects, templates and safety nets

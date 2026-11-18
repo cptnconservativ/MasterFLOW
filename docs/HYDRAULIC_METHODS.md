@@ -270,7 +270,10 @@ solve still reports every number so the designer can see by how much.
 **Outputs.** Pipes table (size, slope, Q, Qfull, yn, yc, regime, velocities, HGL/EGL at both ends, hf),
 structures table (rim, HGL, EGL, rim − HGL, required, OK/FAILS, loss method and equation, hj, V2, V1), the
 profile of every path from a beginning of line to its outfall (station 0 at the outfall), messages and the
-step-by-step trace. The same numbers go to the app, PDF, HTML and Excel (profile points as numbers).
+step-by-step trace. Under each profile a band gives the station, HGL, EGL and the criterion limit
+(rim/ground − required clearance) every 50 ft (15 m in SI) and at the upstream end; the ground between
+structures is a straight line between rims, and at a structure the upstream-side value is read. The same
+numbers go to the app, PDF, HTML and Excel (readings and profile points as numbers).
 
 **Limits.** Tree networks only (no loops, one outlet pipe per structure); no hydrology, routing or
 inlet capacity (H7); no partial-flow correction to junction losses beyond the equations above; no
