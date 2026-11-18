@@ -286,6 +286,26 @@
           </Border>
 
           <Border Classes="card">
+            <Expander Header="Design checks (lining shear, freeboard, velocity)" HorizontalAlignment="Stretch">
+              <StackPanel Spacing="4">
+                <TextBlock Text="Leave a limit blank to skip it. Enter the permissible shear for the lining from the governing manual (e.g. FHWA HEC-15)." FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+                <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+                  <TextBlock Classes="label" Text="Lining"/>
+                  <TextBox Grid.Column="1" AutomationProperties.Name="Lining description" Text="{Binding Lining}" Watermark="e.g. Riprap D50 = 6 in"/>
+                  <TextBlock Grid.Row="1" Classes="label" Text="Permissible shear τp"/>
+                  <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal"><TextBox AutomationProperties.Name="Permissible shear" Classes="num" Text="{Binding PermissibleShear}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding StressUnit}"/></StackPanel>
+                  <TextBlock Grid.Row="2" Classes="label" Text="Required freeboard"/>
+                  <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal"><TextBox AutomationProperties.Name="Required freeboard" Classes="num" Text="{Binding RequiredFreeboard}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding LengthUnit}"/></StackPanel>
+                  <TextBlock Grid.Row="3" Classes="label" Text="Minimum velocity"/>
+                  <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal"><TextBox AutomationProperties.Name="Minimum velocity" Classes="num" Text="{Binding MinVelocity}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding VelocityUnit}"/></StackPanel>
+                  <TextBlock Grid.Row="4" Classes="label" Text="Maximum velocity"/>
+                  <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal"><TextBox AutomationProperties.Name="Maximum velocity" Classes="num" Text="{Binding MaxVelocity}" Watermark="optional"/><TextBlock Classes="unit" Text="{Binding VelocityUnit}"/></StackPanel>
+                </Grid>
+              </StackPanel>
+            </Expander>
+          </Border>
+
+          <Border Classes="card">
             <StackPanel>
               <TextBlock Classes="h2" Text="Messages" Margin="0,0,0,4"/>
               <ItemsControl ItemsSource="{Binding Messages}">
@@ -331,6 +351,21 @@
                         <TextBlock TextTrimming="CharacterEllipsis"><Run Text="{Binding Label}"/><Run Text="  "/><Run Text="{Binding Symbol}" Foreground="Gray"/></TextBlock>
                         <SelectableTextBlock Grid.Column="1" Text="{Binding Formatted}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                         <TextBlock Grid.Column="2" Text="{Binding Unit}" Opacity="0.7" Margin="6,0,0,0"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Classes="h2" Text="Design checks" Margin="0,10,0,4" IsVisible="{Binding HasChecks}"/>
+              <ItemsControl ItemsSource="{Binding Checks}" IsVisible="{Binding HasChecks}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="app:DesignCheck">
+                    <Border Padding="6,3" BorderBrush="{DynamicResource MfRule}" BorderThickness="0,0,0,1" ToolTip.Tip="{Binding Basis}">
+                      <Grid ColumnDefinitions="*,70,70,90">
+                        <TextBlock TextTrimming="CharacterEllipsis"><Run Text="{Binding Name}"/><Run Text="  "/><Run Text="{Binding Symbol}" Foreground="Gray"/></TextBlock>
+                        <TextBlock Grid.Column="1" Text="{Binding Actual, StringFormat={}{0:0.###}}" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="2" Text="{Binding Limit, StringFormat={}{0:0.###}}" HorizontalAlignment="Right" Opacity="0.7"/>
+                        <TextBlock Grid.Column="3" Text="{Binding StatusText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                       </Grid>
                     </Border>
                   </DataTemplate>

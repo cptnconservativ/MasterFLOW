@@ -188,6 +188,19 @@ above 10 %), W-F-001 (near-critical flow, 0.86 ≤ Fr ≤ 1.13).
 If a calculation cannot be solved, MasterFlow shows the error and **no numbers**. It never reports a
 value from a solver that did not converge.
 
+### 3.1 Design checks
+
+Open **Design checks** under the inputs and enter any of: a lining description, the permissible shear τp
+for that lining (from HEC-15 or your agency's manual), a required freeboard, and minimum or maximum
+velocity. Blank limits are skipped. The **Results** tab then lists each check with the computed value, the
+limit and **OK**, **FAILS** or **Not evaluated** (hover for the basis). Failures also appear as warnings
+(W-C-001 to W-C-004), and the checks are printed in the report and the Excel sheet.
+
+- Shear uses τd = γ·yn·S, the shear at the deepest point of a straight channel (HEC-15 eq. 2.3). Bends are
+  not included.
+- Freeboard needs a channel depth on regular shapes; on irregular sections it uses the lower end point.
+- Pipes: shear and freeboard are not evaluated; velocity limits are.
+
 ## 4. Rating tables
 
 On the **Rating table** tab choose a mode (depth → discharge, or discharge → depth), start, end and
