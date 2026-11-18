@@ -769,3 +769,57 @@ public class FlowCalcGapTests
         Assert.False(vm2.IsDirty);
     }
 }
+
+public class PipeNetworkImportTests
+{
+    private static byte[] StormBytes()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "MasterFlow.slnx"))) d = d.Parent;
+        return File.ReadAllBytes(Path.Combine(d!.FullName, "docs", "samples", "storm-network.xml"));
+    }
+
+    [Fact]
+    public void Import_CreatesSolvedPipeCalculations_AndStructureList()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        int n0 = vm.Calculations.Count;
+        var status = vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        Assert.StartsWith("Imported 2 pipe(s) and 3 structure(s) (1 inlet(s)) from storm.xml.", status);
+        Assert.Contains("RectPipe", status);
+        Assert.Equal(n0 + 2, vm.Calculations.Count);
+        Assert.True(vm.HasStructures);
+        Assert.Equal(3, vm.Structures.Count);
+
+        var p1 = vm.Calculations.Single(c => c.ItemNumber == "P-1");
+        Assert.Equal("Storm A/Pipes", p1.Folder);
+        Assert.Equal("P-1 (CB-1 → MH-1)", p1.Title);
+        Assert.Equal(SectionShape.Circular, p1.Shape);
+        Assert.Equal("18", p1.Diameter);           // 1.5 ft shown in inches in the field (the model keeps 1.5 ft)
+        Assert.Equal("1", p1.SlopePercent);
+        Assert.Equal("100.5", p1.InvertElevation);
+        Assert.True(p1.HasResult);
+        // Flowing just full: Q = (1.486/0.013) A R^(2/3) S^(1/2), A = π·1.5²/4, R = 1.5/4 (independent of the engine)
+        double qFull = 1.486 / 0.013 * (Math.PI * 1.5 * 1.5 / 4) * Math.Pow(1.5 / 4, 2.0 / 3.0) * Math.Sqrt(0.01);
+        Assert.Equal(qFull, p1.Result!.Discharge, 6);
+        Assert.False(p1.CanUndo);
+        Assert.Equal(SectionShape.Elliptical, vm.Calculations.Single(c => c.ItemNumber == "P-2").Shape);
+
+        // Saved with the project, in the workbook, and re-import replaces rather than duplicates.
+        Assert.Equal(3, ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject())).Structures.Count);
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(vm.BuildWorkbook()));
+        Assert.Contains("Structures", new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open()).ReadToEnd());
+        vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        Assert.Equal(3, vm.Structures.Count);
+    }
+
+    [Fact]
+    public void Import_FileWithNothingUseful_ChangesNothing()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        int n = vm.Calculations.Count;
+        Assert.StartsWith("Nothing imported", vm.ImportLandXmlBytes(System.Text.Encoding.UTF8.GetBytes("<LandXML/>"), "x.xml"));
+        Assert.Equal(n, vm.Calculations.Count);
+        Assert.False(vm.IsDirty);
+    }
+}

@@ -122,6 +122,20 @@ in the file. The unit system comes from the file; if the file does not say (or u
 feet or metres) the status bar tells you and you must check it. n is set to 0.035: set n, slope and
 discharge for each section. Anything the file contains that cannot be read is listed, not guessed.
 
+The same button reads **pipe networks** (export the storm network to LandXML from Civil 3D):
+
+- Each circular or elliptical pipe becomes a pipe calculation titled `P-1 (CB-1 → MH-1)` in the folder
+  `<network>/Pipes`, with the pipe name as item number. The slope comes from the start and end inverts
+  and the length; the invert elevation is the upstream invert. Depth is set to the full rise and the
+  calculation solves for Q, so it shows the **full-flow capacity**. Enter the design Q and switch to
+  *Solve for normal depth* to check it. n is set to 0.013: change it for the material.
+- Inlets, manholes and outlets appear on the **Structures** tab with northing/easting, rim and sump
+  elevations and pipe inverts, and in a *Structures* sheet in the Excel workbook. Importing the same
+  network again updates them.
+- Reported, not fixed: missing inverts (no slope), flat or adverse slopes, other pipe shapes (box, egg),
+  and sizes that look like inches or millimetres in a feet or metre file.
+- Sample: `docs/samples/storm-network.xml`.
+
 ### 2.5 Pipes
 
 - **Circular**: enter the diameter in inches (U.S.) or mm (SI). Above about 94 % full, the same Q can

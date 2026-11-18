@@ -11,7 +11,7 @@ public static class ProjectWorkbook
         => Build(info, items, rating is null ? [] : [(ratingTitle ?? "Rating table", rating)]);
 
     /// <summary>Comparison sheet, one sheet per calculation, then one sheet per rating table.</summary>
-    public static IReadOnlyList<XlsxSheet> Build(ProjectInfo info, IReadOnlyList<(ChannelCalculation Calc, UniformFlowResult Result)> items, IReadOnlyList<(string Title, RatingTable Table)> ratings)
+    public static IReadOnlyList<XlsxSheet> Build(ProjectInfo info, IReadOnlyList<(ChannelCalculation Calc, UniformFlowResult Result)> items, IReadOnlyList<(string Title, RatingTable Table)> ratings, IReadOnlyList<DrainageStructure>? structures = null)
     {
         var sheets = new List<XlsxSheet>();
         var cmp = Comparison.Build(items.Select(i => (i.Calc.Title, i.Result)).ToList());
@@ -69,6 +69,18 @@ public static class ProjectWorkbook
             };
             foreach (var row in rating.Rows) t.Add([row.Depth, row.Discharge, row.Area, row.Velocity, row.TopWidth, row.Froude, row.CriticalDepth]);
             sheets.Add(new XlsxSheet(ratingTitle, t, 1, [12, 12, 12, 12, 12, 10, 12]));
+        }
+        if (structures is { Count: > 0 })
+        {
+            var t = new List<IReadOnlyList<object?>>
+            {
+                new object?[] { "Drainage structures (values as in the imported file; no unit conversion)" },
+                new object?[] { "Network", "Structure", "Type", "Northing", "Easting", "Rim elev.", "Sump elev.", "Inverts (pipe, in/out, elevation)", "Description" },
+            };
+            foreach (var st in structures)
+                t.Add([st.Network, st.Name, st.Kind, st.Northing, st.Easting, st.RimElevation, st.SumpElevation,
+                    string.Join("; ", st.Inverts.Select(v => $"{v.Pipe} {v.FlowDirection} {v.Elevation.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}")), st.Description]);
+            sheets.Add(new XlsxSheet("Structures", t, 2, [14, 16, 18, 14, 14, 11, 11, 44, 24]));
         }
         return sheets;
     }
