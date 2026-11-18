@@ -57,6 +57,7 @@
         <Button Content="Compare report…" Command="{Binding ExportComparisonReportCommand}" ToolTip.Tip="Side-by-side table of every calculation, PDF (or HTML)"/>
         <Button Content="Excel…" Command="{Binding ExportWorkbookCommand}" ToolTip.Tip="Workbook: comparison, one sheet per calculation, rating table"/>
         <Button Content="Storm networks…" Click="OnOpenNetworks" ToolTip.Tip="Storm sewer HGL/EGL: pipes, structures, Rapid City criteria, profile"/>
+        <Button Content="Design tools…" Click="OnOpenTools" ToolTip.Tip="Rational method and other drainage design tools"/>
         <Button Content="Log folder" Command="{Binding OpenLogFolderCommand}" ToolTip.Tip="Open the local log (kept on this computer only, 14 days)"/>
       </StackPanel>
     </Border>

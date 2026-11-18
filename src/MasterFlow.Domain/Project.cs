@@ -71,6 +71,9 @@ public sealed record Project
 
     /// <summary>Storm sewer networks for HGL/EGL computation (additive; older files have none).</summary>
     public IReadOnlyList<StormNetwork> Networks { get; init; } = [];
+
+    /// <summary>Last input of each design tool, by tool id (additive; older files have none).</summary>
+    public IReadOnlyDictionary<string, string> ToolInputs { get; init; } = new Dictionary<string, string>();
 }
 
 /// <summary>

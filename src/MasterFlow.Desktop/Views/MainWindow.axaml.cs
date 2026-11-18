@@ -24,6 +24,16 @@ public partial class MainWindow : Window, IDialogService
     private bool _closeConfirmed;
     private NetworkWindow? _networks;
 
+    private DesignToolsWindow? _tools;
+
+    private void OnOpenTools(object? sender, RoutedEventArgs e)
+    {
+        if (_tools is { } open) { open.Activate(); return; }
+        _tools = new DesignToolsWindow { DataContext = DataContext };
+        _tools.Closed += (_, _) => _tools = null;
+        _tools.Show(this);
+    }
+
     private void OnOpenNetworks(object? sender, RoutedEventArgs e)
     {
         if (_networks is { } open) { open.Activate(); return; }

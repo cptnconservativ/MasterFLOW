@@ -295,6 +295,14 @@ path and both tables; **Copy tables** puts them on the clipboard; **Excel…** a
 structures, the 50 ft readings (with limit − HGL and OK/FAILS), every profile point (station, invert, crown, HGL, EGL) and messages. Networks are saved with
 the project.
 
+## 6b. Design tools
+
+**Design tools…** opens drainage design tools that share one window: pick a tool, edit its text input
+(**Sample** fills in an example), press **Run** (F5), then copy, save as HTML/Excel, or **Apply to network**
+where the tool offers it. Inputs are saved with the project. See [docs/tools](tools/README.md) for each tool's
+method and sources. The first tool is the Rapid City rational method, which can fill in the storm network's
+structure inflows for the design and minor storms.
+
 ## 7. Projects, templates and safety nets
 
 | Task | How |

@@ -993,3 +993,35 @@ public class AlignmentImportTests
         Assert.Equal("CL", ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject())).Structures.Single(s => s.Name == "CB-1").Alignment);
     }
 }
+
+public class DesignToolsViewModelTests
+{
+    [Fact]
+    public void RationalMethod_AppliesInflowsToNetwork_AndInputsAreSaved()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "MasterFlow.slnx"))) d = d.Parent;
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(File.ReadAllBytes(Path.Combine(d!.FullName, "docs", "samples", "storm-network.xml")), "storm.xml");
+        var tools = vm.Tools;
+        tools.SelectedTool = MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city");
+        Assert.Contains("CB-1", tools.InputText);             // sample uses the network's structure names
+        tools.Run();
+        Assert.True(tools.Result!.Succeeded, tools.ResultText);
+        Assert.True(tools.CanApply);
+        tools.ApplyToNetwork();
+        var cb = vm.SelectedNetwork!.ToModel().Structures.Single(s => s.Name == "CB-1");
+        Assert.True(cb.Inflow > 0 && cb.MinorInflow > 0 && cb.MinorInflow < cb.Inflow);
+        Assert.True(vm.IsDirty);
+        Assert.Contains("<table>", tools.BuildHtml());
+        Assert.NotNull(tools.BuildWorkbook());
+
+        tools.InputText += "\n# edited";
+        var back = ProjectFile.Deserialize(ProjectFile.Serialize(vm.ToProject()));
+        Assert.EndsWith("# edited", back.ToolInputs["rational-rapid-city"]);
+        var vm2 = new MainViewModel();
+        vm2.Tools.LoadInputs(back.ToolInputs);
+        vm2.Tools.SelectedTool = MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city");
+        Assert.EndsWith("# edited", vm2.Tools.InputText);
+    }
+}

@@ -229,6 +229,15 @@ public sealed partial class NetworkViewModel : ObservableObject
         Status = (r.Changes.Count == 0 ? "Sizing: no changes needed or possible. " : $"Sized: {r.Changes.Count} pipe(s) changed (see Sizing). ") + Status;
     }
 
+    /// <summary>Replaces this network with one a design tool produced (e.g. new structure inflows), solves it and keeps the change undoable in the project history.</summary>
+    public void ApplyChanges(StormNetwork n, string status)
+    {
+        Load(n with { Name = Name });
+        Solve();
+        Status = status + " " + Status;
+        Edited?.Invoke(this, EventArgs.Empty);
+    }
+
     [RelayCommand]
     public void UndoSizing()
     {

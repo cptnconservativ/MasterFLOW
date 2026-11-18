@@ -173,6 +173,11 @@ public sealed partial class MainViewModel : ObservableObject
 
     private bool _loading;
     private void MarkDirty() { if (!_loading) IsDirty = true; }
+    internal void MarkDirtyFromTools() => MarkDirty();
+
+    private DesignToolsViewModel? _tools;
+    /// <summary>The Design tools window's state (tool inputs are saved with the project).</summary>
+    public DesignToolsViewModel Tools => _tools ??= new DesignToolsViewModel(this);
 
     // ------------------------------------------------------------ construction
 
@@ -250,6 +255,7 @@ public sealed partial class MainViewModel : ObservableObject
         Networks.Clear();
         foreach (var n in p.Networks) AddNetwork(NetworkViewModel.FromModel(n));
         SelectedNetwork = Networks.FirstOrDefault();
+        Tools.LoadInputs(p.ToolInputs);
         NotifyBin();
         Selected = Calculations.FirstOrDefault();
         FilePath = path;
@@ -286,6 +292,7 @@ public sealed partial class MainViewModel : ObservableObject
         RecycleBin = RecycleBin.ToList(),
         Structures = Structures.Select(r => r.Structure).ToList(),
         Networks = Networks.Select(n => n.ToModel()).ToList(),
+        ToolInputs = Tools.SavedInputs(),
         Report = new ReportSettings { Watermark = Watermark, FooterText = FooterText, LogoDataUri = LogoDataUri, IncludeCalculationTrace = IncludeCalculationTrace },
     };
 
