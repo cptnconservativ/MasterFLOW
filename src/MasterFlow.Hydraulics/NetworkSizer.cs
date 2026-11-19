@@ -157,7 +157,7 @@ public static class NetworkSizer
     private static string Fmt(double rise, double toBase) => (rise / toBase).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Pipes ordered so that every pipe comes after all pipes flowing into its upstream structure.</summary>
-    internal static List<string> UpstreamFirst(IReadOnlyList<NetworkPipe> pipes)
+    public static List<string> UpstreamFirst(IReadOnlyList<NetworkPipe> pipes)
     {
         var done = new HashSet<string>();
         var order = new List<string>();
