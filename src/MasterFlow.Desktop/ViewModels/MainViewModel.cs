@@ -48,6 +48,7 @@ public sealed partial class MainViewModel : ObservableObject
             _store = value;
             RecentFiles.Clear();
             if (value is not null) foreach (var f in value.LoadSettings().RecentFiles) RecentFiles.Add(f);
+            License = Application.Licensing.LicenseKey.Check(value?.LoadSettings().LicenseKey, DateOnly.FromDateTime(DateTime.Now));
             RefreshTemplates();
         }
     }
@@ -65,6 +66,25 @@ public sealed partial class MainViewModel : ObservableObject
             Templates.Add(new CalculationTemplate(u.Title, "My templates", u.Description, u));
     }
     private UserDataStore? _store;
+
+    /// <summary>The checked license (Free when no key is stored). Premium design tools run only when it allows them.</summary>
+    public Application.Licensing.LicenseState License
+    {
+        get => _license;
+        set { _license = value; OnPropertyChanged(); _tools?.RefreshLicense(); }
+    }
+    private Application.Licensing.LicenseState _license = Application.Licensing.LicenseState.Free;
+
+    /// <summary>Checks <paramref name="key"/>, keeps it in the user settings when it is valid (or cleared), and returns the new state.</summary>
+    public Application.Licensing.LicenseState ActivateLicense(string? key)
+    {
+        var state = Application.Licensing.LicenseKey.Check(key, DateOnly.FromDateTime(DateTime.Now));
+        if (state.Status is Application.Licensing.LicenseStatus.Valid or Application.Licensing.LicenseStatus.None) License = state;
+        if (Store is not null && state.Status is Application.Licensing.LicenseStatus.Valid or Application.Licensing.LicenseStatus.None)
+            try { Store.SaveSettings(Store.LoadSettings() with { LicenseKey = string.IsNullOrWhiteSpace(key) ? null : key.Trim() }); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* the key still works for this session */ }
+        return state;
+    }
 
     public MainViewModel()
     {
