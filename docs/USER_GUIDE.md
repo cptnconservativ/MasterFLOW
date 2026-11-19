@@ -293,11 +293,26 @@ and elliptical pipes are kept, and no crown is put above a rim. Every change, an
 (for example an inlet too shallow for the 1 ft rule), is listed on the **Sizing** tab; **Undo sizing**
 restores the previous sizes.
 
-**LandXML…** writes the network as a LandXML 1.2 pipe network (units stated as foot or meter, sizes,
-lengths, inverts at each structure, rims, sumps at the lowest invert, coordinates, structure types; HGL, EGL
-and Q as Feature properties). In Civil 3D use *Insert → LandXML* and pick a parts list that has the sizes;
-Civil 3D creates a new pipe network from it. Structures need northing/easting (they come with a LandXML
-import); the export warns about any that do not.
+**LandXML…** writes the network as a LandXML 1.2 pipe network that validates against the published
+LandXML-1.2 schema: units stated (foot or meter, cfs or m³/s, ft/s or m/s), sizes, lengths, slopes, Manning n,
+inverts at each structure, rims, sumps at the lowest invert, coordinates and structure types. When the
+network solves, each pipe gets the schema's *PipeFlow* (Q, HGL up/down, critical depth) and each structure
+its *StructFlow* (HGL in the structure, HGL leaving it, structure loss), and every part gets a "MasterFlow
+hydraulics" *Feature* listing EGL, velocities, depths, Q full, Q/Q full, regime, friction loss and *Check*
+(OK, or the criteria warning codes that part fails). In Civil 3D use *Insert → LandXML* and pick a parts list
+that has the sizes; Civil 3D creates a new pipe network from it. Structures need northing/easting (they come
+with a LandXML import); the export warns about any that do not.
+
+**Civil 3D results…** puts the results on the network you already have in the drawing instead of a copy.
+It saves two files: *name HGL.lsp* and *name HGL.csv*. In Civil 3D, open the drawing, run *APPLOAD* on the
+.lsp, and type **MFHGL**. Every pipe in the network of the same name whose pipe name matches gets its HGL up,
+HGL down, EGL up, EGL down and flow rate, so pipe labels, profile-view HGL lines and pipe tables show
+MasterFlow's numbers. If no network has that name it asks before matching pipe names in every network. The
+command lists the pipes it changed, any it could not find and any property it could not set, and the whole
+run is one undo (*U*). Civil 3D structures have no HGL property, so structure results (HGL, EGL, loss, rim −
+HGL, check) are in the CSV, which also has every pipe result, one row per part, for Excel or a Civil 3D data
+link table. Values are written in the network's units; the drawing must use the same units. See
+[CIVIL3D_ROUNDTRIP.md](CIVIL3D_ROUNDTRIP.md) for what has and has not yet been checked in Civil 3D.
 
 Results: **Profile** (choose the path; HGL solid, EGL dashed, rim/ground dashed brown, the criterion line
 as an orange tick at each structure; an HGL label in red fails the criterion; under the graph a band
@@ -315,6 +330,14 @@ the project.
 where the tool offers it. Inputs are saved with the project. See [docs/tools](tools/README.md) for each tool's
 method and sources. The first tool is the Rapid City rational method, which can fill in the storm network's
 structure inflows for the design and minor storms.
+
+**Culvert analysis (FHWA HDS-5)** gives the headwater of a culvert for a design flow (Rapid City: 10-yr) and a
+check flow (100-yr): inlet control by the HDS-5 equations for the chosen inlet (`inlet =` one of the built-in
+HDS-5 rows, or `custom` with your own K, M, c, Y), outlet control, which one governs, flow over the roadway
+(give the crest under `[Roadway]`), outlet velocity, and a performance curve. The HTML report draws the curve;
+the hand-check table lists every intermediate value (Ku·Q/AD^0.5, dc, Hc, V²/2g, H, ho) so a reviewer can redo
+the numbers. `criteria = rapid-city` adds the IDCM §4.7.2 checks. The detention tool's outlet pipe uses the same
+engine. See [docs/tools/culverts.md](tools/culverts.md).
 
 ## 7. Projects, templates and safety nets
 

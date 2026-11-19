@@ -24,13 +24,16 @@ public class DetentionToolTests
         Assert.Equal(0.6 * Math.PI * 0.75 * 0.75 / 4 * Math.Sqrt(2 * G * (2 - 0.375)), orf.Flow(102, G), 9);
         Assert.Equal(0, orf.Flow(99.9, G));
         Assert.Equal(3.0 * 6 * Math.Pow(0.5, 1.5), new PondOutlet("w", "weir", 104, 6, 0, 3.0).Flow(104.5, G), 9);
-        // barrel: 2 ft pipe, 80 ft, n 0.013, Ke 0.5; head above the outlet crown 98.7 + 2
+        // barrel: 2 ft pipe, 80 ft, n 0.013, Ke 0.5, inverts 99.5 / 98.7; capacity at WSE 105 is the flow whose HDS-5
+        // controlling headwater is 5.5 ft (square-edge concrete headwall inlet, free outfall).
         var pipe = new PondOutlet("p", "pipe", 99.5, 2, 0, 0.5, 80, 0.013, 98.7);
-        double kf = 29 * 0.013 * 0.013 * 80 / Math.Pow(0.5, 4.0 / 3.0);
         double qb = pipe.BarrelCapacity(105, G, true);
+        double a = Math.PI, x = qb / (a * Math.Sqrt(2));
+        double hwi = 2 * (0.0398 * x * x + 0.67 - 0.5 * 0.8 / 80);                  // submerged inlet control, by hand
+        double kf = 2 * G * 0.013 * 0.013 * 80 / (1.486 * 1.486 * Math.Pow(0.5, 4.0 / 3.0));
         double dc = PondOutlet.CircularCriticalDepth(qb, 2, G);
-        // Outlet control: the returned Q satisfies its own equation with ho = (dc + D)/2.
-        Assert.Equal(Math.PI * Math.Sqrt(2 * G * (105 - (98.7 + (dc + 2) / 2)) / (1.5 + kf)), qb, 6);
+        double hwo = (dc + 2) / 2 + (1.5 + kf) * Math.Pow(qb / a, 2) / (2 * G) - 0.8;  // outlet control, free outfall
+        Assert.Equal(5.5, Math.Max(hwi, hwo), 6);
         // dc satisfies Q²/g = A³/T independently.
         double th = 2 * Math.Acos(1 - dc), aC = 4.0 / 8 * (th - Math.Sin(th)), tC = 2 * Math.Sin(th / 2);
         Assert.Equal(qb * qb / G, aC * aC * aC / tC, 4);
@@ -57,10 +60,10 @@ public class DetentionToolTests
     {
         var tool = new DetentionTool();
         var ctx = DesignToolTests.Ctx();
-        var r = tool.Run(tool.SampleInput(ctx).Replace("area = 12 ", "area = 60 "), ctx);
+        var r = tool.Run(tool.SampleInput(ctx).Replace("area = 12 ", "area = 200 "), ctx);
         Assert.False(r.Succeeded);
         Assert.Contains(r.Messages, m => m.Code == "E-DT-011");
-        r = tool.Run(tool.SampleInput(ctx).Replace("top of berm = 106.5", "top of berm = 104.0"), ctx);
+        r = tool.Run(tool.SampleInput(ctx).Replace("top of berm = 107.0", "top of berm = 104.0"), ctx);
         Assert.Contains(r.Messages, m => m.Code == "W-DT-004");
         r = tool.Run(tool.SampleInput(ctx).Replace("Outlet pipe\tpipe\t99.5\t2.0", "Outlet pipe\tpipe\t99.5\t1.25"), ctx);
         Assert.Contains(r.Messages, m => m.Code == "W-DT-005");

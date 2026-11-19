@@ -84,7 +84,7 @@ effort, adjusted where one item feeds another.
 | 7 | H7 Gutter spread and inlet capacity (FHWA HEC-22: curb-opening, grate, combination, on grade and sag; bypass carried to the next inlet) | 5 | 4 | 1.3 | `feature/hec22-gutter-inlets` | ⬜ |
 | 8 | H8 **LandXML corridors**: Civil 3D has no corridor element in LandXML; it exports corridor *surfaces* (TIN) and feature lines. Read the gutter flowline feature line for longitudinal slope and cut the corridor surface at each inlet for cross slope, feeding H7 | 4 | 4 | 1.0 | `feature/landxml-corridor-surfaces` | ⬜ |
 | 9 | H9 Batch from spreadsheet (CSV/xlsx of pipes or ditches → calculations) | 3 | 2 | 1.5 | `feature/batch-import` | ⬜ |
-| 10 | H10 Culvert inlet/outlet control (FHWA HDS-5) | 5 | 6 | 0.8 | `feature/hds5-culverts` | ⬜ |
+| 10 | H10 Culvert inlet/outlet control (FHWA HDS-5) — design tool, see docs/tools/culverts.md | 5 | 6 | 0.8 | `claude/project-thread-7a4xdm` | 🟡 PR |
 | 11 | H11 **Storm sewer HGL/EGL** through a typed or imported pipe network (Rapid City IDCM structure losses, tailwater, criteria; tables and profiles in app, PDF, HTML, Excel). Kyle moved this to the top (2026-11-18) | 5 | 10 | 0.5 | `feature/storm-sewer-hgl` | 🟡 PR |
 
 Why this order: H1–H3 use values MasterFlow already computes, so they are almost free. H4–H6 and H8 are
@@ -115,7 +115,7 @@ storm sewer designer are typing a Q into every pipe, resizing pipes by hand unti
 | 7 | H7 Gutter spread and inlet capacity (HEC-22; Rapid City street spread limits), bypass carried to the next inlet and into R1 inflows | 5 | 4 | 1.3 | `feature/hec22-gutter-inlets` | ⬜ |
 | 8 | Rational method inflows (C, i from Rapid City IDF, A; Tc along the network) feeding R1/R2 | 4 | 3 | 1.3 | `feature/rational-method` | ⬜ |
 | 9 | H8 Corridor surfaces/feature lines → inlet cross and longitudinal slopes for H7 | 4 | 4 | 1.0 | `feature/landxml-corridor-surfaces` | ⬜ |
-| 10 | H10 Culverts (HDS-5 inlet/outlet control) | 5 | 6 | 0.8 | `feature/hds5-culverts` | ⬜ |
+| 10 | H10 Culverts (HDS-5 inlet/outlet control, overtopping, performance curve, IDCM §4.7) | 5 | 6 | 0.8 | `claude/project-thread-7a4xdm` | 🟡 PR |
 | 11 | H9 Batch import of calculations from CSV/xlsx (networks already paste from Excel) | 2 | 2 | 1.0 | `feature/batch-import` | ⬜ |
 
 Why this order: R1–R3 remove most of the hand work in a storm sewer design that MasterFlow can now

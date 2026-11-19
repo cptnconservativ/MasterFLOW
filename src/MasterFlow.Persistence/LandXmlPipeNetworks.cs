@@ -25,7 +25,7 @@ public sealed record LandXmlNetworkReadResult(
 /// Reads LandXML 1.x pipe networks (PipeNetworks / PipeNetwork / Structs / Struct and Pipes / Pipe), the
 /// form Civil 3D's LandXML export uses for storm and sanitary networks. Structure type comes from the
 /// child element (InletStruct, OutletStruct, CircStruct, RectStruct, Connection). Circular (CircPipe) and
-/// elliptical (EllipPipe) pipes are imported; other shapes are listed as problems. Values are kept in the
+/// elliptical (ElliPipe, the LandXML 1.2 schema name; the misspelt EllipPipe is also accepted) pipes are imported; other shapes are listed as problems. Values are kept in the
 /// file's units: pipe sizes are taken in the file's linear unit as the LandXML schema states, and a
 /// size that looks like inches in a feet file is reported, not converted.
 /// </summary>
@@ -99,7 +99,7 @@ public static class LandXmlPipeNetworks
                 NetworkPipeShape shape; double rise, span; string material;
                 if (Kid(p, "CircPipe") is { } cp && Num(cp, "diameter") is { } d && d > 0)
                     (shape, rise, span, material) = (NetworkPipeShape.Circular, d * diaFactor, d * diaFactor, (string?)cp.Attribute("material") ?? "");
-                else if (Kid(p, "EllipPipe") is { } ep && Num(ep, "height") is { } h && h > 0 && Num(ep, "span") is { } sp && sp > 0)
+                else if ((Kid(p, "ElliPipe") ?? Kid(p, "EllipPipe")) is { } ep && Num(ep, "height") is { } h && h > 0 && Num(ep, "span") is { } sp && sp > 0)
                     (shape, rise, span, material) = (NetworkPipeShape.Elliptical, h * diaFactor, sp * diaFactor, (string?)ep.Attribute("material") ?? "");
                 else
                 {

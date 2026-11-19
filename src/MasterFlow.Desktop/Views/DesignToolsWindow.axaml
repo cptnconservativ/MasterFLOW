@@ -20,7 +20,7 @@
           <Button Content="Apply to network" Command="{Binding Tools.ApplyToNetworkCommand}" IsEnabled="{Binding Tools.CanApply}" ToolTip.Tip="Write the tool's result into the selected storm network and re-solve it"/>
           <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
           <Button Content="Copy" Command="{Binding Tools.CopyCommand}"/>
-          <Button Content="Save…" Command="{Binding Tools.SaveReportCommand}" ToolTip.Tip="HTML report (print to PDF) or Excel workbook"/>
+          <Button Content="Save…" Command="{Binding Tools.SaveReportCommand}" ToolTip.Tip="HTML report, PDF report or Excel workbook"/>
           <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
           <TextBlock Text="Network:" VerticalAlignment="Center" Margin="4,0"/>
           <ComboBox AutomationProperties.Name="Storm network for tools" MinWidth="180" ItemsSource="{Binding Networks}" SelectedItem="{Binding SelectedNetwork}">
