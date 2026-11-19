@@ -4,3 +4,6 @@ obj/
 .vs/
 TestResults/
 artifacts/
+
+# license issuer keys never go in the repository
+*.pem

@@ -12,6 +12,7 @@ public sealed class EnumDisplayConverter : IValueConverter
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
     {
+        MasterFlow.Application.Tools.IDesignTool t => MasterFlow.Application.Licensing.PremiumFeatures.Label(t),
         UnitSystem.USCustomary => "U.S. customary (ft, cfs)",
         UnitSystem.SI => "SI (m, m³/s)",
         SolveFor.Discharge => "Discharge Q",
