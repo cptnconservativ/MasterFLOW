@@ -8,6 +8,9 @@ public sealed record AppSettings
     public const int MaxRecentFiles = 10;
     public IReadOnlyList<string> RecentFiles { get; init; } = [];
 
+    /// <summary>The MasterFlow Premium license key the user entered (checked offline at start-up); null for Free.</summary>
+    public string? LicenseKey { get; init; }
+
     /// <summary>Returns settings with <paramref name="path"/> moved to the top of the recent list.</summary>
     public AppSettings WithRecent(string path)
     {

@@ -27,3 +27,5 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
 | Culvert analysis | FHWA HDS-5 (2012), IDCM §4.7 | [culverts.md](culverts.md) |
 | Water quality and LID sizing (premium) | MHFD USDCM Vol. 3; Darcy filter sizing | [water-quality.md](water-quality.md) |
+
+Tools marked **★ Premium** need a MasterFlow Premium license key (see [../premium/licensing.md](../premium/licensing.md)).
