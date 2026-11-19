@@ -21,6 +21,11 @@ public static class ToolReport
           .Append("figure.chart{margin:10px 0}figure.chart figcaption{font-weight:600;color:#1f5f8b;margin-bottom:2px}figure.chart svg{max-width:100%;height:auto}pre{background:#f5f7f9;padding:8px;font-size:11px;white-space:pre-wrap}.sub{color:#5b6876}@media print{body{margin:0}}</style></head><body>");
         sb.Append($"<h1>{E(r.Title)}</h1><div class=\"sub\">{E(project.Name)} {E(project.ProjectNumber)} · Prepared by {E(project.PreparedBy)} · Checked by {E(project.CheckedBy)} · {(when ?? DateTimeOffset.Now):yyyy-MM-dd HH:mm} · MasterFlow {E(softwareVersion)}</div>");
         foreach (var s in r.Summary) sb.Append($"<p>{E(s)}</p>");
+        foreach (var f in r.Figures)
+        {
+            sb.Append($"<h2>{E(f.Title)}</h2>").Append(ToolFigureSvg.Render(f));
+            foreach (var n in f.Notes ?? []) sb.Append($"<div class=\"note\">{E(n)}</div>");
+        }
         if (r.Charts.Count > 0)
         {
             sb.Append("<h2>Charts</h2>");
@@ -215,5 +220,68 @@ public static class ToolReport
         string name = clean;
         for (int i = 2; !used.Add(name); i++) name = (clean.Length > 27 ? clean[..27] : clean) + $" ({i})";
         return name;
+    }
+}
+
+/// <summary>Draws a <see cref="ToolFigure"/> as inline SVG: true horizontal scale, vertical scale exaggerated to fit, gridded axes and a legend.</summary>
+public static class ToolFigureSvg
+{
+    public static string Render(ToolFigure f, int width = 720, int height = 260)
+    {
+        var all = f.Series.SelectMany(s => s.Points).ToList();
+        if (all.Count < 2) return "";
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        const double padL = 52, padR = 16, padT = 12, padB = 54;
+        double w = width - padL - padR, h = height - padT - padB;
+        double xMin = all.Min(p => p.X), xMax = all.Max(p => p.X), yMin = Math.Min(0, all.Min(p => p.Y)), yMax = all.Max(p => p.Y);
+        if (xMax <= xMin) xMax = xMin + 1;
+        if (yMax <= yMin) yMax = yMin + 1;
+        yMax += 0.08 * (yMax - yMin);
+        static double Nice(double raw)
+        {
+            double mag = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+            double r = raw / mag;
+            return (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
+        }
+        double gx = Nice((xMax - xMin) / 8), gy = Nice((yMax - yMin) / 4);
+        string X(double x) => (padL + (x - xMin) / (xMax - xMin) * w).ToString("F1", inv);
+        string Y(double y) => (padT + h - (y - yMin) / (yMax - yMin) * h).ToString("F1", inv);
+        string Pts(IEnumerable<(double X, double Y)> ps) => string.Join(" ", ps.Select(p => $"{X(p.X)},{Y(p.Y)}"));
+        var sb = new StringBuilder();
+        sb.Append($"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" role=\"img\" aria-label=\"{WebUtility.HtmlEncode(f.Title)}\">");
+        sb.Append($"<rect x=\"0\" y=\"0\" width=\"{width}\" height=\"{height}\" fill=\"#f6f8fa\"/>");
+        for (double y = Math.Ceiling(yMin / gy) * gy; y <= yMax + 1e-9; y += gy)
+            sb.Append($"<line x1=\"{X(xMin)}\" x2=\"{X(xMax)}\" y1=\"{Y(y)}\" y2=\"{Y(y)}\" stroke=\"#e3e8ee\"/><text x=\"{padL - 6}\" y=\"{Y(y)}\" dy=\"3\" font-size=\"10\" text-anchor=\"end\" fill=\"#5b6876\">{y.ToString("0.##", inv)}</text>");
+        for (double x = Math.Ceiling(xMin / gx) * gx; x <= xMax + 1e-9; x += gx)
+            sb.Append($"<line x1=\"{X(x)}\" x2=\"{X(x)}\" y1=\"{Y(yMin)}\" y2=\"{Y(yMax)}\" stroke=\"#e3e8ee\"/><text x=\"{X(x)}\" y=\"{(padT + h + 13).ToString("F1", inv)}\" font-size=\"10\" text-anchor=\"middle\" fill=\"#5b6876\">{x.ToString("0.##", inv)}</text>");
+        string[] water = ["#a9d1ec", "#3f8fc7", "#1f5f8b"];
+        int wi = 0;
+        var legend = new List<(string Label, string Swatch)>();
+        foreach (var s in f.Series.Where(s => s.Kind == ToolSeriesKind.Water))
+        {
+            string c = water[Math.Min(wi, water.Length - 1)];
+            sb.Append($"<polygon points=\"{Pts(s.Points)}\" fill=\"{c}\" fill-opacity=\"0.85\"/>");
+            if (!legend.Any(l => l.Label == s.Label)) { legend.Add((s.Label, $"<rect width=\"12\" height=\"8\" fill=\"{c}\"/>")); wi++; }
+        }
+        foreach (var s in f.Series.Where(s => s.Kind == ToolSeriesKind.Ground))
+        {
+            sb.Append($"<polyline points=\"{Pts(s.Points)}\" fill=\"none\" stroke=\"#1d2733\" stroke-width=\"2\"/>");
+            legend.Add((s.Label, "<line x1=\"0\" x2=\"12\" y1=\"4\" y2=\"4\" stroke=\"#1d2733\" stroke-width=\"2\"/>"));
+        }
+        foreach (var s in f.Series.Where(s => s.Kind == ToolSeriesKind.Limit))
+        {
+            sb.Append($"<polyline points=\"{Pts(s.Points)}\" fill=\"none\" stroke=\"#b3261e\" stroke-width=\"1.3\" stroke-dasharray=\"5 3\"/>");
+            if (s.Label.Length > 0) legend.Add((s.Label, "<line x1=\"0\" x2=\"12\" y1=\"4\" y2=\"4\" stroke=\"#b3261e\" stroke-width=\"1.3\" stroke-dasharray=\"4 2\"/>"));
+        }
+        sb.Append($"<text x=\"{(padL + w / 2).ToString("F1", inv)}\" y=\"{(padT + h + 27).ToString("F1", inv)}\" font-size=\"10\" text-anchor=\"middle\" fill=\"#5b6876\">{WebUtility.HtmlEncode(f.XLabel)}</text>");
+        sb.Append($"<text x=\"12\" y=\"{(padT + h / 2).ToString("F1", inv)}\" font-size=\"10\" text-anchor=\"middle\" fill=\"#5b6876\" transform=\"rotate(-90 12 {(padT + h / 2).ToString("F1", inv)})\">{WebUtility.HtmlEncode(f.YLabel)}</text>");
+        double lx = padL;
+        foreach (var (label, swatch) in legend)
+        {
+            sb.Append($"<g transform=\"translate({lx.ToString("F1", inv)},{(height - 12).ToString("F1", inv)})\">{swatch}<text x=\"16\" y=\"8\" font-size=\"10\" fill=\"#1d2733\">{WebUtility.HtmlEncode(label)}</text></g>");
+            lx += 24 + 5.5 * label.Length;
+        }
+        sb.Append("</svg>");
+        return sb.ToString();
     }
 }
