@@ -66,6 +66,8 @@ public sealed partial class DesignToolsViewModel : ObservableObject
             Calculations = project.Calculations,
             Networks = _main.Networks.Select(n => { var (m, e) = n.BuildModel(); return (Model: e.Count == 0 ? m : null, n.Result); })
                 .Where(x => x.Model is not null).Select(x => (x.Model!, x.Result)).ToList(),
+            // Tools run from inside another tool (the report builder) follow the same license gate as the Run button.
+            MayRun = t => PremiumFeatures.ForTool(t.Id) is not { } f || _main.License.Allows(f.Id),
         };
     }
 
