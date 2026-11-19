@@ -1069,4 +1069,16 @@ public class DesignToolsViewModelTests
         vm2.Tools.SelectedTool = MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city");
         Assert.EndsWith("# edited", vm2.Tools.InputText);
     }
+
+    [Fact]
+    public void License_BadKeyIsRejected_AndFreeStays()
+    {
+        var vm = new MainViewModel();
+        Assert.False(vm.License.IsPremium);
+        vm.Tools.LicenseKeyText = "MF1-not.a-key";
+        vm.Tools.ActivateLicenseCommand.Execute(null);
+        Assert.False(vm.License.IsPremium);
+        Assert.Equal("MF1-not.a-key", vm.Tools.LicenseKeyText);   // kept so the user can correct it
+        Assert.Contains("Premium tools stay locked", vm.StatusMessage);
+    }
 }
