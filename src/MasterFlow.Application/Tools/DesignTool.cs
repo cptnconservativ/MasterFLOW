@@ -203,6 +203,8 @@ public sealed class ToolInput
     public IReadOnlyList<string[]> Rows(string section) => _tables.TryGetValue(section, out var t) && t.Count > 1 ? t.Skip(1).ToList() : [];
     public IReadOnlyList<string> Header(string section) => _tables.TryGetValue(section, out var t) && t.Count > 0 ? t[0] : [];
     public bool HasSection(string section) => _tables.ContainsKey(section);
+    /// <summary>Section names in the order they first appear.</summary>
+    public IReadOnlyList<string> Sections => _tables.Keys.ToList();
 
     public static bool TryNumber(string? s, out double v)
     {
