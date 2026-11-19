@@ -12,6 +12,7 @@ public static class ToolReport
 {
     public static string ToHtml(ProjectInfo project, ToolResult r, string input, string softwareVersion, DateTimeOffset? when = null)
     {
+        if (r.Report is { } report) return DrainageReportWriter.ToHtml(project, report, new ReportOptions { SoftwareVersion = softwareVersion, Timestamp = when });
         static string E(string? s) => WebUtility.HtmlEncode(s ?? "");
         var sb = new StringBuilder();
         sb.Append("<!doctype html><html><head><meta charset=\"utf-8\"><title>").Append(E(r.Title)).Append("</title><style>")
@@ -62,6 +63,7 @@ public static class ToolReport
     public static byte[] ToPdf(ProjectInfo project, ToolResult r, string input, ReportOptions? options = null)
     {
         options ??= new ReportOptions();
+        if (r.Report is { } report) return DrainageReportWriter.ToPdf(project, report, options);
         var fonts = new PdfFonts();
         var pager = new PdfPager(fonts, PdfReport.LetterHeight, PdfReport.LetterWidth); // landscape
         pager.StartSection($"{r.Title} — {project.Name}", PdfReport.Context(options));
@@ -82,29 +84,9 @@ public static class ToolReport
                 right?.Draw(c, x + half + 16, y, half);
             }));
         }
-        foreach (var t in r.Tables)
-        {
-            pager.Heading(t.Title);
-            // Width: the longest cell or header word, or half the header (headers wrap), within 4 to 40 characters.
-            var cols = t.Headers.Select((h, k) => new PdfColumn(Math.Clamp(Math.Max(Math.Max((h.Length + 1) / 2, h.Split(' ').Max(w => w.Length)),
-                    t.Rows.Count == 0 ? 0 : t.Rows.Max(row => k < row.Count ? DesignTools.Cell(row[k]).Length : 0)), 4, 40) / 10f,
-                t.Rows.Count > 0 && t.Rows.All(row => k >= row.Count || row[k] is null or double))).ToList();
-            pager.AddTable(new TableBlock(fonts, cols, t.Headers, t.Rows.Select(row => ((IReadOnlyList<PdfCell>)row.Select(c => new PdfCell(DesignTools.Cell(c))).ToList(),
-                row.Any(c => c is string s && s.StartsWith("FAILS", StringComparison.Ordinal)))).ToList(), PdfStyle.Small));
-            foreach (var n in t.Notes ?? []) pager.Paragraph(n, size: PdfStyle.Small, color: PdfStyle.Muted, spaceAfter: 1);
-        }
+        foreach (var t in r.Tables) AddTable(pager, fonts, t);
         pager.Heading("Messages");
-        if (r.Messages.Count == 0) pager.Paragraph("None.");
-        foreach (var m in r.Messages)
-        {
-            var (bar, fill) = m.Severity switch
-            {
-                MessageSeverity.Error => (PdfStyle.Red, SKColor.Parse("#fdecea")),
-                MessageSeverity.Warning => (PdfStyle.Amber, SKColor.Parse("#fff7e0")),
-                _ => (PdfStyle.Accent, SKColor.Parse("#eef5fb")),
-            };
-            pager.Add(new MessageBlock(fonts, $"{m.Severity} [{m.Code}]", m.Text, bar, fill));
-        }
+        AddMessages(pager, fonts, r.Messages);
         pager.Heading("Input");
         foreach (var line in (input ?? "").Replace("\r", "").Split('\n'))
             pager.Paragraph(line.Replace("\t", "    ").Length == 0 ? " " : line.Replace("\t", "    "), fonts.Mono, PdfStyle.Small, PdfStyle.Muted, 0);
@@ -122,8 +104,36 @@ public static class ToolReport
         return ms.ToArray();
     }
 
+    /// <summary>A tool table under its heading: column widths from the content, numbers right-aligned, FAILS rows bold.</summary>
+    internal static void AddTable(PdfPager pager, PdfFonts fonts, ToolTable t, bool heading = true)
+    {
+        if (heading) pager.Heading(t.Title);
+        // Width: the longest cell or header word, or half the header (headers wrap), within 4 to 40 characters.
+        var cols = t.Headers.Select((h, k) => new PdfColumn(Math.Clamp(Math.Max(Math.Max((h.Length + 1) / 2, h.Split(' ').Max(w => w.Length)),
+                t.Rows.Count == 0 ? 0 : t.Rows.Max(row => k < row.Count ? DesignTools.Cell(row[k]).Length : 0)), 4, 40) / 10f,
+            t.Rows.Count > 0 && t.Rows.All(row => k >= row.Count || row[k] is null or double))).ToList();
+        pager.AddTable(new TableBlock(fonts, cols, t.Headers, t.Rows.Select(row => ((IReadOnlyList<PdfCell>)row.Select(c => new PdfCell(DesignTools.Cell(c))).ToList(),
+            row.Any(c => c is string s && s.StartsWith("FAILS", StringComparison.Ordinal)))).ToList(), PdfStyle.Small));
+        foreach (var n in t.Notes ?? []) pager.Paragraph(n, size: PdfStyle.Small, color: PdfStyle.Muted, spaceAfter: 1);
+    }
+
+    internal static void AddMessages(PdfPager pager, PdfFonts fonts, IReadOnlyList<CalcMessage> messages)
+    {
+        if (messages.Count == 0) pager.Paragraph("None.");
+        foreach (var m in messages)
+        {
+            var (bar, fill) = m.Severity switch
+            {
+                MessageSeverity.Error => (PdfStyle.Red, SKColor.Parse("#fdecea")),
+                MessageSeverity.Warning => (PdfStyle.Amber, SKColor.Parse("#fff7e0")),
+                _ => (PdfStyle.Accent, SKColor.Parse("#eef5fb")),
+            };
+            pager.Add(new MessageBlock(fonts, $"{m.Severity} [{m.Code}]", m.Text, bar, fill));
+        }
+    }
+
     /// <summary>A <see cref="ToolChart"/> drawn with the same layout as the HTML SVG.</summary>
-    private sealed class ChartBlock(PdfFonts fonts, ToolChart chart) : IPdfBlock
+    internal sealed class ChartBlock(PdfFonts fonts, ToolChart chart) : IPdfBlock
     {
         private const float H = 205;
         public float Height(float width) => H + 14;
