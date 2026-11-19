@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MasterFlow.Application.Licensing;
 using MasterFlow.Application.Tools;
 using MasterFlow.Domain;
 using MasterFlow.Reporting;
@@ -30,7 +31,27 @@ public sealed partial class DesignToolsViewModel : ObservableObject
     [ObservableProperty] private bool _canApply;
     public ObservableCollection<string> Messages { get; } = [];
 
-    public string Description => SelectedTool?.Description ?? "";
+    public string Description => SelectedTool is null ? "" : (PremiumFeatures.IsPremium(SelectedTool) ? "★ Premium. " : "") + SelectedTool.Description;
+
+    /// <summary>License key box (Premium); Activate checks it offline and keeps it in the user settings.</summary>
+    [ObservableProperty] private string _licenseKeyText = "";
+    public string LicenseSummary => _main.License.Summary;
+
+    public void RefreshLicense() => OnPropertyChanged(nameof(LicenseSummary));
+
+    [RelayCommand]
+    private void ActivateLicense()
+    {
+        var state = _main.ActivateLicense(LicenseKeyText);
+        _main.StatusMessage = state.Status switch
+        {
+            LicenseStatus.Valid => state.Summary,
+            LicenseStatus.None => "License key cleared: MasterFlow Free.",
+            _ => state.Message,
+        };
+        if (state.Status is LicenseStatus.Valid or LicenseStatus.None) LicenseKeyText = "";
+        RefreshLicense();
+    }
 
     public DesignToolContext Context()
     {
@@ -70,7 +91,7 @@ public sealed partial class DesignToolsViewModel : ObservableObject
     {
         if (SelectedTool is null) return;
         ToolResult r;
-        try { r = SelectedTool.Run(InputText, Context()); }
+        try { r = PremiumFeatures.Run(SelectedTool, InputText, Context(), _main.License); }
         catch (Exception ex) { r = ToolResult.Failed(SelectedTool.Name, Hydraulics.CalcMessage.Error("E-TL-999", "The tool stopped with an internal error: " + ex.Message)); }
         Result = r;
         ResultText = DesignTools.ToText(r);
