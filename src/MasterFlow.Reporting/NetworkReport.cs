@@ -100,6 +100,25 @@ public static class NetworkReport
         string sub = string.Join(" · ", new[] { project.Name, project.ProjectNumber, string.IsNullOrWhiteSpace(project.PreparedBy) ? "" : "Prepared by " + project.PreparedBy,
             string.IsNullOrWhiteSpace(project.CheckedBy) ? "" : "Checked by " + project.CheckedBy, "MasterFlow " + options.SoftwareVersion, PdfReport.Stamp(options) }.Where(s => !string.IsNullOrWhiteSpace(s)));
         pager.Add(new TextBlock(fonts, sub, fonts.Regular, PdfStyle.Body, PdfStyle.Muted, 6));
+        AddContent(pager, fonts, r, options);
+        using var ms = new MemoryStream();
+        var when = (options.Timestamp ?? DateTimeOffset.Now).UtcDateTime;
+        using (var doc = SKDocument.CreatePdf(ms, new SKDocumentPdfMetadata
+        {
+            Title = $"Storm sewer HGL/EGL — {r.Network.Name}", Author = project.PreparedBy, Subject = project.Name,
+            Creator = "MasterFlow " + options.SoftwareVersion, Producer = "MasterFlow " + options.SoftwareVersion, Creation = when, Modified = when, RasterDpi = 300,
+        }))
+        {
+            pager.Render(doc);
+            doc.Close();
+        }
+        return ms.ToArray();
+    }
+
+    /// <summary>Method, criteria, profiles, pipe and structure tables, messages and trace: the body of the network PDF, shared with the drainage report.</summary>
+    internal static void AddContent(PdfPager pager, PdfFonts fonts, StormNetworkResult r, ReportOptions options)
+    {
+        var c = r.Constants;
         pager.Paragraph("Method: " + NetworkTables.Method, size: PdfStyle.Small);
         pager.Paragraph("Tailwater: " + NetworkTables.TailwaterText(r.Network) + "  Criteria: " + NetworkTables.CriteriaText(r.Network, c), size: PdfStyle.Small);
 
@@ -143,18 +162,6 @@ public static class NetworkReport
             pager.Heading("Calculation trace");
             foreach (var t in r.Trace) pager.Paragraph(t, size: PdfStyle.Small, color: PdfStyle.Muted, spaceAfter: 1);
         }
-        using var ms = new MemoryStream();
-        var when = (options.Timestamp ?? DateTimeOffset.Now).UtcDateTime;
-        using (var doc = SKDocument.CreatePdf(ms, new SKDocumentPdfMetadata
-        {
-            Title = $"Storm sewer HGL/EGL — {r.Network.Name}", Author = project.PreparedBy, Subject = project.Name,
-            Creator = "MasterFlow " + options.SoftwareVersion, Producer = "MasterFlow " + options.SoftwareVersion, Creation = when, Modified = when, RasterDpi = 300,
-        }))
-        {
-            pager.Render(doc);
-            doc.Close();
-        }
-        return ms.ToArray();
     }
 
     public static string ToHtml(ProjectInfo project, StormNetworkResult r, ReportOptions? options = null)
@@ -199,7 +206,7 @@ public static class NetworkReport
     }
 
     /// <summary>The same profile drawing as the PDF: ground, structures, pipe, HGL (solid) and EGL (dashed).</summary>
-    private sealed class ProfileBlock(PdfFonts fonts, NetworkProfile p, string unit) : IPdfBlock
+    internal sealed class ProfileBlock(PdfFonts fonts, NetworkProfile p, string unit) : IPdfBlock
     {
         private const float BandFont = 6.5f;
         private float TextW => fonts.Measure("0000.00", fonts.Regular, BandFont);
