@@ -126,6 +126,10 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private UniformFlowResult? _result;
     [ObservableProperty] private IReadOnlyList<ResultLine> _resultLines = [];
     [ObservableProperty] private IReadOnlyList<MessageItem> _messages = [];
+    /// <summary>Pipe capacity at a glance (full-flow Q, max. Q, percent full); null for open channels.</summary>
+    [ObservableProperty] private string? _capacityText;
+    public bool HasCapacity => CapacityText is not null;
+    partial void OnCapacityTextChanged(string? value) => OnPropertyChanged(nameof(HasCapacity));
     [ObservableProperty] private IReadOnlyList<string> _trace = [];
     [ObservableProperty] private CrossSectionDrawing? _drawing;
     [ObservableProperty] private ChannelSection? _currentSection;
@@ -402,6 +406,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         Result = r;
         HasResult = r.Succeeded;
         ResultLines = ResultSummary.Lines(r);
+        CapacityText = ResultSummary.CapacityText(r);
         var criteria = BuildCriteria(out var criteriaErrors);
         Checks = DesignChecks.Evaluate(criteria, r);
         Messages = r.Messages.Concat(criteriaErrors).Concat(DesignChecks.Messages(Checks)).Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
