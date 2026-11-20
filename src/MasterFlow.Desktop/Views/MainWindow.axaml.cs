@@ -135,4 +135,39 @@ public partial class MainWindow : Window, IDialogService
         await dialog.ShowDialog(this);
         return result;
     }
+
+    public async Task<RecoveryChoice> AskRecoveryAsync(string message)
+    {
+        var result = RecoveryChoice.SetAside; // closing the dialog keeps the work
+        var dialog = new Window
+        {
+            Title = "MasterFlow - recover unsaved work", Width = 460, SizeToContent = SizeToContent.Height, CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
+        var restore = new Button { Content = "Restore", IsDefault = true };
+        var keep = new Button { Content = "Keep for later", IsCancel = true };
+        var discard = new Button { Content = "Discard" };
+        restore.Click += (_, _) => { result = RecoveryChoice.Restore; dialog.Close(); };
+        keep.Click += (_, _) => { result = RecoveryChoice.SetAside; dialog.Close(); };
+        discard.Click += (_, _) => { result = RecoveryChoice.Discard; dialog.Close(); };
+        dialog.Content = new StackPanel
+        {
+            Margin = new Avalonia.Thickness(16), Spacing = 12,
+            Children =
+            {
+                new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { restore, keep, discard } },
+            },
+        };
+        await dialog.ShowDialog(this);
+        return result;
+    }
+
+    /// <summary>Brings this window to the front (used when MasterFlow is launched again).</summary>
+    public void BringToFront()
+    {
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+        Topmost = true; Topmost = false;
+    }
 }
