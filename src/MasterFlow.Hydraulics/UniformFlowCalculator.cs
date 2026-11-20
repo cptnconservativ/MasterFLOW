@@ -278,8 +278,25 @@ public static class UniformFlowCalculator
 
         bool leftWall = y > g.LeftEndHeight, rightWall = y > g.RightEndHeight;
         if (leftWall || rightWall)
+        {
+            // Same intent as the channel-depth overtopping warning for simple shapes (W-G-001): say plainly
+            // that the water is above the section and how far, and that the walls were extended.
+            double wse = g.Datum + y;
+            var parts = new List<string>();
+            if (leftWall) parts.Add(F($"{y - g.LeftEndHeight:F3} {c.Length} above the left end (elevation {g.Datum + g.LeftEndHeight:F3})"));
+            if (rightWall) parts.Add(F($"{y - g.RightEndHeight:F3} {c.Length} above the right end (elevation {g.Datum + g.RightEndHeight:F3})"));
             messages.Add(CalcMessage.Warning(MessageCodes.WallExtended,
-                F($"The water surface (elevation {g.Datum + y:F3} {c.Length}) is above the {(leftWall && rightWall ? "left and right ends" : leftWall ? "left end" : "right end")} of the section. A vertical wall is assumed there; extend the survey if water would actually spread further.")));
+                F($"Overtopped: the water surface (elevation {wse:F3} {c.Length}) is {string.Join(" and ", parts)}. MasterFlow extended the {(leftWall && rightWall ? "left and right end walls" : leftWall ? "left end wall" : "right end wall")} vertically to contain it, so part of the area and conveyance is held by walls that are not in the survey. Extend the survey, or treat the section as overtopped.")));
+        }
+        if (input.Section is IrregularSection irs)
+        {
+            // Points the user labelled as banks (description contains "bank", e.g. "Left bank", "RB", "top of bank").
+            var banks = irs.Points.Skip(1).Take(Math.Max(0, irs.Points.Count - 2))
+                .Where(p => IsBankLabel(p.Description) && g.Datum + y > p.Elevation + 1e-9).ToList();
+            if (banks.Count > 0)
+                messages.Add(CalcMessage.Warning(MessageCodes.OutOfBank,
+                    F($"Out of bank: the water surface (elevation {g.Datum + y:F3} {c.Length}) is above {string.Join(" and ", banks.Select(b => F($"\"{b.Description}\" (station {b.Station:F2}, elevation {b.Elevation:F3}) by {g.Datum + y - b.Elevation:F3} {c.Length}")))}. The overbanks are carrying flow.")));
+        }
         int regions = g.WettedRegions(y);
         if (regions > 1)
             messages.Add(CalcMessage.Warning(MessageCodes.SeparateWettedAreas,
@@ -318,6 +335,16 @@ public static class UniformFlowCalculator
                 Subareas = flows,
             },
         };
+    }
+
+    /// <summary>True for point descriptions that mark a channel bank ("Left bank", "RB", "Top of bank", "LOB").</summary>
+    public static bool IsBankLabel(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description)) return false;
+        string d = description.Trim();
+        if (d.Contains("bank", StringComparison.OrdinalIgnoreCase)) return !d.Contains("overbank", StringComparison.OrdinalIgnoreCase);
+        return d.Equals("LB", StringComparison.OrdinalIgnoreCase) || d.Equals("RB", StringComparison.OrdinalIgnoreCase)
+            || d.Equals("TOB", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

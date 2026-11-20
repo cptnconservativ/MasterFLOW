@@ -91,12 +91,22 @@ public static class ResultSummary
                 new(I, "Energy grade elev.", "EGL", ir.WaterSurfaceElevation + r.Normal.VelocityHead, c.Length, 3),
                 new(I, "Critical WS elev.", "WSEc", ir.CriticalWaterSurfaceElevation, c.Length, 3),
                 new(I, "Lowest ground elev.", "zmin", ir.LowestElevation, c.Length, 3),
+                .. TopOfSection(r, ir, I, c.Length),
                 new(I, "Effective n", "neff", ir.CompositeN, "", 4),
                 new(I, "Energy coefficient", "α", ir.EnergyCoefficient, "", 3),
                 new(I, "Wetted areas", "", ir.WettedRegions, "", 0),
             ]);
         }
         return lines;
+    }
+
+    /// <summary>Top of the section (the lower end point) and the freeboard to it; negative freeboard means overtopped.</summary>
+    private static IEnumerable<ResultLine> TopOfSection(UniformFlowResult r, IrregularResult ir, string group, string length)
+    {
+        if (r.Input.Section is not IrregularSection { Points.Count: >= 2 } s) yield break;
+        double top = Math.Min(s.Points[0].Elevation, s.Points[^1].Elevation);
+        yield return new(group, "Top of section (lower end)", "ztop", top, length, 3);
+        yield return new(group, ir.LeftWallExtended || ir.RightWallExtended ? "Freeboard (OVERTOPPED)" : "Freeboard to top", "f", top - ir.WaterSurfaceElevation, length, 3);
     }
 
     /// <summary>Subarea flow split rows (station range, n, A, P, K, Q, V) for an irregular section with conveyance subdivision.</summary>

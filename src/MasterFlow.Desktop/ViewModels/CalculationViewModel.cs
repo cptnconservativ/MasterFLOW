@@ -126,6 +126,9 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private UniformFlowResult? _result;
     [ObservableProperty] private IReadOnlyList<ResultLine> _resultLines = [];
     [ObservableProperty] private IReadOnlyList<MessageItem> _messages = [];
+    /// <summary>Warnings and errors repeated at the top of the Results tab, so overtopping and similar cautions are seen with the numbers.</summary>
+    [ObservableProperty] private IReadOnlyList<MessageItem> _resultWarnings = [];
+    [ObservableProperty] private bool _hasResultWarnings;
     [ObservableProperty] private IReadOnlyList<string> _trace = [];
     [ObservableProperty] private CrossSectionDrawing? _drawing;
     [ObservableProperty] private ChannelSection? _currentSection;
@@ -405,6 +408,8 @@ public sealed partial class CalculationViewModel : ObservableObject
         var criteria = BuildCriteria(out var criteriaErrors);
         Checks = DesignChecks.Evaluate(criteria, r);
         Messages = r.Messages.Concat(criteriaErrors).Concat(DesignChecks.Messages(Checks)).Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
+        ResultWarnings = Messages.Where(m => m.Severity is nameof(MessageSeverity.Warning) or nameof(MessageSeverity.Error)).ToList();
+        HasResultWarnings = ResultWarnings.Count > 0;
         Trace = r.Trace;
         CurrentSection = input.Section;
         bool geometryOk = parseErrors.Count == 0 && !r.Messages.Any(m => m.Code == MessageCodes.GeometryInvalid);

@@ -87,11 +87,12 @@ station, elevation [, n [, description]]
   conveyance of each part is summed, and the report shows the flow, area and velocity of each part.
 - *Equal velocity* (Horton–Einstein): one composite n for the whole wetted perimeter.
 
-What MasterFlow does with awkward sections, and tells you about:
+What MasterFlow does with awkward sections, and tells you about (warnings are repeated in a yellow box at the top of the Results tab):
 
 | Situation | What happens | Message |
 |---|---|---|
-| Water above an end point | A vertical wall is added at that end (counted as wetted perimeter) | W-I-003 |
+| Water above an end point | "Overtopped" warning with the amount above each end; a vertical wall is added there (counted as wetted perimeter). Results show **Top of section** and **Freeboard (OVERTOPPED)** as a negative number | W-I-003 |
+| Water above a point labelled as a bank ("Left bank", "Top of bank", "LB", "RB", "TOB"; not "overbank") | "Out of bank" warning naming the bank and the depth above it | W-I-005 |
 | Separate pools below the water surface | All of them carry flow | W-I-002 |
 | Several depths carry the same Q (flat overbanks) | All are listed; the **highest** is reported | W-I-001 |
 | Several specific-energy minima | All are listed; the one with the lowest energy is critical depth | W-I-004 |
