@@ -161,8 +161,8 @@ public class WaterQualityTests
         Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
         Assert.DoesNotContain(r.Messages, m => m.Severity == MessageSeverity.Warning);
         var b1 = r.Tables[0].Rows.Single(x => (string)x[0]! == "B1");
-        // 0.45 ha at 90 %, a 0.8: WQCV mm = 25.4 × in.; volume = depth × area.
-        double inches = Wq.WqcvRapidCity(0.9, 0.8);
+        // 0.45 ha at 90 %: WQCV mm = 25.4 × in.; volume = depth × area.
+        double inches = Wq.WqcvRapidCity(0.9, 1.0);                       // bioretention: 48 h ponding → a = 1.0
         Assert.Equal(Math.Round(inches * 25.4, 4), (double)b1[7]!, 4);
         Assert.Equal(Math.Round(inches * 0.0254 * 4500, 0), (double)b1[8]!, 0);
         Assert.Contains("m³", r.Tables[0].Headers[8]);
@@ -284,7 +284,11 @@ public class WaterQualityTests
         Assert.Equal(HandWetHole, (double)Item(r, wet, "Hole area per row")!, 2);
         Assert.Equal(24.0, (double)Item(r, wet, "Drain time, 99 % of the volume")!, 1);
         Assert.True((double)Item(r, wet, "Pool volume / WQCV")! >= 75);
-        Assert.Equal(1484.7, (double)Item(r, "Bioretention Rain garden", "Required area, WQCV / depth")!, 1);
+        const string bio = "Bioretention Rain garden";
+        Assert.Equal(1855.9, (double)Item(r, bio, "Required area")!, 1);                   // a = 1.0 for the 48 h ponding
+        Assert.Equal(824.8, (double)Item(r, bio, "Area to drain the ponding in 48 h by Darcy, V·df / (k (hf + df) t)")!, 1);
+        Assert.Equal(21.3, (double)Item(r, bio, "Surface drain time at the required area")!, 1);
+        Assert.Equal(40.5, (double)Item(r, bio, "Time to be ready for the next storm (surface + bed)")!, 1);
         Assert.Equal(367.9, (double)Item(r, "Sand filter Sand filter", "Required area, WQCV / depth")!, 1);
         Assert.Equal(973.8, (double)Item(r, "Porous landscape detention Island", "Minimum surface area, design volume / dav")!, 1);
         Assert.All(r.Tables[1].Rows, x => Assert.Equal("OK", x[10]));
@@ -330,6 +334,33 @@ public class WaterQualityTests
         Assert.Contains(r.Messages, m => m.Code == "W-WQ-008");
         Assert.Equal(40.0, (double)r.Tables[1].Rows[0][4]!, 9);
         Assert.Equal(20.0, (double)Item(r, "Extended detention basin F", "Sediment allowance")!, 9);
+    }
+
+    [Fact]
+    public void RapidCity_Bioretention_48hSurface_72hBed()
+    {
+        // Slow soil: Darcy for a 48 h surface drain governs over the ponding storage.
+        var r = One("type = bioretention\nponding depth = 12\nmedia depth = 48\npermeability = 0.2");
+        double v = Wq.WqcvRapidCity(0.6, 1.0) / 12 * 3 * 43560;                     // 48 h → a = 1.0
+        double darcy = v * 4.0 / (0.2 * (0.5 + 4.0) * 2.0);
+        Assert.Equal(Math.Round(darcy, 1), (double)Item(r, "Bioretention F", "Required area")!, 1);
+        Assert.Equal("48 h surface drain", Item(r, "Bioretention F", "Governs"));
+        Assert.Equal(48, (double)Item(r, "Bioretention F", "Surface drain time at the required area")!, 1);
+        Assert.DoesNotContain(r.Tables[2].Rows, x => ((string)x[0]!).StartsWith("Time to be ready"));   // bed not modeled
+        // Bed modeled: 48 h surface + 0.25 × 4 ft / 0.5 ft/day = 48 h bed → 96 h > 72 h.
+        r = One("type = bioretention\nponding depth = 12\nmedia depth = 48\npermeability = 0.5\nmedia porosity = 0.25");
+        double tSurf = (double)Item(r, "Bioretention F", "Surface drain time at the required area")!;
+        Assert.Equal(48.0, (double)Item(r, "Bioretention F", "Bed drainage after the ponding, stored depth / rate through the media (k, unit gradient)")!, 1);
+        Assert.Equal(Math.Round(tSurf + 48, 1), (double)Item(r, "Bioretention F", "Time to be ready for the next storm (surface + bed)")!, 1);
+        Assert.Contains(r.Messages, m => m.Code == "W-WQ-010" && m.Text.Contains("72 h"));
+        // No underdrain: soil and gravel drain to the subgrade at its design rate (0.5 in./hr / 2 = 0.5 ft/day).
+        r = One("type = bioretention\nponding depth = 6\nunderdrain = no\npermeability = 2\nmedia porosity = 0.2\ngravel depth = 12\nsubgrade infiltration rate = 0.5");
+        Assert.Equal(Math.Round((0.2 * 4 + 0.4 * 1) / 0.5 * 24, 1), (double)Item(r, "Bioretention F", "Bed drainage after the ponding, stored depth / rate through the subgrade (0.5 in./hr / 2)")!, 1);
+        Assert.Contains(One("type = bioretention\nunderdrain = no\nponding depth = 6\nmedia porosity = 0.2").Messages, m => m.Code == "E-WQ-009");
+        // The 48 h is fixed under the Rapid City criteria.
+        r = One("type = bioretention\nfilter drain time = 24\nwqcv drain time = 12");
+        Assert.Equal(2, r.Messages.Count(m => m.Code == "W-WQ-007"));
+        Assert.Equal(48.0, (double)r.Tables[1].Rows[0][4]!, 9);
     }
 
     [Theory]

@@ -161,8 +161,12 @@ print(f"Wetland: WQCV = {w:.6f} in = {v:.3f} cf, pool volume = {conic_storage(we
       f"surcharge level = {top:.4f} ft, rows = {nrows}, hole area per row = {a*144:.4f} sq in, 99 % in {t24:.3f} h")
 
 # Storage-sized BMPs
-v = wqcv_rc(0.90, 0.8) / 12 * 1.1 * 43560
-print(f"Bioretention B1 (12 h assumed, 12 in. ponding): V = {v:.3f} cf, area = {v/1.0:.3f} sf, guideline 5-7 % x 0.85 x 1.1 ac = {0.05*0.85*1.1*43560:.1f} - {0.07*0.85*1.1*43560:.1f} sf")
+v = wqcv_rc(0.90, 1.0) / 12 * 1.1 * 43560    # 48 h ponding -> a = 1.0 (longest SWQM category)
+a_store, a_darcy = v / 1.0, v * 4.0 / (1.0 * (0.5 + 4.0) * 2.0)
+t_surf = v * 4.0 / (1.0 * (0.5 + 4.0) * max(a_store, a_darcy)) * 24
+t_bed = 0.2 * 4.0 / 1.0 * 24                   # drainable porosity 0.2 x 4 ft soil at k = 1 ft/day; gravel to the underdrain
+print(f"Bioretention B1 (48 h ponding, 12 in.): V = {v:.3f} cf, storage area = {a_store:.3f} sf, Darcy 48 h area = {a_darcy:.3f} sf, "
+      f"surface drain = {t_surf:.2f} h, bed = {t_bed:.2f} h, ready in {t_surf + t_bed:.2f} h (<= 72), guideline 5-7 % x 0.85 x 1.1 ac = {0.05*0.85*1.1*43560:.1f} - {0.07*0.85*1.1*43560:.1f} sf")
 v = wqcv_rc(0.80, 1.0) / 12 * 0.8 * 43560
 print(f"Sand filter C1 (40 h, 3 ft): V = {v:.3f} cf, As = V/3 = {v/3:.3f} sf")
 v = wqcv_rc(0.85, 0.8) / 12 * 0.6 * 43560

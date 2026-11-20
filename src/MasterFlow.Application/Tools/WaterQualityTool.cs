@@ -19,10 +19,13 @@ public sealed class WaterQualityTool : IDesignTool
 
     private static readonly string[] Types = ["edb", "sand filter", "constructed wetland", "porous landscape detention", "bioretention", "infiltration"];
 
-    /// <summary>Rapid City SWQM drain time (h) of each WQCV BMP. Bioretention has none in §2.3.9; 12 h (as porous landscape detention) is assumed.</summary>
+    /// <summary>
+    /// Rapid City SWQM drain time (h) of each WQCV BMP. Bioretention has none in §2.3.9; Kyle set 48 h for the surface
+    /// ponding (2026-11-20), which takes a = 1.0, the manual's longest category (40 h).
+    /// </summary>
     private static double? RapidCityDrain(string type) => type switch
     {
-        "edb" or "sand filter" => 40, "constructed wetland" => 24, "porous landscape detention" or "bioretention" => 12, _ => null,
+        "edb" or "sand filter" => 40, "constructed wetland" => 24, "porous landscape detention" => 12, "bioretention" => 48, _ => null,
     };
 
     private static string Section(string type) => type switch
@@ -55,7 +58,8 @@ public sealed class WaterQualityTool : IDesignTool
         type = bioretention
         ponding depth = 300         # mm
         media depth = 1220          # mm (4 ft)
-        permeability = 0.15         # m/day
+        permeability = 0.3          # m/day
+        media porosity = 0.2
         """ : """
         # Water quality capture volume and BMP sizing to the Rapid City Storm Water Quality Manual (2009), U.S. units.
         # WQCV = 1.16·a·(0.91I³ − 1.191I² + 0.78I) (§2.2.2); drain times and limits from §2.3. IDCM §4.1.7 adopts this manual.
@@ -99,12 +103,15 @@ public sealed class WaterQualityTool : IDesignTool
         101.0	11000
         102.0	13000
 
-        # Bioretention (§2.3.9): ponding ≤ 6 in., or ≤ 12 in. with collector pipes; planting soil ≥ 4 ft.
+        # Bioretention (§2.3.9): ponding ≤ 6 in., or ≤ 12 in. with collector pipes; planting soil ≥ 4 ft. The ponding
+        # drains in 48 h (a = 1.0); with a drainable porosity or gravel depth, the bed is checked to drain within 72 h.
         [BMP Rain garden]
         type = bioretention
         ponding depth = 12          # in.
         media depth = 48            # in. of planting soil
-        permeability = 0.5          # ft/day, for the drain-time check
+        permeability = 1.0          # ft/day, planting soil
+        media porosity = 0.2        # drainable porosity of the soil (omit to skip the bed check)
+        gravel depth = 12           # in. of gravel bed around the underdrain
         runoff coefficient = 0.85   # Rational C, for the 5–7 % area guideline
 
         # Sand filter extended detention basin (§2.3.3): 100 % WQCV over 40 h, depth ≤ 3 ft, 18 in. of sand.
@@ -324,7 +331,7 @@ public sealed class WaterQualityTool : IDesignTool
                     bool bio = type == "bioretention";
                     bool under = p.Flag(sec + ".underdrain", true);
                     double hMax = Num("ponding depth", bio ? (us ? 12 : 300) : (us ? 24 : 600), "ponding depth") * smallK, df = Num("media depth", bio ? (rc ? (us ? 48 : 1220) : (us ? 18 : 450)) : (us ? 18 : 450), "media depth") * smallK;
-                    double k = Num("permeability", bio ? (us ? 0.5 : 0.15) : (us ? 3.5 : 1.07), "permeability"), tf = Num("filter drain time", bio ? (rc ? 12 : 48) : 40, "filter drain time");
+                    double k = Num("permeability", bio ? (us ? 0.5 : 0.15) : (us ? 3.5 : 1.07), "permeability"), tf = Num("filter drain time", bio ? 48 : 40, "filter drain time");
                     double n = Num("media porosity", 0, "media porosity");
                     if (Bad("ponding depth", hMax) | Bad("media depth", df) | Bad("permeability", k) | Bad("filter drain time", tf) | Bad("media porosity", n, true)) continue;
                     if (n >= 1) { msgs.Add(CalcMessage.Error("E-WQ-006", $"BMP {name}: media porosity must be below 1.")); continue; }
@@ -341,16 +348,59 @@ public sealed class WaterQualityTool : IDesignTool
                         double minMedia = bio ? Ft(4) : Ft(1.5);
                         if (df < minMedia - 1e-9) Limit(bio ? $"planting soil of {df / smallK:G4} {small} is less than the 4 ft the manual recommends (§2.3.9; 1 to 2 ft is allowed on-line for drainage areas under 2 ac)."
                                                           : $"sand of {df / smallK:G4} {small} is less than the 18 in. layer the manual requires (§2.3.3 step 4).");
-                        double req = wqcv / (hMax + n * df);
-                        double tAct = Wq.DarcyDrainDays(wqcv, df, k, hMax / 2, req) * 24;
                         var rows = new List<IReadOnlyList<object?>>
                         {
-                            new object?[] { "WQCV (composite)", Math.Round(wqcv, 0), V }, new object?[] { "WQCV drain time (sets a)", hours, "h" },
+                            new object?[] { "WQCV (composite)", Math.Round(wqcv, 0), V }, new object?[] { bio ? "WQCV drain time (surface ponding; sets a)" : "WQCV drain time (sets a)", hours, "h" },
                             new object?[] { bio ? "Ponding depth used" : "Design volume depth used (≤ 3 ft)", Math.Round(hMax / smallK, 2), small },
                             new object?[] { bio ? "Planting soil depth" : "Sand depth", Math.Round(df / smallK, 2), small },
-                            new object?[] { "Required area, WQCV / depth", Math.Round(req, 1), Ar },
-                            new object?[] { "Media permeability k (check only)", k, kU }, new object?[] { "Darcy drain time at that area (check only)", Math.Round(tAct, 1), "h" },
                         };
+                        double req, tAct;
+                        if (bio)
+                        {
+                            // Kyle (2026-11-20): the surface ponding drains in 48 h; the soil and gravel bed, when modeled, in 72 h.
+                            if (p.Has(sec + ".filter drain time") && Math.Abs(tf - 48) > 1e-9) { msgs.Add(CalcMessage.Warning("W-WQ-007", $"BMP {name}: Rapid City bioretention ponding drains in 48 h; a filter drain time of {tf:G4} h is ignored.")); tf = 48; }
+                            double aStore = wqcv / hMax, aDarcy = Wq.DarcyFilterArea(wqcv, df, k, hMax / 2, tf / 24);
+                            req = Math.Max(aStore, aDarcy);
+                            tAct = Wq.DarcyDrainDays(wqcv, df, k, hMax / 2, req) * 24;
+                            rows.Add(["Area to hold the WQCV in the ponding, WQCV / ponding", Math.Round(aStore, 1), Ar]);
+                            rows.Add([$"Area to drain the ponding in {tf:G3} h by Darcy, V·df / (k (hf + df) t)", Math.Round(aDarcy, 1), Ar]);
+                            rows.Add(["Media permeability k", k, kU]);
+                            rows.Add(["Required area", Math.Round(req, 1), Ar]);
+                            rows.Add(["Governs", aDarcy > aStore ? $"{tf:G3} h surface drain" : "ponding storage", ""]);
+                            rows.Add(["Surface drain time at the required area", Math.Round(tAct, 1), "h"]);
+                            // Bed drainage, when modeled: the drainable pore water then leaves at the media rate (unit gradient).
+                            // With an underdrain the gravel empties to the pipe; without one, soil and gravel drain to the subgrade.
+                            double ng = Num("gravel porosity", 0.4, "gravel porosity"), dg = Num("gravel depth", 0, "gravel depth") * smallK;
+                            if (Bad("gravel porosity", ng) | Bad("gravel depth", dg, true)) continue;
+                            if (n > 0 || dg > 0)
+                            {
+                                double rateDay = k;
+                                string via = "the media (k, unit gradient)";
+                                if (!under)
+                                {
+                                    double fSub = Num("subgrade infiltration rate", double.NaN, "subgrade infiltration rate"), sfSub = Num("safety factor", 2, "safety factor");
+                                    if (double.IsNaN(fSub)) { msgs.Add(CalcMessage.Error("E-WQ-009", $"BMP {name}: without an underdrain, give the subgrade infiltration rate ({rate}) to check the bed drainage.")); continue; }
+                                    if (Bad("subgrade infiltration rate", fSub) | Bad("safety factor", sfSub)) continue;
+                                    double fDay = fSub / sfSub * smallK * 24;
+                                    if (fDay < rateDay) { rateDay = fDay; via = $"the subgrade ({fSub:G3} {rate} / {sfSub:G3})"; }
+                                }
+                                double stored = n * df + (under ? 0 : ng * dg);
+                                double tBed = stored / rateDay * 24, tTotal = tAct + tBed;
+                                rows.Add(["Drainable porosity of the soil", n, ""]);
+                                if (dg > 0) rows.Add([$"Gravel bed, depth × porosity{(under ? " (to the underdrain)" : "")}", $"{dg / smallK:G4} {small} × {ng:G3}", ""]);
+                                rows.Add([$"Bed drainage after the ponding, stored depth / rate through {via}", Math.Round(tBed, 1), "h"]);
+                                rows.Add(["Time to be ready for the next storm (surface + bed)", Math.Round(tTotal, 1), "h"]);
+                                if (tTotal > 72 + 1e-6) Limit($"the soil and gravel bed drain {tTotal:F1} h after the ponding fills, more than 72 h. Raise the media permeability, add an underdrain or enlarge the area.");
+                            }
+                        }
+                        else
+                        {
+                            req = wqcv / (hMax + n * df);
+                            tAct = Wq.DarcyDrainDays(wqcv, df, k, hMax / 2, req) * 24;
+                            rows.Add(["Required area, WQCV / depth", Math.Round(req, 1), Ar]);
+                            rows.Add(["Media permeability k (check only)", k, kU]);
+                            rows.Add(["Darcy drain time at that area (check only)", Math.Round(tAct, 1), "h"]);
+                        }
                         if (bio && p.Has(sec + ".runoff coefficient"))
                         {
                             double cR = Num("runoff coefficient", 0, "runoff coefficient");
@@ -360,10 +410,11 @@ public sealed class WaterQualityTool : IDesignTool
                             if (req < lo) msgs.Add(CalcMessage.Info("I-WQ-004", $"BMP {name}: the area {req:N0} {Ar} is below the 5–7 % × C guideline ({lo:N0} – {hi:N0} {Ar}, §2.3.9); the manual allows smaller and larger areas."));
                         }
                         tables.Add(new($"{(bio ? "Bioretention" : "Sand filter")} {name}", ["Item", "Value", "Unit"], rows,
-                        [bio ? "Rapid City SWQM §2.3.9: bioretention meets the WQCV criteria; the WQCV is held in the ponding area (≤ 6 in., ≤ 12 in. with collector pipes). §2.3.9 gives no drain time; 12 h (as porous landscape detention) is assumed for a."
+                        [bio ? "Rapid City SWQM §2.3.9: bioretention meets the WQCV criteria; the WQCV is held in the ponding area (≤ 6 in., ≤ 12 in. with collector pipes). §2.3.9 gives no drain time; by the project's design criteria (set 2026-11-20) the ponding drains in 48 h (a = 1.0, the longest category) and the soil and gravel bed, when modeled, within 72 h."
                              : "Rapid City SWQM §2.3.3: 100 % of the WQCV (40 h) above the sand bed; As = design volume / 3 ft at the 3 ft maximum depth; 18 in. sand over 8 in. gravel.",
-                         "The Darcy drain time (Af·k·(hf + df)/df, hf = half the depth) is a check, not a manual requirement."]));
-                        if (tAct > 72) msgs.Add(CalcMessage.Info("I-WQ-005", $"BMP {name}: by Darcy the media drains the WQCV in {tAct:F0} h at that area; check the media permeability."));
+                         bio ? "Surface drain by Darcy, t = V·df / (k (hf + df) A), hf = half the ponding. Bed drainage (when a drainable porosity or gravel depth is given): stored depth / rate, the rate being k, or the subgrade design rate when lower and there is no underdrain."
+                             : "The Darcy drain time (Af·k·(hf + df)/df, hf = half the depth) is a check, not a manual requirement."]));
+                        if (!bio && tAct > 72) msgs.Add(CalcMessage.Info("I-WQ-005", $"BMP {name}: by Darcy the media drains the WQCV in {tAct:F0} h at that area; check the media permeability."));
                         sizeText = $"area {req:N0} {Ar}, {hMax / smallK:G3} {small} deep";
                         bmpRows.Add(Row(bio ? "Bioretention" : "Sand filter EDB", wqcv, sizeText));
                     }
@@ -441,7 +492,7 @@ public sealed class WaterQualityTool : IDesignTool
         var untreated = subs.Where(s => s.Bmp is null).Select(s => s.Name).ToList();
         if (untreated.Count > 0) msgs.Add(CalcMessage.Info("I-WQ-002", $"Untreated: {string.Join(", ", untreated)} ({100 * (1 - share):F1} % of the impervious area)."));
         msgs.Add(rc
-            ? CalcMessage.Info("I-WQ-001", "Rapid City Storm Water Quality Manual (2009), adopted by IDCM (2012) §4.1.7: WQCV = 1.16·a·(0.91I³ − 1.191I² + 0.78I) watershed inches (§2.2.2), a = 0.7, 0.8, 0.9, 1.0 for 6, 12, 24, 40 h drain times; I = mapped impervious fraction, area-weighted for each BMP; volume = WQCV/12 × effective area (total less design credit areas, §2.4.2). Drain times: porous landscape detention 12 h, EDB 40 h, sand filter 40 h, constructed wetland 24 h, bioretention 12 h (assumed; §2.3.9 gives none).")
+            ? CalcMessage.Info("I-WQ-001", "Rapid City Storm Water Quality Manual (2009), adopted by IDCM (2012) §4.1.7: WQCV = 1.16·a·(0.91I³ − 1.191I² + 0.78I) watershed inches (§2.2.2), a = 0.7, 0.8, 0.9, 1.0 for 6, 12, 24, 40 h drain times; I = mapped impervious fraction, area-weighted for each BMP; volume = WQCV/12 × effective area (total less design credit areas, §2.4.2). Drain times: porous landscape detention 12 h, EDB 40 h, sand filter 40 h, constructed wetland 24 h, bioretention 48 h surface ponding (a = 1.0) and 72 h bed drainage when modeled (§2.3.9 gives none; project design criteria).")
             : CalcMessage.Info("I-WQ-001", $"WQCV = a (0.91 i³ − 1.19 i² + 0.78 i) × d6 / 0.43 in watershed inches (MHFD USDCM Vol. 3 Eq. 3-1, 3-2), a from the drain time (Table 3-2: 12 h 0.8, 24 h 0.9, 40 h 1.0), composite imperviousness by area for each BMP. d6 = {d6 * inchToSmall:G4} {(us ? "in" : "mm")}. These are the MHFD methods; confirm the jurisdiction's water quality criteria (volume, drain time, allowed BMPs) before use."));
 
         var summary = new List<string>

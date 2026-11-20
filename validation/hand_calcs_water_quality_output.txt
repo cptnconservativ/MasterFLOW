@@ -11,6 +11,6 @@ SWQM example south: I 0.365, 24 h -> 0.1778 in (manual 0.178); 6.05 ac x 0.178/1
 SWQM credits: north (17.0 - 1.79) x 0.182/12 = 0.231 ac-ft (manual 0.231); south (6.05 - 0.51) x 0.178/12 = 0.082 (manual 0.083)
 EDB Pond 1: I = 0.579167, WQCV = 0.265682 in = 8776.257 cf, design = 10531.509 cf, WQCV level = 102.6050 ft, rows = 8, hole area per row = 0.4061 sq in, WQCV drains in 40.000 h, half the WQCV in 12.310 h (must be >= 12)
 Wetland: WQCV = 0.187586 in = 5447.495 cf, pool volume = 17908.772 cf (328.8 % of WQCV), surcharge level = 100.5703 ft, rows = 2, hole area per row = 4.0376 sq in, 99 % in 24.000 h
-Bioretention B1 (12 h assumed, 12 in. ponding): V = 1484.721 cf, area = 1484.721 sf, guideline 5-7 % x 0.85 x 1.1 ac = 2036.4 - 2851.0 sf
+Bioretention B1 (48 h ponding, 12 in.): V = 1855.902 cf, storage area = 1855.902 sf, Darcy 48 h area = 824.845 sf, surface drain = 21.33 h, bed = 19.20 h, ready in 40.53 h (<= 72), guideline 5-7 % x 0.85 x 1.1 ac = 2036.4 - 2851.0 sf
 Sand filter C1 (40 h, 3 ft): V = 1103.836 cf, As = V/3 = 367.945 sf
 Porous landscape detention L1 (12 h, 9 in. average): V = 730.367 cf, area = 973.823 sf
