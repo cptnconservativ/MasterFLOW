@@ -342,6 +342,7 @@
           <ScrollViewer>
             <StackPanel DataContext="{Binding Selected}" x:DataType="vm:CalculationViewModel">
               <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <TextBlock Text="{Binding MethodText}" IsVisible="{Binding HasMethodText}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,6"/>
               <ItemsControl ItemsSource="{Binding ResultLines}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="app:ResultLine">

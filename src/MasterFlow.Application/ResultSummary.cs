@@ -110,6 +110,29 @@ public static class ResultSummary
         _ => "Near-critical (0.86 ≤ Fr ≤ 1.13) — unstable",
     };
 
+    /// <summary>Display name of a composite-roughness method (UI, reports, exports).</summary>
+    public static string MethodName(CompositeRoughnessMethod m) => m switch
+    {
+        CompositeRoughnessMethod.EqualVelocity => "Equal velocity (Horton–Einstein)",
+        CompositeRoughnessMethod.PerSegment => "Per-segment conveyance (Flow Calc)",
+        _ => "Conveyance subdivision where n changes (HEC-RAS)",
+    };
+
+    /// <summary>Name of the elliptical pipe shape actually computed.</summary>
+    public static string EllipseShapeName(EllipticalSection e) =>
+        e.IsStandardShape ? "ASTM C507 four-centred (standard RCP)" : "True ellipse";
+
+    /// <summary>
+    /// The method choice that changes the answer for this section, stated with the results so a reviewer can
+    /// reproduce them (ellipse shape; irregular-section conveyance method). Null for other shapes.
+    /// </summary>
+    public static string? MethodText(UniformFlowInput i) => i.Section switch
+    {
+        EllipticalSection e => $"Pipe shape: {EllipseShapeName(e)}" + (e.Designation is { } d ? $", {d}" : "") + ".",
+        IrregularSection ir => $"Conveyance method: {MethodName(ir.RoughnessMethod)}.",
+        _ => null,
+    };
+
     public static IReadOnlyList<(string Label, string Value)> InputLines(UniformFlowInput i)
     {
         var c = UnitConstants.For(i.Units);
@@ -137,7 +160,8 @@ public static class ResultSummary
             {
                 double f = i.Units == UnitSystem.USCustomary ? 12 : 1000;
                 string u = i.Units == UnitSystem.USCustomary ? "in" : "mm";
-                list.Add(("Shape", e.Designation ?? (e.IsStandardShape ? "Four-centred elliptical" : "True ellipse (custom)")));
+                list.Add(("Shape", EllipseShapeName(e)));
+                if (e.Designation is { } des) list.Add(("Size", des));
                 list.Add(("Orientation", e.IsHorizontal ? "Horizontal (span ≥ rise)" : "Vertical (rise > span)"));
                 list.Add(("Rise × span", $"{Num(e.Rise * f, 2)} × {Num(e.Span * f, 2)} {u}"));
                 if (e.EndRadius is { } r) list.Add(("End radius R1", $"{Num(r * f, 2)} {u} (R2 from tangency)"));
@@ -151,8 +175,8 @@ public static class ResultSummary
                 if (ns.Count > 0)
                 {
                     list.Add(("Roughness", $"varies ({string.Join(", ", ns.OrderBy(v => v).Select(v => Num(v, 3)))})"));
-                    list.Add(("Composite method", ir.RoughnessMethod == CompositeRoughnessMethod.Conveyance ? "Conveyance subdivision" : "Equal velocity (Horton–Einstein)"));
                 }
+                list.Add(("Conveyance method", MethodName(ir.RoughnessMethod)));
                 break;
             }
             case CircularSection p:
