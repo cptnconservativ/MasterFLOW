@@ -866,6 +866,7 @@ public class PipeNetworkImportTests
     public void SizePipes_ThenExportLandXml_ForCivil3D()
     {
         var vm = MainViewModel.CreateWithSample();
+        vm.License = PremiumLicense();
         vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
         var n = vm.SelectedNetwork!;
         // Inflows at the inlet (CB-1) and the manhole; Rapid City criteria; free outfall.
@@ -878,7 +879,7 @@ public class PipeNetworkImportTests
         Assert.NotEmpty(n.SizingReport);
         Assert.Contains(n.SizingReport, x => x.StartsWith("P-1: 18 → 21 in"));   // Qfull(18 in., 1 %) = 10.5 cfs < 12
         Assert.True(n.CanUndoSizing);
-        var (xml, warnings) = vm.BuildNetworkLandXml(n);
+        var (xml, warnings) = vm.BuildNetworkLandXml(n)!.Value;
         Assert.Empty(warnings);                                   // imported structures carry coordinates
         var back = LandXmlPipeNetworks.Read(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml)));
         Assert.Equal(n.ToModel().Pipes.Single(p => p.Name == "P-1").Rise, back.Pipes.Single(p => p.Name == "P-1").Rise, 6);
@@ -891,6 +892,7 @@ public class PipeNetworkImportTests
     public void Civil3DResults_FromImportedNetwork_MatchPipeNamesAndSolve()
     {
         var vm = MainViewModel.CreateWithSample();
+        vm.License = PremiumLicense();
         vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
         var n = vm.SelectedNetwork!;
         n.StructuresText = n.StructuresText.Replace("CB-1\tInlet\t105.2\tAuto\t\t", "CB-1\tInlet\t105.2\tAuto\t\t6");
@@ -935,6 +937,58 @@ public class PipeNetworkImportTests
         Assert.StartsWith("Nothing imported", vm.ImportLandXmlBytes(System.Text.Encoding.UTF8.GetBytes("<LandXML/>"), "x.xml"));
         Assert.Equal(n, vm.Calculations.Count);
         Assert.False(vm.IsDirty);
+    }
+
+    private static MasterFlow.Application.Licensing.LicenseState PremiumLicense(params string[] features) =>
+        new(MasterFlow.Application.Licensing.LicenseStatus.Valid,
+            new MasterFlow.Application.Licensing.LicensePayload { Licensee = "Test firm", Features = features.Length == 0 ? ["*"] : features }, "");
+
+    [Fact]
+    public void StormNetworkPremiumButtons_AreLockedOnFree_AndFollowTheLicense()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        vm.ImportLandXmlBytes(StormBytes(), "storm.xml");
+        var n = vm.SelectedNetwork!;
+        n.StructuresText = n.StructuresText.Replace("CB-1\tInlet\t105.2\tAuto\t\t", "CB-1\tInlet\t105.2\tAuto\t\t12");
+        n.Tailwater = TailwaterRule.FreeOutfall;
+        string before = n.PipesText;
+
+        // Free: sizing and both Civil 3D exports refuse and say why; the network itself is untouched.
+        n.SizePipes();
+        Assert.Equal(before, n.PipesText);
+        Assert.Contains("E-LIC-001", n.Status);
+        Assert.Contains("pipe sizing", n.Status);
+        Assert.Null(vm.BuildNetworkLandXml(n));
+        Assert.Contains("License", n.Status);
+        Assert.Null(vm.BuildCivil3DResults(n));
+        Assert.Contains("E-LIC-001", n.Status);
+
+        // Solving and reports stay free.
+        n.Solve();
+        Assert.True(n.HasResult, n.Status);
+        Assert.NotNull(vm.BuildNetworkPdf(n));
+
+        // A key for sizing only unlocks sizing, not the exports.
+        vm.License = PremiumLicense("pipe-sizing");
+        n.SizePipes();
+        Assert.NotEqual(before, n.PipesText);
+        Assert.Null(vm.BuildNetworkLandXml(n));
+        Assert.Contains("does not include", n.Status);
+
+        vm.License = PremiumLicense("civil3d-export");
+        Assert.NotNull(vm.BuildNetworkLandXml(n));
+        Assert.NotNull(vm.BuildCivil3DResults(n));
+    }
+
+    [Fact]
+    public void PlanReviewAndInletRouting_ArePremiumTools()
+    {
+        var may = new MainViewModel().Tools.Context().MayRun!;
+        Assert.False(may(MasterFlow.Application.Tools.DesignTools.Find("network-plan-review")!));
+        Assert.False(may(MasterFlow.Application.Tools.DesignTools.Find("inlet-network")!));
+        Assert.True(may(MasterFlow.Application.Tools.DesignTools.Find("gutter-inlets")!));       // one inlet stays free
+        Assert.True(may(MasterFlow.Application.Tools.DesignTools.Find("street-capacity")!));
+        Assert.True(may(MasterFlow.Application.Tools.DesignTools.Find("quantity-takeoff")!));
     }
 }
 

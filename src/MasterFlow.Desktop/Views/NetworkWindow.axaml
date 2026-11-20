@@ -27,10 +27,10 @@
         <Button Content="Report…" Command="{Binding ExportNetworkReportCommand}" ToolTip.Tip="Profiles and tables as PDF (or HTML)"/>
         <Button Content="Copy tables" Command="{Binding CopyNetworkResultsCommand}" ToolTip.Tip="Pipes and structures tables, tab-separated"/>
         <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
-        <Button Content="Size pipes" Command="{Binding SelectedNetwork.SizePipesCommand, FallbackValue={x:Null}}" ToolTip.Tip="Smallest standard circular sizes that meet the criteria (inverts kept); changes listed on the Sizing tab"/>
+        <Button Content="Size pipes ★" Command="{Binding SelectedNetwork.SizePipesCommand, FallbackValue={x:Null}}" ToolTip.Tip="Smallest standard circular sizes that meet the criteria (inverts kept); changes listed on the Sizing tab. ★ Premium."/>
         <Button Content="Undo sizing" Command="{Binding SelectedNetwork.UndoSizingCommand, FallbackValue={x:Null}}" IsEnabled="{Binding SelectedNetwork.CanUndoSizing, FallbackValue=False}"/>
-        <Button Content="LandXML…" Command="{Binding ExportNetworkLandXmlCommand}" ToolTip.Tip="Export the pipe network to LandXML for Civil 3D (Insert → LandXML), with HGL/EGL results as PipeFlow/StructFlow and Feature properties"/>
-        <Button Content="Civil 3D results…" Command="{Binding ExportCivil3DResultsCommand}" ToolTip.Tip="AutoLISP command MFHGL that writes HGL/EGL and flow onto the drawing's pipes by name, plus a CSV of all results"/>
+        <Button Content="LandXML… ★" Command="{Binding ExportNetworkLandXmlCommand}" ToolTip.Tip="Export the pipe network to LandXML for Civil 3D (Insert → LandXML), with HGL/EGL results as PipeFlow/StructFlow and Feature properties. ★ Premium."/>
+        <Button Content="Civil 3D results… ★" Command="{Binding ExportCivil3DResultsCommand}" ToolTip.Tip="AutoLISP command MFHGL that writes HGL/EGL and flow onto the drawing's pipes by name, plus a CSV of all results. ★ Premium."/>
         <Button Content="Excel…" Command="{Binding ExportWorkbookCommand}" ToolTip.Tip="Project workbook including network pipes, structures and profile points"/>
       </StackPanel>
     </Border>
