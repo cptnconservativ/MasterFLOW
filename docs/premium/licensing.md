@@ -1,7 +1,8 @@
 # MasterFlow Premium licensing
 
-MasterFlow Free keeps every tool it has today. Premium tools are listed in the Design tools window with
-"★ Premium" after their name; without a license they do not run and say which feature they need (E-LIC-001).
+Premium tools are listed in the Design tools window with "★ Premium" after their name; premium buttons in the Storm
+networks window (Size pipes, LandXML… export, Civil 3D results…) carry a ★. Without a license they do not run and say
+which feature they need (E-LIC-001). Importing LandXML, solving and reporting storm networks stay free.
 
 ## Entering a key
 
@@ -26,10 +27,14 @@ Payload: `licensee`, `features` (`*` = every premium feature, present and future
 | `water-quality` | Water quality and LID sizing |
 | `cost-estimate` | Quantity takeoff and cost estimate with bid tab |
 | `batch-scenarios` | Batch scenario manager |
+| `inlet-routing` | Inlet capacity and bypass routing across a network |
+| `plan-review` | Storm network plan review (Rapid City IDCM §4.6) |
+| `pipe-sizing` | Automatic pipe sizing (Storm networks → Size pipes) |
+| `civil3d-export` | LandXML pipe network export and Civil 3D HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…) |
 
 Which tool belongs to which feature is one list, `PremiumFeatures.All`; tools know nothing about licensing, so a tool
 can move between Free and Premium by editing that list. Every path that runs a tool for the user goes through
-`PremiumFeatures.Run`.
+`PremiumFeatures.Run`; every premium button in the Storm networks window goes through `NetworkViewModel.MayUse`.
 
 ## Issuing keys
 
@@ -55,6 +60,13 @@ and must be re-issued.
   touching the tools.
 - D-067: the gate is at the point a tool runs for the user (the window, and later the report builder and batch manager),
   not inside each tool; tests and validation call tools directly.
+
+- D-098: the Free/Premium split (2026-11-20, Kyle): Free covers single-element calculations and everything Flow Calc,
+  HY-8 or HEC-RAS already offer (uniform flow, rating tables, reports, rational method, one inlet, street capacity,
+  culverts, backwater, one detention pond, storm network HGL/EGL solve and reports, LandXML import, quantity takeoff).
+  Premium covers system-wide automation, agency submittal checks and Civil 3D production steps: inlet bypass routing,
+  plan review, pipe sizing, LandXML export and HGL write-back, plus the premium tools above. Features outside the
+  Design tools window have ids with no tool ids (`pipe-sizing`, `civil3d-export`).
 
 ## A note on strength
 
