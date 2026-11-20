@@ -1,0 +1,6 @@
+TR-55 Ex 3-1: sheet 0.2959 h, shallow 0.2410 h, channel 0.9906 h, tc 1.5275 h
+CN 80, P 5 in: Q = 2.8929 in (by hand (5-0.5)^2/(5+2) = 2.8929)
+blocks (in): 0.012 0.120 0.135 0.156 0.191 0.352 0.790 0.428 0.220 0.171 0.145 0.127 0.115 0.012 0.011 0.010 0.010 0.009 0.009 0.008 0.008 0.007 0.007 0.007  total 3.060
+Subbasin: rain 3.0600 in, runoff 1.2952 in, UH peak/in (raw 484) 245.270 cfs, scale 0.9980
+Subbasin hydrograph: peak 195.068 cfs at 57 min, volume 10.7931 ac-ft (runoff x area = 10.7931)
+Diffusion wave: outflow peak 142.536 cfs at 102 min (inflow peak 195.068 at 57 min), volume out by 480 min 10.6543 ac-ft, left in channel 0.1367 ac-ft

@@ -262,10 +262,13 @@ public sealed partial class DetentionTool : IDesignTool
         return BuildResult(title, pond, outlets, storms, rational, tc, berm, allowables, checks, msgs);
     }
 
-    private static List<PondOutlet> ParseOutlets(ToolInput p, List<CalcMessage> msgs)
+    private static List<PondOutlet> ParseOutlets(ToolInput p, List<CalcMessage> msgs) => ParseOutlets(p, p.Rows("Outlets"), msgs);
+
+    /// <summary>Outlet rows (Name, Type, Invert, Size, Height, C, Length, n, Outlet invert, Orifice C), checked; shared with the hydrograph routing tool.</summary>
+    internal static List<PondOutlet> ParseOutlets(ToolInput p, IReadOnlyList<string[]> rows, List<CalcMessage> msgs)
     {
         var outlets = new List<PondOutlet>();
-        foreach (var r in p.Rows("Outlets"))
+        foreach (var r in rows)
         {
             string name = r[0], type = (r.Length > 1 ? r[1] : "").ToLowerInvariant().Replace("vnotch", "v-notch").Replace("v notch", "v-notch"), where = $"Outlet {name}";
             double? inv = p.Cell(r, 2, "invert", where), size = p.Cell(r, 3, "size", where), ht = p.Cell(r, 4, "height", where), cc = p.Cell(r, 5, "C", where),
