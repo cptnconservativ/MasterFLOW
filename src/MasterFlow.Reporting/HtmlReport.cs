@@ -119,6 +119,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
         else
         {
             sb.Append($"<p>Flow regime: <strong>{E(ResultSummary.RegimeText(result))}</strong>. Values in bold were solved for.</p>");
+            if (ResultSummary.MethodText(result.Input) is { } method) sb.Append($"<p>{E(method)}</p>");
             sb.Append("<div class=\"grid2\">");
             foreach (var group in ResultSummary.Lines(result).GroupBy(l => l.Group))
             {
