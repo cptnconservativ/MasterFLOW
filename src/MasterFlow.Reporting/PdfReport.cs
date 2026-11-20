@@ -134,6 +134,7 @@ public static class PdfReport
         else
         {
             pager.Paragraph($"Flow regime: {ResultSummary.RegimeText(result)}. Values in bold were solved for.");
+            if (ResultSummary.MethodText(result.Input) is { } method) pager.Paragraph(method);
             var lines = ResultSummary.Lines(result);
             var groups = lines.Where(l => l.Group != "Critical flow").GroupBy(l => l.Group).Select(g => ResultTable(fonts, g.Key, g)).ToList();
             for (int i = 0; i < groups.Count; i += 2)

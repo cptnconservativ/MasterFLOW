@@ -162,7 +162,9 @@ public static class UniformFlowCalculator
         double n = input.ManningN, s = input.Slope, q = input.Discharge, y = input.Depth;
         bool multi = g.HasMultipleRoughness(n);
         trace.Add(F($"Section: irregular, {section.Points.Count} points, stations {g.LeftStation:G8} to {g.RightStation:G8} {c.Length}; lowest elevation {g.Datum:G8} {c.Length}; relief {g.Relief:G8} {c.Length}. Depth is measured from the lowest point."));
-        trace.Add(multi
+        trace.Add(g.Method == CompositeRoughnessMethod.PerSegment
+            ? "Per-segment conveyance (Flow Calc method): every segment between consecutive points is its own subarea, split by vertical lines at the points; K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3)."
+            : multi
             ? (g.Method == CompositeRoughnessMethod.Conveyance
                 ? "Roughness varies: conveyance subdivision. Subareas split by vertical lines where n changes; K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3)."
                 : "Roughness varies: equal-velocity composite n = [Σ Pᵢ nᵢ^1.5 / P]^(2/3) (Horton–Einstein), K = (k/nc) A R^(2/3).")
@@ -255,7 +257,7 @@ public static class UniformFlowCalculator
         double aT = normal.Area, kT = conveyance;
         double alpha = 1;
         var flows = new List<SubareaFlow>();
-        if (subs.Count > 1 && g.Method == CompositeRoughnessMethod.Conveyance)
+        if (subs.Count > 1 && g.Method is CompositeRoughnessMethod.Conveyance or CompositeRoughnessMethod.PerSegment)
         {
             double sum = 0;
             foreach (var sa in subs)

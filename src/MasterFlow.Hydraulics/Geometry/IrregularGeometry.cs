@@ -120,6 +120,7 @@ public sealed class IrregularGeometry : ISectionGeometry
     {
         var list = new List<Subarea>();
         if (depth <= 0) return list;
+        if (Method == CompositeRoughnessMethod.PerSegment) return SegmentSubareas(depth, defaultN);
         int start = 0;
         while (start < SegmentCount)
         {
@@ -133,6 +134,33 @@ public sealed class IrregularGeometry : ISectionGeometry
             list.Add(new Subarea(_x[start], _x[end + 1], n, a, p, t));
             start = end + 1;
         }
+        return list;
+    }
+
+    /// <summary>
+    /// One subarea per wet sloping segment. A vertical segment carries no area, so its wetted height is added
+    /// to the subarea on its left (or right, at the left edge); end walls join the end subareas.
+    /// </summary>
+    private List<Subarea> SegmentSubareas(double depth, double defaultN)
+    {
+        var list = new List<Subarea>();
+        double pendingP = LeftWall(depth);
+        for (int i = 0; i < SegmentCount; i++)
+        {
+            var s = Segment(i, depth);
+            double n = _segmentN[i] ?? defaultN;
+            if (_x[i] == _x[i + 1])
+            {
+                if (list.Count > 0) list[^1] = list[^1] with { WettedPerimeter = list[^1].WettedPerimeter + s.P };
+                else pendingP += s.P;
+                continue;
+            }
+            if (s.A <= 0 && s.P <= 0) continue;
+            list.Add(new Subarea(_x[i], _x[i + 1], n, s.A, s.P + pendingP, s.T));
+            pendingP = 0;
+        }
+        double right = RightWall(depth) + pendingP;
+        if (right > 0 && list.Count > 0) list[^1] = list[^1] with { WettedPerimeter = list[^1].WettedPerimeter + right };
         return list;
     }
 
