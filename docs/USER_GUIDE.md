@@ -353,7 +353,14 @@ engine. See [docs/tools/culverts.md](tools/culverts.md).
 
 **Autosave and recovery.** Every minute, unsaved work is copied to a recovery file in your user folder
 (never over your own project file). If MasterFlow closes unexpectedly, it offers to restore that copy
-the next time it starts. Saving or closing normally removes the recovery copy.
+the next time it starts with three choices: **Restore** opens it, **Keep for later** saves it as a
+project in `%APPDATA%\MasterFlow\recovered` (closing the prompt does the same), and only **Discard**
+deletes it. Saving or closing normally removes the recovery copy.
+
+**One window.** MasterFlow runs as a single window. Starting it again, or double-clicking a project
+while it is open, brings the open window forward and opens that project there (after asking about
+unsaved changes). A recovery copy that belongs to a MasterFlow window that is still open is never
+offered, overwritten or deleted.
 
 **Unexpected errors.** If something goes wrong inside MasterFlow, it keeps running where it can,
 saves a recovery copy and says so in the status bar.
