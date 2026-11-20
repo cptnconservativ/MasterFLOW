@@ -267,6 +267,8 @@ public sealed class BatchScenarioTool : IDesignTool
     {
         var tool = DesignTools.Find(toolId);
         if (tool is null || tool.Id == Id) return ToolResult.Failed(title, CalcMessage.Error("E-BS-002", $"Tool \"{toolId}\" is not a design tool (or is this one). Use network or one of: {string.Join(", ", DesignTools.All.Where(t => t.Id != Id).Select(t => t.Id))}."));
+        // A premium tool run from here follows the same license gate as the Run button.
+        if (context.MayRun is { } may && !may(tool)) return ToolResult.Failed(title, CalcMessage.Error("E-BS-005", $"{tool.Name} is not covered by your license, so its scenarios cannot be run."));
         if (baseInput is null) { baseInput = tool.SampleInput(context); msgs.Add(CalcMessage.Info("I-BS-002", $"No [Base input]; the {tool.Name} sample input is the base.")); }
         var compare = p.Rows("Compare").Where(r => r.Length >= 3).Select(r => (Table: r[0], Row: r[1], Col: r[2])).ToList();
         string? chartKey = p.Text("chart");

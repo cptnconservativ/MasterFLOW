@@ -137,6 +137,16 @@ public class BatchScenarioTests
     }
 
     [Fact]
+    public void AnyTool_UnlicensedPremiumTool_IsRefused()
+    {
+        var ctx = new DesignToolContext(UnitSystem.USCustomary) { MayRun = t => t.Id != "hydrograph-routing" };
+        var r = Tool.Run("tool = hydrograph-routing\n[Scenarios]\nScenario\tx\nA\t1\n", ctx);
+        Assert.False(r.Succeeded);
+        Assert.Contains(r.Messages, m => m.Code == "E-BS-005");
+        Assert.True(Tool.Run(Tool.SampleInput(ctx), ctx).Succeeded);       // the culvert (free) still runs
+    }
+
+    [Fact]
     public void TrySet_ReplacesTopLevelAndSectionKeys()
     {
         string t = "a = 1   # note\n[S]\nb = 2\nx\ty\n";

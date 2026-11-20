@@ -48,6 +48,7 @@ Scenario names must not contain commas: a row with no tab is split on commas. A 
   * E-BS-002: no network, or an unknown tool.
   * E-BS-003: unknown network key.
   * E-BS-004: bad value.
+  * E-BS-005: the license does not cover the premium tool named by `tool =` (the same gate as the Run button).
 * Warnings:
   * W-BS-001: a scenario failed.
   * W-BS-002: a key was added.
