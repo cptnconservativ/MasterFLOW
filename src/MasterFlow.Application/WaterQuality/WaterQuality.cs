@@ -26,6 +26,23 @@ public static class Wq
     }
 
     /// <summary>
+    /// WQCV coefficient a for a drain time, Rapid City Storm Water Quality Manual (2009) §2.2.2 step 3: 6 h → 0.7,
+    /// 12 h → 0.8, 24 h → 0.9, 40 h → 1.0; linear between, and the end values outside.
+    /// </summary>
+    public static double RapidCityDrainCoefficient(double hours) => hours <= 6 ? 0.7 : hours <= 12 ? 0.7 + 0.1 * (hours - 6) / 6 : DrainCoefficient(hours);
+
+    /// <summary>
+    /// WQCV in watershed inches, Rapid City Storm Water Quality Manual (2009) §2.2.2:
+    /// WQCV = 1.16 · a · (0.91 I³ − 1.191 I² + 0.78 I), I = fraction of mapped impervious area. The coefficients are as
+    /// printed (1.191, not MHFD's 1.19); the manual's worked examples (0.182 and 0.178 in.) use them.
+    /// </summary>
+    public static double WqcvRapidCity(double imperviousness, double a)
+    {
+        double i = Math.Clamp(imperviousness, 0, 1);
+        return 1.16 * a * (0.91 * i * i * i - 1.191 * i * i + 0.78 * i);
+    }
+
+    /// <summary>
     /// Filter bed area from Darcy's law (Maryland Stormwater Design Manual 2000, filtering practices; Claytor and Schueler 1996):
     /// Af = V·df / (k·(hf + df)·tf), V volume to filter, df media depth, k media permeability, hf average head over the bed, tf drain time.
     /// Units: V in L³, df and hf in L, k in L/day, tf in days → Af in L².
@@ -45,7 +62,8 @@ public static class Wq
 /// </summary>
 public sealed class OrificePlate
 {
-    private readonly Pond _pond;
+    private readonly Func<double, double> _storage;
+    private readonly double _top;
     private readonly double _g, _cd, _spacing;
     public double Bottom { get; }
     public double WqLevel { get; }
@@ -53,10 +71,16 @@ public sealed class OrificePlate
     /// <summary>Area of the holes in one row (L²).</summary>
     public double RowArea { get; private set; } = 1;
 
-    public OrificePlate(Pond pond, double wqLevel, double spacing, double cd, double g)
+    public OrificePlate(Pond pond, double wqLevel, double spacing, double cd, double g) : this(pond.Storage, pond.Bottom, pond.Top, wqLevel, spacing, cd, g) { }
+
+    /// <summary>
+    /// Plate on any storage curve: <paramref name="storage"/>(e) is the volume between <paramref name="bottom"/> (the lowest
+    /// row, e.g. a wetland's permanent pool) and e.
+    /// </summary>
+    public OrificePlate(Func<double, double> storage, double bottom, double top, double wqLevel, double spacing, double cd, double g)
     {
-        _pond = pond; _g = g; _cd = cd; _spacing = spacing;
-        Bottom = pond.Bottom; WqLevel = wqLevel;
+        _storage = storage; _top = top; _g = g; _cd = cd; _spacing = spacing;
+        Bottom = bottom; WqLevel = wqLevel;
         var rows = new List<double>();
         for (int k = 0; Bottom + k * spacing < wqLevel - 1e-9; k++) rows.Add(Bottom + k * spacing);
         Rows = rows;
@@ -67,21 +91,21 @@ public sealed class OrificePlate
     /// <summary>Elevation at which the storage is <paramref name="v"/> (bisection).</summary>
     public double LevelAt(double v)
     {
-        double lo = _pond.Bottom, hi = _pond.Top;
-        for (int i = 0; i < 100; i++) { double m = 0.5 * (lo + hi); if (_pond.Storage(m) < v) lo = m; else hi = m; }
+        double lo = Bottom, hi = _top;
+        for (int i = 0; i < 100; i++) { double m = 0.5 * (lo + hi); if (_storage(m) < v) lo = m; else hi = m; }
         return 0.5 * (lo + hi);
     }
 
     /// <summary>Hours to draw down from the WQCV level until <paramref name="fraction"/> of the volume above the bottom has left.</summary>
     public double DrainHours(double fraction)
     {
-        double vTop = _pond.Storage(WqLevel), eEnd = LevelAt(vTop * (1 - fraction));
+        double vTop = _storage(WqLevel), eEnd = LevelAt(vTop * (1 - fraction));
         // t = ∫ dS / Q = Σ ΔS / Q(mid) on fine storage slices (midpoint rule; Q > 0 above the lowest row).
         const int n = 4000;
-        double t = 0, prevE = eEnd, prevS = _pond.Storage(eEnd);
+        double t = 0, prevE = eEnd, prevS = _storage(eEnd);
         for (int i = 1; i <= n; i++)
         {
-            double e = eEnd + (WqLevel - eEnd) * i / n, s = _pond.Storage(e), q = Outflow(0.5 * (e + prevE));
+            double e = eEnd + (WqLevel - eEnd) * i / n, s = _storage(e), q = Outflow(0.5 * (e + prevE));
             if (!(q > 0)) return double.PositiveInfinity;
             t += (s - prevS) / q;
             prevE = e; prevS = s;
@@ -102,7 +126,7 @@ public sealed class OrificePlate
     public List<(double Hours, double Elev)> Drawdown(double untilHours, double dtHours = 0.1)
     {
         var pts = new List<(double, double)>();
-        double s = _pond.Storage(WqLevel), dt = dtHours * 3600;
+        double s = _storage(WqLevel), dt = dtHours * 3600;
         double F(double v) => -Outflow(LevelAt(Math.Max(v, 0)));
         for (double t = 0; t <= untilHours + 1e-9; t += dtHours)
         {

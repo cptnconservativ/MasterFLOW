@@ -1,6 +1,7 @@
 using MasterFlow.Application.Tools;
 using MasterFlow.Application.WaterQuality;
 using MasterFlow.Domain;
+using MasterFlow.Hydraulics;
 
 namespace MasterFlow.IntegrationTests;
 
@@ -14,6 +15,52 @@ public class WaterQualityTests
     private static ToolResult Run(string input, UnitSystem u = UnitSystem.USCustomary) => Tool.Run(input, new DesignToolContext(u));
     private static ToolResult Sample(UnitSystem u = UnitSystem.USCustomary) => Run(Tool.SampleInput(new DesignToolContext(u)), u);
     private static object? Item(ToolResult r, string table, string item) => r.Tables.Single(t => t.Title == table).Rows.Single(x => (string)x[0]! == item)[1];
+
+    /// <summary>The MHFD sample (criteria = mhfd), checked against the first part of the hand calculations.</summary>
+    private const string MhfdSample = """
+        criteria = mhfd
+        regional depth = 0.43
+        [Subbasins]
+        Name	Area (ac)	Imperviousness (%)	BMP
+        A1	6.2	65	Pond 1
+        A2	3.4	45	Pond 1
+        B1	1.1	90	Rain garden
+        C1	0.8	80	Sand filter
+        D1	0.5	95	Trench
+        E1	2.0	10
+        [BMP Pond 1]
+        type = edb
+        wqcv drain time = 40
+        sediment allowance = 20
+        row spacing = 4
+        orifice coefficient = 0.6
+        drained fraction = 99
+        Elevation	Area
+        100.0	4000
+        101.0	6500
+        102.0	9200
+        103.0	12000
+        104.0	15000
+        [BMP Rain garden]
+        type = bioretention
+        ponding depth = 12
+        media depth = 18
+        permeability = 0.5
+        filter drain time = 48
+        [BMP Sand filter]
+        type = sand filter
+        ponding depth = 24
+        media depth = 18
+        permeability = 3.5
+        filter drain time = 40
+        [BMP Trench]
+        type = infiltration
+        infiltration rate = 1.0
+        safety factor = 2
+        void ratio = 0.4
+        depth = 3
+        maximum drain time = 72
+        """;
 
     [Theory]
     [InlineData(0.0, 1.0, 0.0)]
@@ -36,9 +83,9 @@ public class WaterQualityTests
     }
 
     [Fact]
-    public void Sample_MatchesHandCalculations()
+    public void Mhfd_MatchesHandCalculations()
     {
-        var r = Sample();
+        var r = Run(MhfdSample);
         Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
         var bmp = r.Tables[1].Rows;
         var pond = bmp.Single(x => (string)x[0]! == "Pond 1");
@@ -65,6 +112,7 @@ public class WaterQualityTests
     public void Darcy_GovernsWhenTheMediaIsSlow()
     {
         var r = Run("""
+            criteria = mhfd
             [Subbasins]
             Name	Area (ac)	Imperviousness (%)	BMP
             S	2	80	F
@@ -111,12 +159,18 @@ public class WaterQualityTests
     {
         var r = Sample(UnitSystem.SI);
         Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
+        Assert.DoesNotContain(r.Messages, m => m.Severity == MessageSeverity.Warning);
         var b1 = r.Tables[0].Rows.Single(x => (string)x[0]! == "B1");
         // 0.45 ha at 90 %, a 0.8: WQCV mm = 25.4 × in.; volume = depth × area.
-        double inches = Wq.WqcvInches(0.9, 0.8, 10.9 / 25.4);
-        Assert.Equal(inches * 25.4, (double)b1[5]!, 3);
-        Assert.Equal(Math.Round(inches * 0.0254 * 4500, 0), (double)b1[6]!, 0);
-        Assert.Contains("m³", r.Tables[0].Headers[6]);
+        double inches = Wq.WqcvRapidCity(0.9, 0.8);
+        Assert.Equal(Math.Round(inches * 25.4, 4), (double)b1[7]!, 4);
+        Assert.Equal(Math.Round(inches * 0.0254 * 4500, 0), (double)b1[8]!, 0);
+        Assert.Contains("m³", r.Tables[0].Headers[8]);
+        // A2 has a 0.2 ha design credit: volume on 1.2 ha.
+        var a2 = r.Tables[0].Rows.Single(x => (string)x[0]! == "A2");
+        Assert.Equal(1.2, (double)a2[3]!, 9);
+        Assert.Equal(Math.Round(Wq.WqcvRapidCity(0.45, 1.0) * 25.4, 4), (double)a2[7]!, 4);
+        Assert.Equal(Math.Round(Wq.WqcvRapidCity(0.45, 1.0) * 0.0254 * 12000, 0), (double)a2[8]!, 0);
         Assert.Contains(r.Tables, t => t.Title == "Extended detention basin Pond 1");
     }
 
@@ -135,7 +189,7 @@ public class WaterQualityTests
     }
 
     [Theory]
-    [InlineData("type = wetland", "E-WQ-005")]
+    [InlineData("type = pond", "E-WQ-005")]
     [InlineData("type = sand filter\nmedia depth = -18", "E-WQ-006")]
     [InlineData("type = sand filter\npermeability = 0", "E-WQ-006")]
     [InlineData("type = bioretention\nmedia porosity = 1.2", "E-WQ-006")]
@@ -149,7 +203,7 @@ public class WaterQualityTests
     [InlineData("type = edb\nwqcv drain time = 0\nElevation\tArea\n100\t10000\n102\t12000", "E-WQ-006")]
     public void BadBmps_AreReported(string section, string code)
     {
-        var r = Run($"[Subbasins]\nName\tArea\tImperviousness\tBMP\nS\t3\t60\tF\n[BMP F]\n{section}\n");
+        var r = Run($"criteria = mhfd\n[Subbasins]\nName\tArea\tImperviousness\tBMP\nS\t3\t60\tF\n[BMP F]\n{section}\n");
         Assert.False(r.Succeeded);
         Assert.Contains(r.Messages, m => m.Code == code);
     }
@@ -158,7 +212,7 @@ public class WaterQualityTests
     public void Empty_And_PercentAsFraction()
     {
         Assert.Contains(Run("").Messages, m => m.Code == "E-WQ-003");
-        Assert.Contains(Run("regional depth = 0\n[Subbasins]\nName\tArea\tImperviousness\nS\t1\t50\n").Messages, m => m.Code == "E-WQ-001");
+        Assert.Contains(Run("criteria = mhfd\nregional depth = 0\n[Subbasins]\nName\tArea\tImperviousness\nS\t1\t50\n").Messages, m => m.Code == "E-WQ-001");
         var r = Run("[Subbasins]\nName\tArea\tImperviousness\nS\t1\t0.6\n");
         Assert.True(r.Succeeded);
         Assert.Contains(r.Messages, m => m.Code == "W-WQ-001");
@@ -166,6 +220,139 @@ public class WaterQualityTests
         var r2 = Run("[Subbasins]\nName\tArea\tImperviousness\nS\t1\t50\n[BMP Lonely]\ntype = sand filter\n");
         Assert.Contains(r2.Messages, m => m.Code == "W-WQ-002");
         Assert.Contains(r2.Summary, s => s.Contains("0.0 %"));
+    }
+
+    // ---------------- Rapid City Storm Water Quality Manual (2009), the default criteria
+
+    [Fact]
+    public void RapidCity_Equation_MatchesTheManualsExamples()
+    {
+        Assert.Equal(0.182, Wq.WqcvRapidCity(0.318, 1.0), 3);            // SWQM §2.2.2, north area, 40 h EDB
+        Assert.Equal(0.178, Wq.WqcvRapidCity(0.365, 0.9), 3);            // south area, 24 h wetland
+        Assert.Equal(0.7, Wq.RapidCityDrainCoefficient(6), 9);
+        Assert.Equal(0.75, Wq.RapidCityDrainCoefficient(9), 9);
+        Assert.Equal(0.8, Wq.RapidCityDrainCoefficient(12), 9);
+        Assert.Equal(0.9, Wq.RapidCityDrainCoefficient(24), 9);
+        Assert.Equal(1.0, Wq.RapidCityDrainCoefficient(40), 9);
+        Assert.Equal(0.7, Wq.RapidCityDrainCoefficient(2), 9);
+        Assert.Equal(1.16 * (0.91 - 1.191 + 0.78), Wq.WqcvRapidCity(1.0, 1.0), 12);
+    }
+
+    [Fact]
+    public void RapidCity_DesignCredit_ReducesTheAreaNotTheDepth()
+    {
+        // SWQM §2.4.2 north example: 17.0 ac, 5.4 ac impervious, 1.79 ac natural park credit → 15.21 ac effective.
+        var r = Run("""
+            [Subbasins]
+            Name	Area (ac)	Imperviousness (%)	Credit (ac)	BMP
+            North	17.0	31.8	1.79	P
+            [BMP P]
+            type = porous landscape detention
+            average depth = 12
+            """);
+        Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
+        var row = r.Tables[0].Rows[0];
+        Assert.Equal(15.21, (double)row[3]!, 9);
+        double inches = Wq.WqcvRapidCity(0.318, 0.8);                    // porous landscape detention: 12 h
+        Assert.Equal(Math.Round(inches, 4), (double)row[7]!, 4);
+        Assert.Equal(Math.Round(inches / 12 * 15.21 * 43560, 0), (double)row[8]!, 0);
+        Assert.Equal(Math.Round(inches / 12 * 15.21 * 43560 / 1.0, 1), (double)Item(r, "Porous landscape detention P", "Minimum surface area, design volume / dav")!, 1);
+    }
+
+    // validation/hand_calcs_water_quality_output.txt, Rapid City part (explicit time stepping, independent of the 1/a scaling).
+    private const double HandEdbLevel = 102.605, HandEdbHole = 0.4061, HandEdbHalf = 12.31, HandWetLevel = 100.570, HandWetHole = 4.0376;
+
+    [Fact]
+    public void RapidCity_Sample_MatchesHandCalculations()
+    {
+        var r = Sample();
+        Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
+        Assert.DoesNotContain(r.Messages, m => m.Severity == MessageSeverity.Warning);
+        Assert.Contains(r.Summary, s => s.Contains("Rapid City"));
+        const string edb = "Extended detention basin Pond 1", wet = "Constructed wetland basin Wetland";
+        // validation/hand_calcs_water_quality_output.txt, Rapid City part
+        Assert.Equal(8776, (double)Item(r, edb, "WQCV (composite)")!, 0);
+        Assert.Equal(10532, (double)Item(r, edb, "Design volume")!, 0);
+        Assert.Equal(HandEdbLevel, (double)Item(r, edb, "WQCV water surface")!, 2);
+        Assert.Equal(8, Item(r, edb, "Rows"));
+        Assert.Equal(HandEdbHole, (double)Item(r, edb, "Hole area per row")!, 2);
+        Assert.Equal(40.0, (double)Item(r, edb, "Drain time, the WQCV (83.3 % of the design volume)")!, 1);
+        Assert.Equal(HandEdbHalf, (double)Item(r, edb, "Drain time, 50 % of the WQCV")!, 1);
+        Assert.InRange((double)Item(r, edb, "Drain time, 50 % of the WQCV")!, 12, 40);
+        Assert.Equal(5447, (double)Item(r, wet, "WQCV (composite)")!, 0);
+        Assert.Equal(HandWetLevel, (double)Item(r, wet, "WQCV water surface")!, 2);
+        Assert.Equal(HandWetHole, (double)Item(r, wet, "Hole area per row")!, 2);
+        Assert.Equal(24.0, (double)Item(r, wet, "Drain time, 99 % of the volume")!, 1);
+        Assert.True((double)Item(r, wet, "Pool volume / WQCV")! >= 75);
+        Assert.Equal(1484.7, (double)Item(r, "Bioretention Rain garden", "Required area, WQCV / depth")!, 1);
+        Assert.Equal(367.9, (double)Item(r, "Sand filter Sand filter", "Required area, WQCV / depth")!, 1);
+        Assert.Equal(973.8, (double)Item(r, "Porous landscape detention Island", "Minimum surface area, design volume / dav")!, 1);
+        Assert.All(r.Tables[1].Rows, x => Assert.Equal("OK", x[10]));
+    }
+
+    private static ToolResult One(string bmp, string sub = "S\t3\t60\tF") => Run($"[Subbasins]\nName\tArea\tImperviousness\tBMP\n{sub}\n[BMP F]\n{bmp}\n");
+
+    [Fact]
+    public void RapidCity_ManualLimits_AreFlagged()
+    {
+        // Porous landscape detention: average depth 6–12 in., media ≥ 18 in. (§2.3.1)
+        var r = One("type = porous landscape detention\naverage depth = 15\nmedia depth = 12");
+        Assert.Equal(2, r.Messages.Count(m => m.Code == "W-WQ-010"));
+        Assert.Equal("CHECK", r.Tables[1].Rows[0][10]);
+        // Sand filter: design depth ≤ 3 ft, used at 3 ft (§2.3.3)
+        r = One("type = sand filter\nponding depth = 48");
+        Assert.Contains(r.Messages, m => m.Code == "W-WQ-010" && m.Text.Contains("3 ft"));
+        double v = Wq.WqcvRapidCity(0.6, 1.0) / 12 * 3 * 43560;
+        Assert.Equal(Math.Round(v / 3, 1), (double)Item(r, "Sand filter F", "Required area, WQCV / depth")!, 1);
+        // Bioretention: ponding ≤ 12 in. with collector pipes, ≤ 6 in. without (§2.3.9)
+        r = One("type = bioretention\nponding depth = 18");
+        Assert.Equal(12, (double)Item(r, "Bioretention F", "Ponding depth used")!, 9);
+        r = One("type = bioretention\nponding depth = 12\nunderdrain = no");
+        Assert.Equal(6, (double)Item(r, "Bioretention F", "Ponding depth used")!, 9);
+        Assert.Contains(r.Messages, m => m.Code == "I-WQ-003");
+        // Planting soil under 4 ft
+        Assert.Contains(One("type = bioretention\nmedia depth = 24").Messages, m => m.Code == "W-WQ-010" && m.Text.Contains("4 ft"));
+        // Wetland: pool < 75 % of WQCV and surcharge > 2 ft (§2.3.4)
+        r = One("type = constructed wetland\npermanent pool = 100.1\nElevation\tArea\n100\t1000\n101\t1100\n105\t1500");
+        Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
+        Assert.Contains(r.Messages, m => m.Code == "W-WQ-010" && m.Text.Contains("75 %"));
+        Assert.Contains(r.Messages, m => m.Code == "W-WQ-010" && m.Text.Contains("surcharge"));
+        // EDB that releases half the WQCV in under 12 h (near-vertical sides, many rows: 11.2 h)
+        r = One("type = edb\nElevation\tArea\n100\t10000\n101\t12000\n102\t14000", "S\t10\t60\tF");
+        Assert.Contains(r.Messages, m => m.Code == "W-WQ-009");
+        // Infiltration is not a listed WQCV BMP: approval needed (§2.3.10)
+        r = One("type = infiltration\ninfiltration rate = 2");
+        Assert.Contains(r.Messages, m => m.Code == "W-WQ-006");
+        Assert.Equal("APPROVAL", r.Tables[1].Rows[0][10]);
+        // The manual fixes drain times and the EDB sediment allowance; regional depth does not apply.
+        r = Run("regional depth = 0.6\n[Subbasins]\nName\tArea\tImperviousness\tBMP\nS\t3\t60\tF\n[BMP F]\ntype = edb\nwqcv drain time = 24\nsediment allowance = 10\nElevation\tArea\n100\t2000\n102\t5000\n104\t9000\n");
+        Assert.Equal(2, r.Messages.Count(m => m.Code == "W-WQ-007"));
+        Assert.Contains(r.Messages, m => m.Code == "W-WQ-008");
+        Assert.Equal(40.0, (double)r.Tables[1].Rows[0][4]!, 9);
+        Assert.Equal(20.0, (double)Item(r, "Extended detention basin F", "Sediment allowance")!, 9);
+    }
+
+    [Theory]
+    [InlineData("criteria = denver\n", "type = edb", "E-WQ-010")]
+    [InlineData("", "type = constructed wetland\nElevation\tArea\n100\t1000\n102\t3000", "E-WQ-011")]
+    [InlineData("", "type = constructed wetland\npermanent pool = 99\nElevation\tArea\n100\t1000\n102\t3000", "E-WQ-011")]
+    [InlineData("", "type = constructed wetland\npermanent pool = 101.9\nElevation\tArea\n100\t1000\n102\t3000", "E-WQ-008")]
+    [InlineData("", "type = bioretention\nrunoff coefficient = 1.5", "E-WQ-006")]
+    [InlineData("", "type = porous landscape detention\naverage depth = -1", "E-WQ-006")]
+    public void RapidCity_BadInput_IsReported(string top, string bmp, string code)
+    {
+        var r = Run($"{top}[Subbasins]\nName\tArea\tImperviousness\tBMP\nS\t3\t60\tF\n[BMP F]\n{bmp}\n");
+        Assert.False(r.Succeeded);
+        Assert.Contains(r.Messages, m => m.Code == code);
+    }
+
+    [Theory]
+    [InlineData("S\t3\t60\t-1\tF")]
+    [InlineData("S\t3\t60\t3\tF")]
+    public void RapidCity_BadCredit_IsReported(string row)
+    {
+        var r = Run($"[Subbasins]\nName\tArea\tImperviousness\tCredit\tBMP\n{row}\n[BMP F]\ntype = sand filter\n");
+        Assert.Contains(r.Messages, m => m.Code == "E-WQ-002" && m.Text.Contains("credit"));
     }
 
     [Fact]
