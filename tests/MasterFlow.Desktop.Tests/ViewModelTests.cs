@@ -1081,4 +1081,13 @@ public class DesignToolsViewModelTests
         Assert.Equal("MF1-not.a-key", vm.Tools.LicenseKeyText);   // kept so the user can correct it
         Assert.Contains("Premium tools stay locked", vm.StatusMessage);
     }
+
+    [Fact]
+    public void Context_MayRun_FollowsTheLicense()
+    {
+        var may = new MainViewModel().Tools.Context().MayRun;
+        Assert.NotNull(may);
+        Assert.True(may(MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city")!));    // free tool
+        Assert.False(may(MasterFlow.Application.Tools.DesignTools.Find("drainage-report")!));             // premium, no key
+    }
 }
