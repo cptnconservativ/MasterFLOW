@@ -30,8 +30,13 @@ public sealed record ChannelCalculation
     /// <summary>Optional design criteria (lining shear, freeboard, velocity limits) checked against the results.</summary>
     public DesignCriteria? Criteria { get; init; }
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
+    /// <summary>How the slope is typed and shown for this calculation (the stored slope is always ft/ft or m/m).</summary>
+    public SlopeUnit SlopeUnit { get; init; } = SlopeUnit.Percent;
     public required UniformFlowInput Input { get; init; }
 }
+
+/// <summary>Unit for typing a slope: percent (0.16 = 0.16 %) or rise over run (0.0016 ft/ft).</summary>
+public enum SlopeUnit { Percent, RiseOverRun }
 
 /// <summary>
 /// Engineer-entered design limits, in the calculation's unit system (no conversion). A null limit is not

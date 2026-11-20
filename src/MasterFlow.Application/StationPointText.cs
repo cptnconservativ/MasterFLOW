@@ -85,13 +85,26 @@ public static class StationPointText
     private static bool TryNumber(string s, CultureInfo culture, out double v) =>
         (double.TryParse(s, NumberStyles.Float, culture, out v) || double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out v)) && double.IsFinite(v);
 
-    /// <summary>Plain number, or surveyor stationing "a+b" meaning a × 100 + b (e.g. 1+25.50 = 125.50).</summary>
-    private static bool TryStation(string s, CultureInfo culture, out double v)
+    /// <summary>
+    /// Plain number, or surveyor stationing "a+b": a × 100 + b when b has two digits before the decimal point
+    /// (1+25.50 = 125.50, 0+10 = 10), or a × 1000 + b for metric chainage with three (1+250.000 = 1250).
+    /// An optional "STA" / "Sta." prefix is ignored.
+    /// </summary>
+    public static bool TryStation(string s, CultureInfo culture, out double v)
     {
+        s = s.Trim();
+        foreach (var prefix in new[] { "STA.", "STA" })
+            if (s.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && s.Length > prefix.Length && !char.IsLetter(s[prefix.Length]))
+            { s = s[prefix.Length..].Trim(); break; }
         int plus = s.IndexOf('+', 1 < s.Length ? 1 : 0);
-        if (plus > 0 && TryNumber(s[..plus], culture, out double hundreds) && TryNumber(s[(plus + 1)..], culture, out double rest) && rest >= 0 && rest < 100)
+        if (plus > 0 && TryNumber(s[..plus], culture, out double major) && TryNumber(s[(plus + 1)..], culture, out double rest) && rest >= 0)
         {
-            v = hundreds < 0 || s.StartsWith('-') ? hundreds * 100 - rest : hundreds * 100 + rest;
+            string restText = s[(plus + 1)..];
+            int sep = restText.IndexOfAny(['.', ',']);
+            int intDigits = (sep < 0 ? restText : restText[..sep]).Count(char.IsDigit);
+            double scale = intDigits == 3 && rest < 1000 ? 1000 : 100;
+            if (scale == 100 && rest >= 100) { v = double.NaN; return false; }
+            v = major < 0 || s.StartsWith('-') ? major * scale - rest : major * scale + rest;
             return true;
         }
         return TryNumber(s, culture, out v);
