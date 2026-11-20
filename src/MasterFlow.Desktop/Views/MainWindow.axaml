@@ -345,6 +345,7 @@
               <Border IsVisible="{Binding HasCapacity}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="6,4" Margin="0,0,0,6">
                 <SelectableTextBlock Text="{Binding CapacityText}" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.Name="Pipe capacity"/>
               </Border>
+              <TextBlock Text="{Binding MethodText}" IsVisible="{Binding HasMethodText}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,6"/>
               <ItemsControl ItemsSource="{Binding ResultLines}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="app:ResultLine">

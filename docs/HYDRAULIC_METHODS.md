@@ -180,6 +180,10 @@ wetted perimeter (warning W-I-003, D-021).
   Effective n = k A R^(2/3) / K is reported and can be **lower than every subarea n**, because the deep
   main channel carries most of the flow. Energy coefficient α = Σ(Kᵢ³/Aᵢ²)/(K³/A²) is reported.
 - *Equal velocity* (Horton 1933 / Einstein 1934): nc = [Σ Pᵢ nᵢ^1.5 / P]^(2/3) over the whole area.
+- *Per-segment conveyance* (Flow Calc "Flow Conveyance"): K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3) with one subarea per
+  sloping segment, split by vertical lines at every point. A vertical segment has no area; its wetted
+  height is added to the subarea on its left (right at the left edge), and end walls join the end subareas.
+  Checked against Flow Calc 2026 on the sample creek: yn 6.694 ft, A 181.05 ft², effective n 0.0272.
 HEC-RAS subdivides only the overbanks and treats the main channel as one subarea between bank stations;
 MasterFlow has no bank stations and breaks at every n change, which is the same when the main channel
 has one n.
