@@ -27,5 +27,6 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
 | Culvert analysis | FHWA HDS-5 (2012), IDCM §4.7 | [culverts.md](culverts.md) |
 | Cost estimate and bid tabulation (premium) | Network takeoff, your prices and bids | [cost-estimate.md](cost-estimate.md) |
+| ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
 
 Tools marked **★ Premium** need a MasterFlow Premium license key (see [../premium/licensing.md](../premium/licensing.md)).
