@@ -58,7 +58,17 @@ public sealed partial class DesignToolsViewModel : ObservableObject
         var net = _main.SelectedNetwork;
         StormNetwork? model = null;
         if (net is not null) { var (m, errs) = net.BuildModel(); if (errs.Count == 0) model = m; }
-        return new DesignToolContext(model?.Units ?? _main.Selected?.Units ?? UnitSystem.USCustomary, model, net?.Result);
+        var project = _main.ToProject();
+        return new DesignToolContext(model?.Units ?? _main.Selected?.Units ?? UnitSystem.USCustomary, model, net?.Result)
+        {
+            Project = project.Info,
+            ToolInputs = SavedInputs(),
+            Calculations = project.Calculations,
+            Networks = _main.Networks.Select(n => { var (m, e) = n.BuildModel(); return (Model: e.Count == 0 ? m : null, n.Result); })
+                .Where(x => x.Model is not null).Select(x => (x.Model!, x.Result)).ToList(),
+            // Tools run from inside another tool (the report builder) follow the same license gate as the Run button.
+            MayRun = t => PremiumFeatures.ForTool(t.Id) is not { } f || _main.License.Allows(f.Id),
+        };
     }
 
     partial void OnSelectedToolChanged(IDesignTool? oldValue, IDesignTool? newValue)
@@ -122,14 +132,18 @@ public sealed partial class DesignToolsViewModel : ObservableObject
     public string? BuildHtml() => Result is null ? null : ToolReport.ToHtml(_main.ToProject().Info, Result, InputText, MainViewModel.AppVersion);
     public byte[]? BuildPdf() => Result is null ? null : ToolReport.ToPdf(_main.ToProject().Info, Result, InputText, _main.NetworkReportOptions());
     public byte[]? BuildWorkbook() => Result is null ? null : XlsxWriter.ToBytes(ToolReport.ToSheets(Result));
+    public byte[]? BuildDocx() => Result?.Report is { } doc ? DrainageReportWriter.ToDocx(_main.ToProject().Info, doc, _main.NetworkReportOptions()) : null;
 
     [RelayCommand]
     private async Task SaveReport()
     {
         if (Result is null || _main.Dialogs is null) return;
-        var path = await _main.Dialogs.PickSaveAsync(Safe(SelectedTool?.Name ?? "tool") + ".html", ".html", "HTML report", (".pdf", "PDF report"), (".xlsx", "Excel workbook"));
+        var path = Result.Report is not null
+            ? await _main.Dialogs.PickSaveAsync(Safe(Result.Report.Title) + ".pdf", ".pdf", "PDF report", (".docx", "Word document"), (".html", "HTML report"), (".xlsx", "Excel workbook"))
+            : await _main.Dialogs.PickSaveAsync(Safe(SelectedTool?.Name ?? "tool") + ".html", ".html", "HTML report", (".pdf", "PDF report"), (".xlsx", "Excel workbook"));
         if (path is null) return;
-        if (path.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildWorkbook()!);
+        if (path.EndsWith(".docx", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildDocx()!);
+        else if (path.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildWorkbook()!);
         else if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildPdf()!);
         else await File.WriteAllTextAsync(path, BuildHtml()!);
         _main.StatusMessage = $"Saved {path}.";

@@ -6,7 +6,19 @@ using MasterFlow.Hydraulics;
 namespace MasterFlow.Application.Tools;
 
 /// <summary>What a design tool can see: the project's unit system and, when one is open, the selected storm network and its solution.</summary>
-public sealed record DesignToolContext(UnitSystem Units, StormNetwork? Network = null, StormNetworkResult? NetworkResult = null);
+public sealed record DesignToolContext(UnitSystem Units, StormNetwork? Network = null, StormNetworkResult? NetworkResult = null)
+{
+    /// <summary>Project title block (for tools that write whole reports); null in most tests.</summary>
+    public ProjectInfo? Project { get; init; }
+    /// <summary>Every tool's saved input in the project, by tool id (the report builder re-runs them).</summary>
+    public IReadOnlyDictionary<string, string> ToolInputs { get; init; } = new Dictionary<string, string>();
+    /// <summary>Every storm network in the project with its solution (null when it has not been solved).</summary>
+    public IReadOnlyList<(StormNetwork Network, StormNetworkResult? Result)> Networks { get; init; } = [];
+    /// <summary>The project's channel and pipe calculations.</summary>
+    public IReadOnlyList<ChannelCalculation> Calculations { get; init; } = [];
+    /// <summary>Whether a tool may be run on the user's behalf by another tool (license check); null = every tool.</summary>
+    public Func<IDesignTool, bool>? MayRun { get; init; }
+}
 
 /// <summary>A result table: shown in the window, the HTML report and as an Excel sheet. Cells are numbers or text.</summary>
 public sealed record ToolTable(string Title, IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows, IReadOnlyList<string>? Notes = null);
@@ -47,6 +59,8 @@ public sealed record ToolResult(string Title, IReadOnlyList<string> Summary, IRe
     public string? UpdateDescription { get; init; }
     /// <summary>Charts for the reports (none for most tools).</summary>
     public IReadOnlyList<ToolChart> Charts { get; init; } = [];
+    /// <summary>A whole document (the drainage report builder); when set, reports render it instead of the tables.</summary>
+    public Reports.ReportDocument? Report { get; init; }
     public bool Succeeded => Messages.All(m => m.Severity != MessageSeverity.Error);
 
     public static ToolResult Failed(string title, params CalcMessage[] errors) => new(title, [], [], errors);
