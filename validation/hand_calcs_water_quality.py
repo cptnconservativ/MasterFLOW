@@ -114,7 +114,7 @@ def plate_design(stg, z0, vol_top, vol_drain, hours, spacing=4/12, cd=0.6):
     S = lambda e: conic_storage(stg, e) - s0 if e > z0 else 0.0
     def lev(v):
         lo, hi = z0, stg[-1][0]
-        for _ in range(100):
+        for _ in range(50):
             m = 0.5 * (lo + hi)
             if S(m) < v: lo = m
             else: hi = m
@@ -134,13 +134,13 @@ def plate_design(stg, z0, vol_top, vol_drain, hours, spacing=4/12, cd=0.6):
                 t += dt * (s - target) / (s - sn); break
             s = sn; t += dt
         return t / 3600
-    a0, a1 = 0.002, 0.01
-    t0, t1 = drain(a0, vol_drain) - hours, drain(a1, vol_drain) - hours
-    for _ in range(30):
-        a2 = a1 - t1 * (a1 - a0) / (t1 - t0)
-        a0, t0, a1 = a1, t1, a2
-        t1 = drain(a1, vol_drain) - hours
-        if abs(t1) < 1e-4: break
+    # Bisection on log(a) (robust: drain time falls as a grows), then a final fine-step check.
+    lo, hi = math.log(1e-5), math.log(1.0)
+    for _ in range(40):
+        m = 0.5 * (lo + hi)
+        if drain(math.exp(m), vol_drain) > hours: lo = m
+        else: hi = m
+    a1 = math.exp(0.5 * (lo + hi))
     return top, len(rws), a1, drain(a1, vol_drain, dt=5), drain(a1, 0.5 * vol_drain, dt=5)
 
 # EDB Pond 1: A1 6.2 ac 65 %, A2 3.4 ac 45 % with a 0.5 ac credit; 40 h (a = 1.0); storage 120 % WQCV; the WQCV leaves in 40 h.
