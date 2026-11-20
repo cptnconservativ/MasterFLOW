@@ -86,6 +86,13 @@ station, elevation [, n [, description]]
 - *Conveyance subdivision* (default; the HEC-RAS approach): the area is split at each change in n, the
   conveyance of each part is summed, and the report shows the flow, area and velocity of each part.
 - *Equal velocity* (Horton–Einstein): one composite n for the whole wetted perimeter.
+- *Per-segment conveyance (Flow Calc)*: every segment between two points is its own part, whether or
+  not n changes. Use it to reproduce Flow Calc's "Flow Conveyance" results; it gives more conveyance in
+  wide, shallow overbanks (the sample creek: yn 6.694 ft against 6.893 ft by HEC-RAS subdivision).
+
+The method in use is printed under the results and in every report, and so is the elliptical pipe
+shape (ASTM C507 four-centred for standard sizes, or a true ellipse when "standard size" is off; the
+two differ by about 3% in normal depth).
 
 What MasterFlow does with awkward sections, and tells you about:
 
