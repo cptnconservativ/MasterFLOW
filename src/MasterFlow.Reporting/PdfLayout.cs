@@ -331,6 +331,12 @@ internal sealed class PdfPager(PdfFonts fonts, float pageWidth, float pageHeight
     private PageContext _context = new(null, null, "");
 
     public PdfFonts Fonts => fonts;
+    /// <summary>Pages before this pager's first page when several pagers make one document (footer numbering).</summary>
+    public int PageOffset { get; set; }
+    /// <summary>Total pages of the whole document; null = this pager's own count.</summary>
+    public int? TotalPages { get; set; }
+    /// <summary>1-based number of the page now being filled, including <see cref="PageOffset"/>.</summary>
+    public int CurrentPage => _pages.Count + PageOffset;
     public float Left => margin;
     public float Width => pageWidth - 2 * margin;
     private float Top(Page p) => margin + (p.RunningHeader is null ? 0 : RunningHeaderHeight);
@@ -455,7 +461,7 @@ internal sealed class PdfPager(PdfFonts fonts, float pageWidth, float pageHeight
             if (page.RunningHeader is { } rh)
                 fonts.Draw(c, rh, margin, margin + PdfStyle.Small, fonts.Regular, PdfStyle.Small, PdfStyle.Muted);
             foreach (var op in page.Ops) op(c);
-            Footer(c, page.Context, i + 1, _pages.Count);
+            Footer(c, page.Context, i + 1 + PageOffset, TotalPages ?? _pages.Count);
             doc.EndPage();
         }
     }
