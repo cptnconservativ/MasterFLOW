@@ -145,6 +145,9 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private UniformFlowResult? _result;
     [ObservableProperty] private IReadOnlyList<ResultLine> _resultLines = [];
     [ObservableProperty] private IReadOnlyList<MessageItem> _messages = [];
+    /// <summary>Warnings and errors repeated at the top of the Results tab, so overtopping and similar cautions are seen with the numbers.</summary>
+    [ObservableProperty] private IReadOnlyList<MessageItem> _resultWarnings = [];
+    [ObservableProperty] private bool _hasResultWarnings;
     /// <summary>The method choice that changes the answer (ellipse shape, conveyance method), shown with the results.</summary>
     [ObservableProperty] private string? _methodText;
     public bool HasMethodText => MethodText is not null;
@@ -435,6 +438,8 @@ public sealed partial class CalculationViewModel : ObservableObject
         var slopeCheck = SlopeIsInput && TryParse(SlopeText, out double typedSlope) ? SlopeEntry.Check(typedSlope, SlopeUnit, LengthUnit) : null;
         Messages = r.Messages.Concat(criteriaErrors).Concat(DesignChecks.Messages(Checks)).Concat(slopeCheck is null ? [] : [slopeCheck])
             .Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
+        ResultWarnings = Messages.Where(m => m.Severity is nameof(MessageSeverity.Warning) or nameof(MessageSeverity.Error)).ToList();
+        HasResultWarnings = ResultWarnings.Count > 0;
         Trace = r.Trace;
         CurrentSection = input.Section;
         bool geometryOk = parseErrors.Count == 0 && !r.Messages.Any(m => m.Code == MessageCodes.GeometryInvalid);

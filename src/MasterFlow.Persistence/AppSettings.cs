@@ -51,22 +51,79 @@ public sealed class UserDataStore(string directory)
     public void SaveSettings(AppSettings settings) => WriteAtomic(SettingsPath, JsonSerializer.Serialize(settings, Json));
 
     /// <summary>Information about an autosaved copy that was not cleared by a normal save or exit.</summary>
-    public sealed record Recovery(string? OriginalPath, DateTimeOffset SavedUtc, string RecoveryFile);
+    /// <param name="OwnerProcessId">The MasterFlow process that wrote the copy (null in files from 0.12 and earlier).</param>
+    /// <param name="OwnerStartUtc">That process's start time, so a reused process id is not mistaken for it.</param>
+    public sealed record Recovery(string? OriginalPath, DateTimeOffset SavedUtc, string RecoveryFile, int? OwnerProcessId = null, DateTimeOffset? OwnerStartUtc = null);
 
-    public void WriteRecovery(Domain.Project project, string? originalPath, string appVersion)
+    /// <summary>Writes the recovery copy. Returns false (and writes nothing) when another open MasterFlow owns the current copy.</summary>
+    public bool WriteRecovery(Domain.Project project, string? originalPath, string appVersion)
     {
+        try
+        {
+            if (File.Exists(RecoveryInfoPath) && JsonSerializer.Deserialize<Recovery>(File.ReadAllText(RecoveryInfoPath), Json) is { } r && IsOwnedByAnotherLiveProcess(r))
+                return false;
+        }
+        catch (JsonException) { }
         WriteAtomic(RecoveryPath, ProjectFile.Serialize(project, appVersion));
-        WriteAtomic(RecoveryInfoPath, JsonSerializer.Serialize(new Recovery(originalPath, DateTimeOffset.UtcNow, RecoveryPath), Json));
+        WriteAtomic(RecoveryInfoPath, JsonSerializer.Serialize(new Recovery(originalPath, DateTimeOffset.UtcNow, RecoveryPath, Environment.ProcessId, CurrentProcessStartUtc()), Json));
+        return true;
     }
 
+    /// <summary>
+    /// The recovery copy left by a MasterFlow that is no longer running, or null. A copy written by another
+    /// MasterFlow window that is still open is that window's live autosave, not crash debris, so it is never offered.
+    /// </summary>
     public Recovery? FindRecovery()
     {
         try
         {
             if (!File.Exists(RecoveryPath) || !File.Exists(RecoveryInfoPath)) return null;
-            return JsonSerializer.Deserialize<Recovery>(File.ReadAllText(RecoveryInfoPath), Json);
+            var r = JsonSerializer.Deserialize<Recovery>(File.ReadAllText(RecoveryInfoPath), Json);
+            return r is not null && IsOwnedByAnotherLiveProcess(r) ? null : r;
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>True when the copy was written by a different MasterFlow process that is still running.</summary>
+    public static bool IsOwnedByAnotherLiveProcess(Recovery r)
+    {
+        if (r.OwnerProcessId is not { } pid || pid == Environment.ProcessId) return false;
+        try
+        {
+            using var p = System.Diagnostics.Process.GetProcessById(pid);
+            if (p.HasExited) return false;
+            if (r.OwnerStartUtc is { } start && Math.Abs((p.StartTime.ToUniversalTime() - start.UtcDateTime).TotalSeconds) > 2) return false;
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException) { return false; }
+    }
+
+    private static DateTimeOffset? CurrentProcessStartUtc()
+    {
+        try { using var p = System.Diagnostics.Process.GetCurrentProcess(); return p.StartTime.ToUniversalTime(); }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException) { return null; }
+    }
+
+    /// <summary>Folder where recovery copies the user chose not to restore yet are kept.</summary>
+    public string RecoveredDirectory => Path.Combine(Directory, "recovered");
+
+    /// <summary>
+    /// Moves the recovery copy to <see cref="RecoveredDirectory"/> under a dated name, so it is kept but no
+    /// longer offered at start-up or overwritten by the next autosave. Returns the new path, or null.
+    /// </summary>
+    public string? SetRecoveryAside()
+    {
+        if (!File.Exists(RecoveryPath)) return null;
+        var info = FindRecovery();
+        string stamp = (info?.SavedUtc ?? DateTimeOffset.UtcNow).ToLocalTime().ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        string name = info?.OriginalPath is { } o ? Path.GetFileNameWithoutExtension(o) : "unsaved project";
+        System.IO.Directory.CreateDirectory(RecoveredDirectory);
+        string target = Path.Combine(RecoveredDirectory, $"{name} (recovered {stamp}){ProjectFile.Extension}");
+        for (int i = 2; File.Exists(target); i++)
+            target = Path.Combine(RecoveredDirectory, $"{name} (recovered {stamp}) {i}{ProjectFile.Extension}");
+        File.Move(RecoveryPath, target);
+        try { File.Delete(RecoveryInfoPath); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        return target;
     }
 
     public Domain.Project LoadRecovery() => ProjectFile.Load(RecoveryPath);
@@ -86,8 +143,15 @@ public sealed class UserDataStore(string directory)
         ProjectFile.Save(new Domain.Project { Info = new Domain.ProjectInfo { Name = "MasterFlow user templates" }, Calculations = templates }, TemplatesPath, appVersion);
     }
 
+    /// <summary>Deletes this process's recovery copy. A copy that belongs to another open MasterFlow is left alone.</summary>
     public void ClearRecovery()
     {
+        try
+        {
+            if (File.Exists(RecoveryInfoPath) && JsonSerializer.Deserialize<Recovery>(File.ReadAllText(RecoveryInfoPath), Json) is { } r && IsOwnedByAnotherLiveProcess(r))
+                return;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException) { }
         foreach (var p in new[] { RecoveryPath, RecoveryInfoPath })
             try { if (File.Exists(p)) File.Delete(p); } catch (IOException) { } catch (UnauthorizedAccessException) { }
     }

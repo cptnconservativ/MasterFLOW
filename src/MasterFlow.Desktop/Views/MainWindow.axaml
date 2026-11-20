@@ -344,6 +344,15 @@
           <ScrollViewer>
             <StackPanel DataContext="{Binding Selected}" x:DataType="vm:CalculationViewModel">
               <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <Border IsVisible="{Binding HasResultWarnings}" Background="#33FFB000" BorderBrush="#FFB000" BorderThickness="1" CornerRadius="3" Padding="6,4" Margin="0,0,0,6">
+                <ItemsControl ItemsSource="{Binding ResultWarnings}" AutomationProperties.Name="Result warnings">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MessageItem">
+                      <TextBlock Text="{Binding Display}" TextWrapping="Wrap" Margin="0,1"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
               <TextBlock Text="{Binding MethodText}" IsVisible="{Binding HasMethodText}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,6"/>
               <ItemsControl ItemsSource="{Binding ResultLines}">
                 <ItemsControl.ItemTemplate>

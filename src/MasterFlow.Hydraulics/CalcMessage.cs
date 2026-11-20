@@ -38,6 +38,7 @@ public static class MessageCodes
     public const string SeparateWettedAreas = "W-I-002";
     public const string WallExtended = "W-I-003";
     public const string MultipleCriticalDepths = "W-I-004";
+    public const string OutOfBank = "W-I-005";
 
     public const string RoughnessUnusual = "W-N-001";
     public const string SlopeSteep = "W-S-001";

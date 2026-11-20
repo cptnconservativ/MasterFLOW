@@ -99,11 +99,12 @@ The method in use is printed under the results and in every report, and so is th
 shape (ASTM C507 four-centred for standard sizes, or a true ellipse when "standard size" is off; the
 two differ by about 3% in normal depth).
 
-What MasterFlow does with awkward sections, and tells you about:
+What MasterFlow does with awkward sections, and tells you about (warnings are repeated in a yellow box at the top of the Results tab):
 
 | Situation | What happens | Message |
 |---|---|---|
-| Water above an end point | A vertical wall is added at that end (counted as wetted perimeter) | W-I-003 |
+| Water above an end point | "Overtopped" warning with the amount above each end; a vertical wall is added there (counted as wetted perimeter). Results show **Top of section** and **Freeboard (OVERTOPPED)** as a negative number | W-I-003 |
+| Water above a point labelled as a bank ("Left bank", "Top of bank", "LB", "RB", "TOB"; not "overbank") | "Out of bank" warning naming the bank and the depth above it | W-I-005 |
 | Separate pools below the water surface | All of them carry flow | W-I-002 |
 | Several depths carry the same Q (flat overbanks) | All are listed; the **highest** is reported | W-I-001 |
 | Several specific-energy minima | All are listed; the one with the lowest energy is critical depth | W-I-004 |
@@ -365,7 +366,14 @@ engine. See [docs/tools/culverts.md](tools/culverts.md).
 
 **Autosave and recovery.** Every minute, unsaved work is copied to a recovery file in your user folder
 (never over your own project file). If MasterFlow closes unexpectedly, it offers to restore that copy
-the next time it starts. Saving or closing normally removes the recovery copy.
+the next time it starts with three choices: **Restore** opens it, **Keep for later** saves it as a
+project in `%APPDATA%\MasterFlow\recovered` (closing the prompt does the same), and only **Discard**
+deletes it. Saving or closing normally removes the recovery copy.
+
+**One window.** MasterFlow runs as a single window. Starting it again, or double-clicking a project
+while it is open, brings the open window forward and opens that project there (after asking about
+unsaved changes). A recovery copy that belongs to a MasterFlow window that is still open is never
+offered, overwritten or deleted.
 
 **Unexpected errors.** If something goes wrong inside MasterFlow, it keeps running where it can,
 saves a recovery copy and says so in the status bar.

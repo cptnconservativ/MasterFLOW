@@ -41,6 +41,13 @@ public partial class App : Avalonia.Application
             }
             desktop.MainWindow = window;
             if (!opened) window.Opened += async (_, _) => await vm.CheckRecoveryAsync();
+
+            // Later launches (double-clicking a project, the Start menu) come here instead of opening a second window.
+            Program.Instance?.Listen(message => Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                window.BringToFront();
+                if (message.Length > 0) await vm.OpenFromAnotherLaunchAsync(message);
+            }));
         }
         base.OnFrameworkInitializationCompleted();
     }
