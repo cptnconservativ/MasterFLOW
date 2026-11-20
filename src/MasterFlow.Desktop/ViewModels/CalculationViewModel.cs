@@ -145,6 +145,10 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private UniformFlowResult? _result;
     [ObservableProperty] private IReadOnlyList<ResultLine> _resultLines = [];
     [ObservableProperty] private IReadOnlyList<MessageItem> _messages = [];
+    /// <summary>The method choice that changes the answer (ellipse shape, conveyance method), shown with the results.</summary>
+    [ObservableProperty] private string? _methodText;
+    public bool HasMethodText => MethodText is not null;
+    partial void OnMethodTextChanged(string? value) => OnPropertyChanged(nameof(HasMethodText));
     [ObservableProperty] private IReadOnlyList<string> _trace = [];
     [ObservableProperty] private CrossSectionDrawing? _drawing;
     [ObservableProperty] private ChannelSection? _currentSection;
@@ -176,7 +180,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     // ------------------------------------------------------------ presentation helpers
 
     public static IReadOnlyList<SectionShape> Shapes { get; } = [SectionShape.Rectangular, SectionShape.Trapezoidal, SectionShape.Triangular, SectionShape.Circular, SectionShape.Elliptical, SectionShape.Irregular];
-    public static IReadOnlyList<CompositeRoughnessMethod> RoughnessMethods { get; } = [CompositeRoughnessMethod.Conveyance, CompositeRoughnessMethod.EqualVelocity];
+    public static IReadOnlyList<CompositeRoughnessMethod> RoughnessMethods { get; } = [CompositeRoughnessMethod.Conveyance, CompositeRoughnessMethod.EqualVelocity, CompositeRoughnessMethod.PerSegment];
     public static IReadOnlyList<EllipticalPipeSize> EllipseSizes { get; } = EllipticalPipeCatalog.Sizes;
     public static IReadOnlyList<UnitSystem> UnitSystems { get; } = [UnitSystem.USCustomary, UnitSystem.SI];
     public static IReadOnlyList<SolveFor> SolveModes { get; } = [SolveFor.Discharge, SolveFor.NormalDepth, SolveFor.Slope, SolveFor.Roughness];
@@ -425,6 +429,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         Result = r;
         HasResult = r.Succeeded;
         ResultLines = ResultSummary.Lines(r);
+        MethodText = ResultSummary.MethodText(input);
         var criteria = BuildCriteria(out var criteriaErrors);
         Checks = DesignChecks.Evaluate(criteria, r);
         var slopeCheck = SlopeIsInput && TryParse(SlopeText, out double typedSlope) ? SlopeEntry.Check(typedSlope, SlopeUnit, LengthUnit) : null;
