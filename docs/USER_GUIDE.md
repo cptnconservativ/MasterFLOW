@@ -58,7 +58,11 @@ Pick the unknown in **Solve for**. Its field turns grey and shows the solved val
 | Slope S | n, discharge, depth |
 | Manning's n | slope, discharge, depth |
 
-Slope is entered in **percent** (0.5 % = 0.005 ft/ft).
+Slope is entered in **percent** by default (0.5 % = 0.005 ft/ft). The box beside the slope switches the
+unit to **ft/ft** (m/m in SI); switching converts the number you typed, so the slope itself does not
+change, and the choice is saved with the calculation. Because other programs (Flow Calc among them) read
+a typed "0.02" as 0.02 ft/ft, MasterFlow warns (W-S-003) when a percent slope is below 0.05 % or a ft/ft
+slope is above 0.2, and gives both readings.
 
 **Manning's n.** The **n reference** list offers typical values from Chow (1959), Table 5-6 (minimum,
 normal, maximum). Picking one fills in the normal value. It is a starting point only.
@@ -76,7 +80,8 @@ station, elevation [, n [, description]]
 
 - Separators: tab (a paste from Excel), semicolon, comma or spaces.
 - A first line that is not numeric is treated as a header and skipped. Lines starting with `#` are ignored.
-- Stations may use surveyor notation: `1+25.50` means 125.50.
+- Stations may use surveyor notation: `1+25.50` means 125.50 and `0+10` means 10. Metric chainage with
+  three digits after the plus (`1+250.000`) means 1250. A leading `STA` or `Sta.` is ignored.
 - **n on a point applies to the segment from that point to the next one.** A blank n uses the
   calculation's Manning's n. The last point's n is not used.
 - Every line that cannot be read is listed with its line number; nothing is guessed.

@@ -43,7 +43,7 @@ public class ViewModelTests
     public void ZeroSlope_ShowsEngineError()
     {
         var c = MainViewModel.CreateWithSample().Selected!;
-        c.SlopePercent = "0";
+        c.SlopeText = "0";
         Assert.False(c.HasResult);
         Assert.Contains(c.Messages, m => m.Code == MessageCodes.SlopeNotPositive);
     }
@@ -52,7 +52,7 @@ public class ViewModelTests
     public void SlopeField_IsPercent()
     {
         var c = MainViewModel.CreateWithSample().Selected!;
-        c.SlopePercent = "0.16";
+        c.SlopeText = "0.16";
         Assert.Equal(0.0016, c.Result!.Slope, 12);
     }
 
@@ -271,7 +271,7 @@ public class IrregularViewModelTests
         var c = vm.Selected!;
         c.Shape = SectionShape.Irregular;
         c.SolveFor = SolveFor.Discharge;
-        c.ManningN = "0.013"; c.SlopePercent = "1"; c.Depth = "1.5";
+        c.ManningN = "0.013"; c.SlopeText = "1"; c.Depth = "1.5";
         c.PointsText = "Station\tElevation\n0+00\t5\n0+10\t0\n0+20\t0\n0+30\t5";
         Assert.True(c.HasResult);
         Assert.Equal(247.08514222, c.Result!.Discharge, 6);
@@ -796,7 +796,7 @@ public class PipeNetworkImportTests
         Assert.Equal("P-1 (CB-1 → MH-1)", p1.Title);
         Assert.Equal(SectionShape.Circular, p1.Shape);
         Assert.Equal("18", p1.Diameter);           // 1.5 ft shown in inches in the field (the model keeps 1.5 ft)
-        Assert.Equal("1", p1.SlopePercent);
+        Assert.Equal("1", p1.SlopeText);
         Assert.Equal("100.5", p1.InvertElevation);
         Assert.True(p1.HasResult);
         // Flowing just full: Q = (1.486/0.013) A R^(2/3) S^(1/2), A = π·1.5²/4, R = 1.5/4 (independent of the engine)
@@ -1089,5 +1089,49 @@ public class DesignToolsViewModelTests
         Assert.NotNull(may);
         Assert.True(may(MasterFlow.Application.Tools.DesignTools.Find("rational-rapid-city")!));    // free tool
         Assert.False(may(MasterFlow.Application.Tools.DesignTools.Find("drainage-report")!));             // premium, no key
+    }
+}
+
+public class SlopeUnitTests
+{
+    [Fact]
+    public void SwitchingUnit_ConvertsTheTypedValue_NotTheSlope()
+    {
+        var c = MainViewModel.CreateWithSample().Selected!;
+        c.SlopeText = "0.16";
+        c.SlopeUnit = SlopeUnit.RiseOverRun;
+        Assert.Equal("0.0016", c.SlopeText);
+        Assert.Equal("ft/ft", c.SlopeUnitLabel);
+        Assert.Equal(0.0016, c.Result!.Slope, 12);
+        c.SlopeText = "0.02";
+        Assert.Equal(0.02, c.Result!.Slope, 12);
+        c.SlopeUnit = SlopeUnit.Percent;
+        Assert.Equal("2", c.SlopeText);
+        Assert.Equal(0.02, c.Result!.Slope, 12);
+    }
+
+    [Fact]
+    public void UnitChoice_IsSaved_AndUndoable()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var c = vm.Selected!;
+        c.SlopeUnit = SlopeUnit.RiseOverRun;
+        var back = CalculationViewModel.FromModel(c.ToModel());
+        Assert.Equal(SlopeUnit.RiseOverRun, back.SlopeUnit);
+        Assert.Equal(c.Result!.Slope, back.Result!.Slope, 15);
+        Assert.Equal("0.0016", back.SlopeText);
+        c.Undo();
+        Assert.Equal(SlopeUnit.Percent, c.SlopeUnit);
+        Assert.Equal(0.0016, c.Result!.Slope, 12);
+    }
+
+    [Fact]
+    public void SuspiciousSlope_ShowsTheUnitWarning()
+    {
+        var c = MainViewModel.CreateWithSample().Selected!;
+        c.SlopeText = "0.02";
+        Assert.Contains(c.Messages, m => m.Code == SlopeEntry.Code);
+        c.SlopeText = "0.16";
+        Assert.DoesNotContain(c.Messages, m => m.Code == SlopeEntry.Code);
     }
 }
