@@ -1135,3 +1135,17 @@ public class SlopeUnitTests
         Assert.DoesNotContain(c.Messages, m => m.Code == SlopeEntry.Code);
     }
 }
+
+public class PipeCapacityPanelTests
+{
+    [Fact]
+    public void PipeSample_ShowsCapacity_OpenChannelDoesNot()
+    {
+        var vm = MainViewModel.CreateWithSample();
+        var pipe = vm.Calculations.Single(c => c.Title.StartsWith("36-in RCP"));
+        Assert.True(pipe.HasCapacity);
+        Assert.Contains("Full-flow Q", pipe.CapacityText);
+        Assert.Contains("% full", pipe.CapacityText);
+        Assert.False(vm.Calculations[0].HasCapacity);
+    }
+}
