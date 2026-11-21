@@ -25,6 +25,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Detention pond routing | IDCM §4.10; modified rational or entered hydrographs | [detention-routing.md](detention-routing.md) |
 | ★ Multi-stage outlet designer | IDCM §4.10, SWQM 2009 §2.3.2 | [outlet-designer.md](outlet-designer.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
+| Channel water surface profile and lining checks | IDCM §4.8, Table 4-14; HEC-15; Chow (1959) | [channel-profile.md](channel-profile.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
 | Culvert analysis | FHWA HDS-5 (2012), IDCM §4.7 | [culverts.md](culverts.md) |
