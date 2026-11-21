@@ -13,6 +13,9 @@ public sealed record PremiumFeature(string Id, string Name, IReadOnlyList<string
 /// </summary>
 public static class PremiumFeatures
 {
+    /// <summary>Feature ids for premium work outside the Design tools window (Storm networks window buttons).</summary>
+    public const string PipeSizing = "pipe-sizing", Civil3DExport = "civil3d-export";
+
     public static readonly IReadOnlyList<PremiumFeature> All =
     [
         new("hydrograph-routing", "Hydrograph network routing (NRCS unit hydrograph, TR-55, pipe and pond routing)", ["hydrograph-routing"]),
@@ -21,10 +24,24 @@ public static class PremiumFeatures
         new("water-quality", "Water quality and LID sizing (WQCV, sand filter, bioretention, infiltration)", ["water-quality"]),
         new("cost-estimate", "Quantity takeoff and cost estimate with bid tab", ["cost-estimate"]),
         new("batch-scenarios", "Batch scenario manager", ["batch-scenarios"]),
+        new("inlet-routing", "Inlet capacity and bypass routing across a network", ["inlet-network"]),
+        new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
+        new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
+        new(Civil3DExport, "Civil 3D export: LandXML pipe network and HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…)", []),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
     public static PremiumFeature? ForTool(string toolId) => All.FirstOrDefault(f => f.ToolIds.Contains(toolId, StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>The premium feature with id <paramref name="featureId"/>.</summary>
+    public static PremiumFeature Get(string featureId) => All.First(f => string.Equals(f.Id, featureId, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Why <paramref name="what"/> is locked under <paramref name="license"/>: the feature it needs and how to unlock it.</summary>
+    public static string LockedMessage(string what, PremiumFeature f, LicenseState license) =>
+        $"{what} is a MasterFlow Premium feature ({f.Name}). " +
+        (license.Status == LicenseStatus.Valid
+            ? "Your license does not include this feature."
+            : license.Status == LicenseStatus.None ? "Enter a license key under License in the Design tools window to unlock it." : license.Message);
 
     public static bool IsPremium(IDesignTool tool) => ForTool(tool.Id) is not null;
 
@@ -38,11 +55,7 @@ public static class PremiumFeatures
     public static ToolResult Run(IDesignTool tool, string input, DesignToolContext context, LicenseState license)
     {
         if (ForTool(tool.Id) is { } f && !license.Allows(f.Id))
-            return ToolResult.Failed(tool.Name, CalcMessage.Error("E-LIC-001",
-                $"{tool.Name} is a MasterFlow Premium tool ({f.Name}). " +
-                (license.Status == LicenseStatus.Valid
-                    ? "Your license does not include this feature."
-                    : license.Status == LicenseStatus.None ? "Enter a license key under License in this window to unlock it." : license.Message)));
+            return ToolResult.Failed(tool.Name, CalcMessage.Error("E-LIC-001", LockedMessage(tool.Name, f, license)));
         return tool.Run(input, context);
     }
 }

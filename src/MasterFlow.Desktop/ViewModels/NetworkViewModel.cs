@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MasterFlow.Application;
+using MasterFlow.Application.Licensing;
 using MasterFlow.Domain;
 using MasterFlow.Hydraulics;
 using MasterFlow.Reporting;
@@ -61,6 +62,25 @@ public sealed partial class NetworkViewModel : ObservableObject
     /// <summary>Changes and notes from the last automatic sizing.</summary>
     public ObservableCollection<string> SizingReport { get; } = [];
     private string? _pipesBeforeSizing;
+
+    /// <summary>
+    /// The license in force (set by the main window when the network is added). Premium buttons in the Storm networks
+    /// window check it; a network not attached to a window is treated as MasterFlow Free.
+    /// </summary>
+    public Func<LicenseState>? License { get; set; }
+    internal LicenseState CurrentLicense => License?.Invoke() ?? LicenseState.Free;
+
+    /// <summary>
+    /// False (with the reason in <see cref="Status"/>) when <paramref name="featureId"/> is a premium feature the
+    /// license does not cover. Every premium action in the Storm networks window goes through here.
+    /// </summary>
+    public bool MayUse(string featureId, string what)
+    {
+        var license = CurrentLicense;
+        if (license.Allows(featureId)) return true;
+        Status = "E-LIC-001: " + PremiumFeatures.LockedMessage(what, PremiumFeatures.Get(featureId), license);
+        return false;
+    }
     [ObservableProperty] private bool _canUndoSizing;
 
     public string PipesHeader => NetworkText.PipeHeader(Units).Replace('\t', '|');
@@ -211,6 +231,7 @@ public sealed partial class NetworkViewModel : ObservableObject
     [RelayCommand]
     public void SizePipes()
     {
+        if (!MayUse(PremiumFeatures.PipeSizing, "Automatic pipe sizing")) return;
         var (n, errs) = BuildModel();
         SizingReport.Clear();
         if (errs.Count > 0) { Status = $"Not sized: {errs.Count} input problem(s); fix them first."; foreach (var e in errs) SizingReport.Add(e); return; }

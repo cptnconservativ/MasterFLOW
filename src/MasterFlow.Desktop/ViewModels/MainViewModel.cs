@@ -343,6 +343,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void AddNetwork(NetworkViewModel n)
     {
+        n.License = () => License;
         n.Edited += OnNetworkEdited;
         Networks.Add(n);
     }
@@ -440,9 +441,13 @@ public sealed partial class MainViewModel : ObservableObject
         Dialogs.OpenWithShell(path);
     }
 
-    /// <summary>LandXML pipe network for Civil 3D (sizes, inverts, structures; HGL/EGL as Feature properties). Public for tests.</summary>
-    public (string Xml, IReadOnlyList<string> Warnings) BuildNetworkLandXml(NetworkViewModel n)
+    /// <summary>
+    /// LandXML pipe network for Civil 3D (sizes, inverts, structures; HGL/EGL as Feature properties). Premium
+    /// (Civil 3D export): null, with the reason in the network's Status, when the license does not cover it. Public for tests.
+    /// </summary>
+    public (string Xml, IReadOnlyList<string> Warnings)? BuildNetworkLandXml(NetworkViewModel n)
     {
+        if (!n.MayUse(Application.Licensing.PremiumFeatures.Civil3DExport, "LandXML pipe network export")) return null;
         n.Solve();
         return LandXmlPipeNetworkWriter.Write(n.ToModel(), n.Result is { Succeeded: true } r ? r : null, AppVersion);
     }
@@ -451,9 +456,11 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task ExportNetworkLandXml()
     {
         if (SelectedNetwork is not { } n || Dialogs is null) return;
+        if (!n.MayUse(Application.Licensing.PremiumFeatures.Civil3DExport, "LandXML pipe network export")) { StatusMessage = n.Status; return; }
         var path = await Dialogs.PickSaveAsync(SafeName(n.Name) + ".xml", ".xml", "LandXML pipe network (Civil 3D)");
         if (path is null) return;
-        var (xml, warnings) = BuildNetworkLandXml(n);
+        if (BuildNetworkLandXml(n) is not { } built) { StatusMessage = n.Status; return; }
+        var (xml, warnings) = built;
         try { await File.WriteAllTextAsync(path, xml, new System.Text.UTF8Encoding(false)); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"LandXML not saved: {ex.Message}"; return; }
         n.Status = $"LandXML saved to {path}. In Civil 3D: Insert → LandXML, then choose a parts list with these sizes." +
@@ -464,10 +471,11 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>
     /// Solves the network and builds the Civil 3D write-back files: an AutoLISP command (MFHGL) that sets the
     /// HGL/EGL and flow rate on the drawing's pipes by name, and a CSV of every pipe and structure result.
-    /// Null (with the reason in Status) when the network does not solve.
+    /// Null (with the reason in Status) when the network does not solve or the license does not cover Civil 3D export (premium).
     /// </summary>
     public (string Lisp, string Csv, IReadOnlyList<string> Warnings)? BuildCivil3DResults(NetworkViewModel n)
     {
+        if (!n.MayUse(Application.Licensing.PremiumFeatures.Civil3DExport, "Civil 3D HGL/EGL write-back")) return null;
         n.Solve();
         if (n.Result is not { Succeeded: true } r)
         {

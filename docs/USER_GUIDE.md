@@ -297,7 +297,7 @@ as text.
    12 in. minimum, slopes below critical, no surcharge).
 6. **Solve** (F5). The status line says whether the HGL criterion is met everywhere.
 
-**Size pipes** picks circular sizes for you: the smallest standard size (12 to 108 in., or 300 to 3000 mm)
+**Size pipes** (★ Premium) picks circular sizes for you: the smallest standard size (12 to 108 in., or 300 to 3000 mm)
 that carries the design Q part full (when pressure flow is not allowed) within the velocity limits and is
 never smaller than a pipe upstream; then, wherever a structure's HGL is too close to its rim or a pipe still
 flows full, it tries one size up on each pipe between that structure and the outfall and keeps the one that
@@ -306,7 +306,7 @@ and elliptical pipes are kept, and no crown is put above a rim. Every change, an
 (for example an inlet too shallow for the 1 ft rule), is listed on the **Sizing** tab; **Undo sizing**
 restores the previous sizes.
 
-**LandXML…** writes the network as a LandXML 1.2 pipe network that validates against the published
+**LandXML…** (★ Premium) writes the network as a LandXML 1.2 pipe network that validates against the published
 LandXML-1.2 schema: units stated (foot or meter, cfs or m³/s, ft/s or m/s), sizes, lengths, slopes, Manning n,
 inverts at each structure, rims, sumps at the lowest invert, coordinates and structure types. When the
 network solves, each pipe gets the schema's *PipeFlow* (Q, HGL up/down, critical depth) and each structure
@@ -316,7 +316,7 @@ hydraulics" *Feature* listing EGL, velocities, depths, Q full, Q/Q full, regime,
 that has the sizes; Civil 3D creates a new pipe network from it. Structures need northing/easting (they come
 with a LandXML import); the export warns about any that do not.
 
-**Civil 3D results…** puts the results on the network you already have in the drawing instead of a copy.
+**Civil 3D results…** (★ Premium) puts the results on the network you already have in the drawing instead of a copy.
 It saves two files: *name HGL.lsp* and *name HGL.csv*. In Civil 3D, open the drawing, run *APPLOAD* on the
 .lsp, and type **MFHGL**. Every pipe in the network of the same name whose pipe name matches gets its HGL up,
 HGL down, EGL up, EGL down and flow rate, so pipe labels, profile-view HGL lines and pipe tables show
