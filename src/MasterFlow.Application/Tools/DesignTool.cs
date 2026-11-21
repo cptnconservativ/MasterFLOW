@@ -18,6 +18,8 @@ public sealed record DesignToolContext(UnitSystem Units, StormNetwork? Network =
     public IReadOnlyList<ChannelCalculation> Calculations { get; init; } = [];
     /// <summary>Whether a tool may be run on the user's behalf by another tool (license check); null = every tool.</summary>
     public Func<IDesignTool, bool>? MayRun { get; init; }
+    /// <summary>Opens another project file by path (the redesign diff's baseline); null where files cannot be opened.</summary>
+    public Func<string, Project>? LoadProject { get; init; }
 }
 
 /// <summary>A result table: shown in the window, the HTML report and as an Excel sheet. Cells are numbers or text.</summary>

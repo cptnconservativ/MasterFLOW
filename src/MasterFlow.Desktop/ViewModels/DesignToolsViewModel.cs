@@ -68,6 +68,7 @@ public sealed partial class DesignToolsViewModel : ObservableObject
                 .Where(x => x.Model is not null).Select(x => (x.Model!, x.Result)).ToList(),
             // Tools run from inside another tool (the report builder) follow the same license gate as the Run button.
             MayRun = t => PremiumFeatures.ForTool(t.Id) is not { } f || _main.License.Allows(f.Id),
+            LoadProject = MasterFlow.Persistence.ProjectFile.Load,
         };
     }
 
