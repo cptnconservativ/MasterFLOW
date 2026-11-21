@@ -19,9 +19,10 @@ public sealed record FieldState(
     string Title, string Description, SectionShape Shape, UnitSystem Units, SolveFor SolveFor,
     string BottomWidth, string LeftSlope, string RightSlope, string ChannelDepth, string Diameter,
     bool EllipseStandard, EllipticalPipeSize EllipseSize, bool EllipseVertical, string EllipseRise, string EllipseSpan,
-    string ManningN, string SlopePercent, string Discharge, string Depth,
+    string ManningN, string SlopeText, string Discharge, string Depth,
     string PointsText = "", CompositeRoughnessMethod RoughnessMethod = CompositeRoughnessMethod.Conveyance, string InvertElevation = "", string Folder = "",
-    string Lining = "", string PermissibleShear = "", string RequiredFreeboard = "", string MinVelocity = "", string MaxVelocity = "");
+    string Lining = "", string PermissibleShear = "", string RequiredFreeboard = "", string MinVelocity = "", string MaxVelocity = "",
+    SlopeUnit SlopeUnit = SlopeUnit.Percent);
 
 /// <summary>
 /// Editable state of one calculation. Fields are held as text so that partially typed or invalid
@@ -33,9 +34,9 @@ public sealed partial class CalculationViewModel : ObservableObject
     private static readonly string[] InputProps =
     [
         nameof(Title), nameof(Description), nameof(Shape), nameof(Units), nameof(SolveFor), nameof(BottomWidth), nameof(LeftSlope),
-        nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(EllipseStandard), nameof(EllipseSize), nameof(EllipseVertical), nameof(EllipseRise), nameof(EllipseSpan), nameof(ManningN), nameof(SlopePercent), nameof(Discharge), nameof(Depth),
+        nameof(RightSlope), nameof(ChannelDepth), nameof(Diameter), nameof(EllipseStandard), nameof(EllipseSize), nameof(EllipseVertical), nameof(EllipseRise), nameof(EllipseSpan), nameof(ManningN), nameof(SlopeText), nameof(Discharge), nameof(Depth),
         nameof(PointsText), nameof(RoughnessMethod), nameof(InvertElevation), nameof(Folder),
-        nameof(Lining), nameof(PermissibleShear), nameof(RequiredFreeboard), nameof(MinVelocity), nameof(MaxVelocity),
+        nameof(Lining), nameof(PermissibleShear), nameof(RequiredFreeboard), nameof(MinVelocity), nameof(MaxVelocity), nameof(SlopeUnit),
     ];
 
     private readonly Stack<FieldState> _undo = new();
@@ -119,13 +120,42 @@ public sealed partial class CalculationViewModel : ObservableObject
         }
     }
     [ObservableProperty] private string _manningN = "0.013";
-    [ObservableProperty] private string _slopePercent = "1";
+    /// <summary>Slope as typed, in <see cref="SlopeUnit"/>.</summary>
+    [ObservableProperty] private string _slopeText = "1";
+    [ObservableProperty] private SlopeUnit _slopeUnit = SlopeUnit.Percent;
+    public static IReadOnlyList<SlopeUnit> SlopeUnits { get; } = [SlopeUnit.Percent, SlopeUnit.RiseOverRun];
+    private double SlopeTextToRatio => SlopeUnit == SlopeUnit.Percent ? 0.01 : 1.0;
+    public string SlopeUnitLabel => SlopeUnit == SlopeUnit.Percent ? "%" : $"{LengthUnit}/{LengthUnit}";
+
+    /// <summary>Switching the unit converts the typed value, so the slope itself does not change.</summary>
+    partial void OnSlopeUnitChanged(SlopeUnit oldValue, SlopeUnit newValue)
+    {
+        OnPropertyChanged(nameof(SlopeUnitLabel));
+        OnPropertyChanged(nameof(SolvedValueText));
+        if (_restoring || oldValue == newValue || !TryParse(SlopeText, out double v)) return;
+        double ratio = oldValue == SlopeUnit.Percent ? v / 100.0 : v;
+        // One undo step: the SlopeUnit change that follows records both fields together.
+        _restoring = true;
+        try { SlopeText = N(newValue == SlopeUnit.Percent ? ratio * 100.0 : ratio); }
+        finally { _restoring = false; }
+    }
     [ObservableProperty] private string _discharge = "100";
     [ObservableProperty] private string _depth = "1.5";
 
     [ObservableProperty] private UniformFlowResult? _result;
     [ObservableProperty] private IReadOnlyList<ResultLine> _resultLines = [];
     [ObservableProperty] private IReadOnlyList<MessageItem> _messages = [];
+    /// <summary>Pipe capacity at a glance (full-flow Q, max. Q, percent full); null for open channels.</summary>
+    [ObservableProperty] private string? _capacityText;
+    public bool HasCapacity => CapacityText is not null;
+    partial void OnCapacityTextChanged(string? value) => OnPropertyChanged(nameof(HasCapacity));
+    /// <summary>Warnings and errors repeated at the top of the Results tab, so overtopping and similar cautions are seen with the numbers.</summary>
+    [ObservableProperty] private IReadOnlyList<MessageItem> _resultWarnings = [];
+    [ObservableProperty] private bool _hasResultWarnings;
+    /// <summary>The method choice that changes the answer (ellipse shape, conveyance method), shown with the results.</summary>
+    [ObservableProperty] private string? _methodText;
+    public bool HasMethodText => MethodText is not null;
+    partial void OnMethodTextChanged(string? value) => OnPropertyChanged(nameof(HasMethodText));
     [ObservableProperty] private IReadOnlyList<string> _trace = [];
     [ObservableProperty] private CrossSectionDrawing? _drawing;
     [ObservableProperty] private ChannelSection? _currentSection;
@@ -157,7 +187,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     // ------------------------------------------------------------ presentation helpers
 
     public static IReadOnlyList<SectionShape> Shapes { get; } = [SectionShape.Rectangular, SectionShape.Trapezoidal, SectionShape.Triangular, SectionShape.Circular, SectionShape.Elliptical, SectionShape.Irregular];
-    public static IReadOnlyList<CompositeRoughnessMethod> RoughnessMethods { get; } = [CompositeRoughnessMethod.Conveyance, CompositeRoughnessMethod.EqualVelocity];
+    public static IReadOnlyList<CompositeRoughnessMethod> RoughnessMethods { get; } = [CompositeRoughnessMethod.Conveyance, CompositeRoughnessMethod.EqualVelocity, CompositeRoughnessMethod.PerSegment];
     public static IReadOnlyList<EllipticalPipeSize> EllipseSizes { get; } = EllipticalPipeCatalog.Sizes;
     public static IReadOnlyList<UnitSystem> UnitSystems { get; } = [UnitSystem.USCustomary, UnitSystem.SI];
     public static IReadOnlyList<SolveFor> SolveModes { get; } = [SolveFor.Discharge, SolveFor.NormalDepth, SolveFor.Slope, SolveFor.Roughness];
@@ -198,7 +228,9 @@ public sealed partial class CalculationViewModel : ObservableObject
         {
             SolveFor.Discharge => $"{r.Discharge.ToString("F3", CultureInfo.CurrentCulture)}  (solved)",
             SolveFor.NormalDepth => $"{r.Normal.Depth.ToString("F3", CultureInfo.CurrentCulture)}  (solved)",
-            SolveFor.Slope => $"{(r.Slope * 100).ToString("F4", CultureInfo.CurrentCulture)}  (solved)",
+            SolveFor.Slope => SlopeUnit == SlopeUnit.Percent
+                ? $"{(r.Slope * 100).ToString("F4", CultureInfo.CurrentCulture)}  (solved)"
+                : $"{r.Slope.ToString("F6", CultureInfo.CurrentCulture)}  (solved)",
             _ => $"{r.ManningN.ToString("F4", CultureInfo.CurrentCulture)}  (solved)",
         }
         : "—  (no result)";
@@ -265,7 +297,8 @@ public sealed partial class CalculationViewModel : ObservableObject
         vm.ChannelDepth = i.Section.ChannelDepth is { } cd ? N(cd) : "";
         vm.InvertElevation = i.InvertElevation is { } ie ? N(ie) : "";
         vm.ManningN = N(i.ManningN);
-        vm.SlopePercent = N(i.Slope * 100.0);
+        vm.SlopeUnit = c.SlopeUnit;
+        vm.SlopeText = N(c.SlopeUnit == SlopeUnit.Percent ? i.Slope * 100.0 : i.Slope);
         vm.Discharge = N(i.Discharge);
         vm.Depth = N(i.Depth);
         vm._restoring = false;
@@ -287,6 +320,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         Rating = Rating,
         Sensitivity = Sensitivity,
         Criteria = BuildCriteria(out _),
+        SlopeUnit = SlopeUnit,
         Input = BuildInput(out _),
     };
 
@@ -362,7 +396,7 @@ public sealed partial class CalculationViewModel : ObservableObject
             Units = Units,
             SolveFor = SolveFor,
             ManningN = P(ManningN, "Manning's n", RoughnessIsInput),
-            Slope = P(SlopePercent, "Slope", SlopeIsInput) / 100.0, // displayed as percent; converted here, labelled "%"
+            Slope = P(SlopeText, "Slope", SlopeIsInput) * SlopeTextToRatio, // typed in % or ft/ft (SlopeUnit); stored as ft/ft
             Discharge = P(Discharge, "Discharge", DischargeIsInput),
             Depth = P(Depth, "Flow depth", DepthIsInput),
             InvertElevation = invert,
@@ -402,9 +436,15 @@ public sealed partial class CalculationViewModel : ObservableObject
         Result = r;
         HasResult = r.Succeeded;
         ResultLines = ResultSummary.Lines(r);
+        CapacityText = ResultSummary.CapacityText(r);
+        MethodText = ResultSummary.MethodText(input);
         var criteria = BuildCriteria(out var criteriaErrors);
         Checks = DesignChecks.Evaluate(criteria, r);
-        Messages = r.Messages.Concat(criteriaErrors).Concat(DesignChecks.Messages(Checks)).Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
+        var slopeCheck = SlopeIsInput && TryParse(SlopeText, out double typedSlope) ? SlopeEntry.Check(typedSlope, SlopeUnit, LengthUnit) : null;
+        Messages = r.Messages.Concat(criteriaErrors).Concat(DesignChecks.Messages(Checks)).Concat(slopeCheck is null ? [] : [slopeCheck])
+            .Select(m => new MessageItem(m.Severity.ToString(), m.Code, m.Text)).ToList();
+        ResultWarnings = Messages.Where(m => m.Severity is nameof(MessageSeverity.Warning) or nameof(MessageSeverity.Error)).ToList();
+        HasResultWarnings = ResultWarnings.Count > 0;
         Trace = r.Trace;
         CurrentSection = input.Section;
         bool geometryOk = parseErrors.Count == 0 && !r.Messages.Any(m => m.Code == MessageCodes.GeometryInvalid);
@@ -421,7 +461,7 @@ public sealed partial class CalculationViewModel : ObservableObject
 
     // ------------------------------------------------------------ undo / redo
 
-    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopePercent, Discharge, Depth, PointsText, RoughnessMethod, InvertElevation, Folder, Lining, PermissibleShear, RequiredFreeboard, MinVelocity, MaxVelocity);
+    private FieldState Capture() => new(Title, Description, Shape, Units, SolveFor, BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter, EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan, ManningN, SlopeText, Discharge, Depth, PointsText, RoughnessMethod, InvertElevation, Folder, Lining, PermissibleShear, RequiredFreeboard, MinVelocity, MaxVelocity, SlopeUnit);
 
     private void Restore(FieldState s)
     {
@@ -429,9 +469,10 @@ public sealed partial class CalculationViewModel : ObservableObject
         (Title, Description, Shape, Units, SolveFor) = (s.Title, s.Description, s.Shape, s.Units, s.SolveFor);
         (BottomWidth, LeftSlope, RightSlope, ChannelDepth, Diameter) = (s.BottomWidth, s.LeftSlope, s.RightSlope, s.ChannelDepth, s.Diameter);
         (EllipseStandard, EllipseSize, EllipseVertical, EllipseRise, EllipseSpan) = (s.EllipseStandard, s.EllipseSize, s.EllipseVertical, s.EllipseRise, s.EllipseSpan);
-        (ManningN, SlopePercent, Discharge, Depth) = (s.ManningN, s.SlopePercent, s.Discharge, s.Depth);
+        (ManningN, SlopeText, Discharge, Depth) = (s.ManningN, s.SlopeText, s.Discharge, s.Depth);
         (PointsText, RoughnessMethod, InvertElevation, Folder) = (s.PointsText, s.RoughnessMethod, s.InvertElevation, s.Folder);
         (Lining, PermissibleShear, RequiredFreeboard, MinVelocity, MaxVelocity) = (s.Lining, s.PermissibleShear, s.RequiredFreeboard, s.MinVelocity, s.MaxVelocity);
+        SlopeUnit = s.SlopeUnit;
         _restoring = false;
         _committed = s;
         _lastEditedProp = null;
@@ -474,7 +515,7 @@ public sealed partial class CalculationViewModel : ObservableObject
     private void AfterInputChange()
     {
         Recalculate();
-        foreach (var p in new[] { nameof(Constants), nameof(StressUnit), nameof(VelocityUnit), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(CanConvertToIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit),
+        foreach (var p in new[] { nameof(Constants), nameof(StressUnit), nameof(VelocityUnit), nameof(LengthUnit), nameof(DischargeUnit), nameof(ShowBottomWidth), nameof(ShowSideSlopes), nameof(IsPipe), nameof(IsEllipse), nameof(ShowEllipseStandard), nameof(ShowEllipseCustom), nameof(ShowChannelDepth), nameof(IsIrregular), nameof(CanConvertToIrregular), nameof(ShowInvertElevation), nameof(DiameterUnit), nameof(SlopeUnitLabel),
                      nameof(DischargeIsInput), nameof(DepthIsInput), nameof(SlopeIsInput), nameof(RoughnessIsInput), nameof(ListLabel), nameof(ListDetail), nameof(CanUndo), nameof(CanRedo) })
             OnPropertyChanged(p);
     }

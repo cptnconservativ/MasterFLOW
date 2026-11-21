@@ -58,7 +58,11 @@ Pick the unknown in **Solve for**. Its field turns grey and shows the solved val
 | Slope S | n, discharge, depth |
 | Manning's n | slope, discharge, depth |
 
-Slope is entered in **percent** (0.5 % = 0.005 ft/ft).
+Slope is entered in **percent** by default (0.5 % = 0.005 ft/ft). The box beside the slope switches the
+unit to **ft/ft** (m/m in SI); switching converts the number you typed, so the slope itself does not
+change, and the choice is saved with the calculation. Because other programs (Flow Calc among them) read
+a typed "0.02" as 0.02 ft/ft, MasterFlow warns (W-S-003) when a percent slope is below 0.05 % or a ft/ft
+slope is above 0.2, and gives both readings.
 
 **Manning's n.** The **n reference** list offers typical values from Chow (1959), Table 5-6 (minimum,
 normal, maximum). Picking one fills in the normal value. It is a starting point only.
@@ -76,7 +80,8 @@ station, elevation [, n [, description]]
 
 - Separators: tab (a paste from Excel), semicolon, comma or spaces.
 - A first line that is not numeric is treated as a header and skipped. Lines starting with `#` are ignored.
-- Stations may use surveyor notation: `1+25.50` means 125.50.
+- Stations may use surveyor notation: `1+25.50` means 125.50 and `0+10` means 10. Metric chainage with
+  three digits after the plus (`1+250.000`) means 1250. A leading `STA` or `Sta.` is ignored.
 - **n on a point applies to the segment from that point to the next one.** A blank n uses the
   calculation's Manning's n. The last point's n is not used.
 - Every line that cannot be read is listed with its line number; nothing is guessed.
@@ -86,12 +91,20 @@ station, elevation [, n [, description]]
 - *Conveyance subdivision* (default; the HEC-RAS approach): the area is split at each change in n, the
   conveyance of each part is summed, and the report shows the flow, area and velocity of each part.
 - *Equal velocity* (Horton–Einstein): one composite n for the whole wetted perimeter.
+- *Per-segment conveyance (Flow Calc)*: every segment between two points is its own part, whether or
+  not n changes. Use it to reproduce Flow Calc's "Flow Conveyance" results; it gives more conveyance in
+  wide, shallow overbanks (the sample creek: yn 6.694 ft against 6.893 ft by HEC-RAS subdivision).
 
-What MasterFlow does with awkward sections, and tells you about:
+The method in use is printed under the results and in every report, and so is the elliptical pipe
+shape (ASTM C507 four-centred for standard sizes, or a true ellipse when "standard size" is off; the
+two differ by about 3% in normal depth).
+
+What MasterFlow does with awkward sections, and tells you about (warnings are repeated in a yellow box at the top of the Results tab):
 
 | Situation | What happens | Message |
 |---|---|---|
-| Water above an end point | A vertical wall is added at that end (counted as wetted perimeter) | W-I-003 |
+| Water above an end point | "Overtopped" warning with the amount above each end; a vertical wall is added there (counted as wetted perimeter). Results show **Top of section** and **Freeboard (OVERTOPPED)** as a negative number | W-I-003 |
+| Water above a point labelled as a bank ("Left bank", "Top of bank", "LB", "RB", "TOB"; not "overbank") | "Out of bank" warning naming the bank and the depth above it | W-I-005 |
 | Separate pools below the water surface | All of them carry flow | W-I-002 |
 | Several depths carry the same Q (flat overbanks) | All are listed; the **highest** is reported | W-I-001 |
 | Several specific-energy minima | All are listed; the one with the lowest energy is critical depth | W-I-004 |
@@ -353,7 +366,14 @@ engine. See [docs/tools/culverts.md](tools/culverts.md).
 
 **Autosave and recovery.** Every minute, unsaved work is copied to a recovery file in your user folder
 (never over your own project file). If MasterFlow closes unexpectedly, it offers to restore that copy
-the next time it starts. Saving or closing normally removes the recovery copy.
+the next time it starts with three choices: **Restore** opens it, **Keep for later** saves it as a
+project in `%APPDATA%\MasterFlow\recovered` (closing the prompt does the same), and only **Discard**
+deletes it. Saving or closing normally removes the recovery copy.
+
+**One window.** MasterFlow runs as a single window. Starting it again, or double-clicking a project
+while it is open, brings the open window forward and opens that project there (after asking about
+unsaved changes). A recovery copy that belongs to a MasterFlow window that is still open is never
+offered, overwritten or deleted.
 
 **Unexpected errors.** If something goes wrong inside MasterFlow, it keeps running where it can,
 saves a recovery copy and says so in the status bar.

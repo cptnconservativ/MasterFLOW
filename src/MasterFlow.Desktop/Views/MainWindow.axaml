@@ -251,7 +251,9 @@
                   </StackPanel>
                   <TextBlock Grid.Row="2" Classes="label" Text="Slope S"/>
                   <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox AutomationProperties.Name="Channel slope in percent" Classes="num" Text="{Binding SlopePercent}" IsVisible="{Binding SlopeIsInput}"/><Border IsVisible="{Binding !SlopeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="%"/>
+                    <TextBox AutomationProperties.Name="Channel slope" Classes="num" Text="{Binding SlopeText}" IsVisible="{Binding SlopeIsInput}"/><Border IsVisible="{Binding !SlopeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><ComboBox AutomationProperties.Name="Slope unit" Margin="4,0,0,0" ItemsSource="{x:Static vm:CalculationViewModel.SlopeUnits}" SelectedItem="{Binding SlopeUnit}" ToolTip.Tip="Type the slope in percent (0.16 = 0.16 %) or as rise over run (0.0016)">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
                   </StackPanel>
                   <TextBlock Grid.Row="3" Classes="label" Text="Discharge Q"/>
                   <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
@@ -342,6 +344,19 @@
           <ScrollViewer>
             <StackPanel DataContext="{Binding Selected}" x:DataType="vm:CalculationViewModel">
               <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <Border IsVisible="{Binding HasCapacity}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="6,4" Margin="0,0,0,6">
+                <SelectableTextBlock Text="{Binding CapacityText}" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.Name="Pipe capacity"/>
+              </Border>
+              <Border IsVisible="{Binding HasResultWarnings}" Background="#33FFB000" BorderBrush="#FFB000" BorderThickness="1" CornerRadius="3" Padding="6,4" Margin="0,0,0,6">
+                <ItemsControl ItemsSource="{Binding ResultWarnings}" AutomationProperties.Name="Result warnings">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MessageItem">
+                      <TextBlock Text="{Binding Display}" TextWrapping="Wrap" Margin="0,1"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+              <TextBlock Text="{Binding MethodText}" IsVisible="{Binding HasMethodText}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,6"/>
               <ItemsControl ItemsSource="{Binding ResultLines}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="app:ResultLine">

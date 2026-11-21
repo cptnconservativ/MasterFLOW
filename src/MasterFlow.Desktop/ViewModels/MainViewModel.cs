@@ -21,7 +21,12 @@ public interface IDialogService
     Task<string?> PickImageAsync();
     /// <summary>Open picker for any data file (patterns such as "*.csv").</summary>
     Task<string?> PickOpenFileAsync(string title, string description, params string[] patterns);
+    /// <summary>Start-up question about a recovery copy. Closing the dialog or pressing Escape must mean <see cref="RecoveryChoice.SetAside"/>.</summary>
+    Task<RecoveryChoice> AskRecoveryAsync(string message);
 }
+
+/// <summary>What to do with unsaved work found at start-up. Only an explicit Discard deletes it.</summary>
+public enum RecoveryChoice { Restore, SetAside, Discard }
 
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -516,7 +521,7 @@ public sealed partial class MainViewModel : ObservableObject
     public bool Autosave()
     {
         if (!IsDirty || Store is null) return false;
-        try { Store.WriteRecovery(ToProject(), FilePath, AppVersion); return true; }
+        try { return Store.WriteRecovery(ToProject(), FilePath, AppVersion); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"Autosave failed: {ex.Message}"; return false; }
     }
 
@@ -526,8 +531,20 @@ public sealed partial class MainViewModel : ObservableObject
         if (Store?.FindRecovery() is not { } r) return false;
         string when = r.SavedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.CurrentCulture);
         string what = r.OriginalPath is null ? "an unsaved project" : Path.GetFileName(r.OriginalPath);
-        bool restore = Dialogs is null || await Dialogs.ConfirmDiscardAsync($"MasterFlow found unsaved work in {what} from {when}, probably left by an unexpected exit. Restore it? (Cancel discards it.)");
-        if (!restore) { Store.ClearRecovery(); return false; }
+        var choice = Dialogs is null ? RecoveryChoice.Restore
+            : await Dialogs.AskRecoveryAsync($"MasterFlow found unsaved work in {what} from {when}, left by a MasterFlow window that closed unexpectedly. " +
+                                             "Restore opens it now. Keep for later saves it as a project file you can open any time. Discard deletes it.");
+        if (choice == RecoveryChoice.Discard) { Store.ClearRecovery(); StatusMessage = "Recovered work discarded."; return false; }
+        if (choice == RecoveryChoice.SetAside)
+        {
+            try
+            {
+                var kept = Store.SetRecoveryAside();
+                StatusMessage = kept is null ? "No recovery copy to keep." : $"Unsaved work from {when} kept as {kept}. Use Open to load it.";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusMessage = $"The recovery copy was left in place ({ex.Message}); MasterFlow will offer it again next time."; }
+            return false;
+        }
         try
         {
             LoadProject(Store.LoadRecovery(), r.OriginalPath);
@@ -740,6 +757,9 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshComparison();
         MarkDirty();
     }
+
+    /// <summary>A project double-clicked while MasterFlow is already open: opened here (after the usual unsaved-changes check).</summary>
+    public Task OpenFromAnotherLaunchAsync(string path) => OpenRecent(path);
 
     [RelayCommand]
     private async Task OpenRecent(string? path)

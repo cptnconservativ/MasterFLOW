@@ -55,7 +55,8 @@ public static class ResultSummary
         {
             if (double.IsFinite(p.AlternateNormalDepth))
                 lines.Insert(2, new(G, "Alt. normal depth", "yn₂", p.AlternateNormalDepth, c.Length, 3));
-            lines.AddRange(
+            // Shown right after the governing values (as Flow Calc does), so capacity is visible without scrolling.
+            lines.InsertRange(lines.FindLastIndex(l => l.Group == G) + 1,
             [
                 r.Input.Section is CircularSection
                     ? new(P, "Depth / diameter", "y/D", p.PercentFull / 100, "", 4)
@@ -64,7 +65,7 @@ public static class ResultSummary
                 new(P, "Full-flow Q", "Qfull", p.FullFlowDischarge, c.Discharge, 3),
                 new(P, "Full-flow V", "Vfull", p.FullFlowVelocity, c.Velocity, 3),
                 new(P, "Slope for Q just full", "Sfull", p.FullFlowSlope * 100, "%", 4),
-                new(P, "Peak part-full Q", "Qmax", p.MaxDischarge, c.Discharge, 3),
+                new(P, "Max. Q (part full)", "Qmax", p.MaxDischarge, c.Discharge, 3),
                 new(P, "Depth at max. Q", "y(Qmax)", p.DepthAtMaxDischarge, c.Length, 3),
                 new(P, "Q / Qfull", "", r.Discharge / p.FullFlowDischarge, "", 4),
             ]);
@@ -91,12 +92,31 @@ public static class ResultSummary
                 new(I, "Energy grade elev.", "EGL", ir.WaterSurfaceElevation + r.Normal.VelocityHead, c.Length, 3),
                 new(I, "Critical WS elev.", "WSEc", ir.CriticalWaterSurfaceElevation, c.Length, 3),
                 new(I, "Lowest ground elev.", "zmin", ir.LowestElevation, c.Length, 3),
+                .. TopOfSection(r, ir, I, c.Length),
                 new(I, "Effective n", "neff", ir.CompositeN, "", 4),
                 new(I, "Energy coefficient", "α", ir.EnergyCoefficient, "", 3),
                 new(I, "Wetted areas", "", ir.WettedRegions, "", 0),
             ]);
         }
         return lines;
+    }
+
+    /// <summary>One-line pipe capacity summary (full-flow Q, maximum Q, percent full), or null for open channels.</summary>
+    public static string? CapacityText(UniformFlowResult r)
+    {
+        if (!r.Succeeded || r.Conduit is not { } p) return null;
+        var c = r.Constants;
+        return $"Full-flow Q {UnitFormat.Number(p.FullFlowDischarge, 2)} {c.Discharge} · Max. Q {UnitFormat.Number(p.MaxDischarge, 2)} {c.Discharge} · " +
+               $"{UnitFormat.Number(p.PercentFull, 1)}% full · Q/Qfull {UnitFormat.Number(r.Discharge / p.FullFlowDischarge, 3)}";
+    }
+
+    /// <summary>Top of the section (the lower end point) and the freeboard to it; negative freeboard means overtopped.</summary>
+    private static IEnumerable<ResultLine> TopOfSection(UniformFlowResult r, IrregularResult ir, string group, string length)
+    {
+        if (r.Input.Section is not IrregularSection { Points.Count: >= 2 } s) yield break;
+        double top = Math.Min(s.Points[0].Elevation, s.Points[^1].Elevation);
+        yield return new(group, "Top of section (lower end)", "ztop", top, length, 3);
+        yield return new(group, ir.LeftWallExtended || ir.RightWallExtended ? "Freeboard (OVERTOPPED)" : "Freeboard to top", "f", top - ir.WaterSurfaceElevation, length, 3);
     }
 
     /// <summary>Subarea flow split rows (station range, n, A, P, K, Q, V) for an irregular section with conveyance subdivision.</summary>
@@ -108,6 +128,29 @@ public static class ResultSummary
         FlowRegime.Supercritical => "Supercritical (Fr > 1.13)",
         FlowRegime.Undefined => "Conduit flowing full — Froude number undefined",
         _ => "Near-critical (0.86 ≤ Fr ≤ 1.13) — unstable",
+    };
+
+    /// <summary>Display name of a composite-roughness method (UI, reports, exports).</summary>
+    public static string MethodName(CompositeRoughnessMethod m) => m switch
+    {
+        CompositeRoughnessMethod.EqualVelocity => "Equal velocity (Horton–Einstein)",
+        CompositeRoughnessMethod.PerSegment => "Per-segment conveyance (Flow Calc)",
+        _ => "Conveyance subdivision where n changes (HEC-RAS)",
+    };
+
+    /// <summary>Name of the elliptical pipe shape actually computed.</summary>
+    public static string EllipseShapeName(EllipticalSection e) =>
+        e.IsStandardShape ? "ASTM C507 four-centred (standard RCP)" : "True ellipse";
+
+    /// <summary>
+    /// The method choice that changes the answer for this section, stated with the results so a reviewer can
+    /// reproduce them (ellipse shape; irregular-section conveyance method). Null for other shapes.
+    /// </summary>
+    public static string? MethodText(UniformFlowInput i) => i.Section switch
+    {
+        EllipticalSection e => $"Pipe shape: {EllipseShapeName(e)}" + (e.Designation is { } d ? $", {d}" : "") + ".",
+        IrregularSection ir => $"Conveyance method: {MethodName(ir.RoughnessMethod)}.",
+        _ => null,
     };
 
     public static IReadOnlyList<(string Label, string Value)> InputLines(UniformFlowInput i)
@@ -137,7 +180,8 @@ public static class ResultSummary
             {
                 double f = i.Units == UnitSystem.USCustomary ? 12 : 1000;
                 string u = i.Units == UnitSystem.USCustomary ? "in" : "mm";
-                list.Add(("Shape", e.Designation ?? (e.IsStandardShape ? "Four-centred elliptical" : "True ellipse (custom)")));
+                list.Add(("Shape", EllipseShapeName(e)));
+                if (e.Designation is { } des) list.Add(("Size", des));
                 list.Add(("Orientation", e.IsHorizontal ? "Horizontal (span ≥ rise)" : "Vertical (rise > span)"));
                 list.Add(("Rise × span", $"{Num(e.Rise * f, 2)} × {Num(e.Span * f, 2)} {u}"));
                 if (e.EndRadius is { } r) list.Add(("End radius R1", $"{Num(r * f, 2)} {u} (R2 from tangency)"));
@@ -151,8 +195,8 @@ public static class ResultSummary
                 if (ns.Count > 0)
                 {
                     list.Add(("Roughness", $"varies ({string.Join(", ", ns.OrderBy(v => v).Select(v => Num(v, 3)))})"));
-                    list.Add(("Composite method", ir.RoughnessMethod == CompositeRoughnessMethod.Conveyance ? "Conveyance subdivision" : "Equal velocity (Horton–Einstein)"));
                 }
+                list.Add(("Conveyance method", MethodName(ir.RoughnessMethod)));
                 break;
             }
             case CircularSection p:
