@@ -26,6 +26,7 @@ public static class PremiumFeatures
         new("batch-scenarios", "Batch scenario manager", ["batch-scenarios"]),
         new("inlet-routing", "Inlet capacity and bypass routing across a network", ["inlet-network"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
+        new("site-feasibility", "Site feasibility: public data, lot yield, drainage concept, cost range and go/no-go", ["site-feasibility"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
         new(Civil3DExport, "Civil 3D export: LandXML pipe network and HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…)", []),
     ];

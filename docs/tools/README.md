@@ -32,6 +32,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Water quality and LID sizing | Rapid City Storm Water Quality Manual (2009) via IDCM §4.1.7; MHFD USDCM Vol. 3 option | [water-quality.md](water-quality.md) |
 | ★ Network optimizer: least-cost sizes and inverts | IDCM §4.6; dynamic programming | [network-optimizer.md](network-optimizer.md) |
 | ★ Drainage report builder | IDCM §1.15, §4.1.8; PDF, Word, HTML | [drainage-report.md](drainage-report.md) |
+| ★ Site feasibility: lot yield, drainage concept, cost range, go/no-go | FEMA NFHL, NRCS SSURGO, USGS 3DEP, NOAA Atlas 14, RCMC Title 17, TR-55, SWQM | [site-feasibility.md](site-feasibility.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
 
 Tools marked **★** need a MasterFlow Premium license key (so do **Size pipes**, **LandXML…** export and **Civil 3D results…** in the Storm networks window) (see [../premium/licensing.md](../premium/licensing.md)).
