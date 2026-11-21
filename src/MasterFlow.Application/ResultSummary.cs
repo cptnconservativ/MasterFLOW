@@ -55,7 +55,8 @@ public static class ResultSummary
         {
             if (double.IsFinite(p.AlternateNormalDepth))
                 lines.Insert(2, new(G, "Alt. normal depth", "yn₂", p.AlternateNormalDepth, c.Length, 3));
-            lines.AddRange(
+            // Shown right after the governing values (as Flow Calc does), so capacity is visible without scrolling.
+            lines.InsertRange(lines.FindLastIndex(l => l.Group == G) + 1,
             [
                 r.Input.Section is CircularSection
                     ? new(P, "Depth / diameter", "y/D", p.PercentFull / 100, "", 4)
@@ -64,7 +65,7 @@ public static class ResultSummary
                 new(P, "Full-flow Q", "Qfull", p.FullFlowDischarge, c.Discharge, 3),
                 new(P, "Full-flow V", "Vfull", p.FullFlowVelocity, c.Velocity, 3),
                 new(P, "Slope for Q just full", "Sfull", p.FullFlowSlope * 100, "%", 4),
-                new(P, "Peak part-full Q", "Qmax", p.MaxDischarge, c.Discharge, 3),
+                new(P, "Max. Q (part full)", "Qmax", p.MaxDischarge, c.Discharge, 3),
                 new(P, "Depth at max. Q", "y(Qmax)", p.DepthAtMaxDischarge, c.Length, 3),
                 new(P, "Q / Qfull", "", r.Discharge / p.FullFlowDischarge, "", 4),
             ]);
@@ -98,6 +99,15 @@ public static class ResultSummary
             ]);
         }
         return lines;
+    }
+
+    /// <summary>One-line pipe capacity summary (full-flow Q, maximum Q, percent full), or null for open channels.</summary>
+    public static string? CapacityText(UniformFlowResult r)
+    {
+        if (!r.Succeeded || r.Conduit is not { } p) return null;
+        var c = r.Constants;
+        return $"Full-flow Q {UnitFormat.Number(p.FullFlowDischarge, 2)} {c.Discharge} · Max. Q {UnitFormat.Number(p.MaxDischarge, 2)} {c.Discharge} · " +
+               $"{UnitFormat.Number(p.PercentFull, 1)}% full · Q/Qfull {UnitFormat.Number(r.Discharge / p.FullFlowDischarge, 3)}";
     }
 
     /// <summary>Top of the section (the lower end point) and the freeboard to it; negative freeboard means overtopped.</summary>

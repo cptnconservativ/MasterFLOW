@@ -126,6 +126,10 @@ public sealed partial class CalculationViewModel : ObservableObject
     [ObservableProperty] private UniformFlowResult? _result;
     [ObservableProperty] private IReadOnlyList<ResultLine> _resultLines = [];
     [ObservableProperty] private IReadOnlyList<MessageItem> _messages = [];
+    /// <summary>Pipe capacity at a glance (full-flow Q, max. Q, percent full); null for open channels.</summary>
+    [ObservableProperty] private string? _capacityText;
+    public bool HasCapacity => CapacityText is not null;
+    partial void OnCapacityTextChanged(string? value) => OnPropertyChanged(nameof(HasCapacity));
     /// <summary>Warnings and errors repeated at the top of the Results tab, so overtopping and similar cautions are seen with the numbers.</summary>
     [ObservableProperty] private IReadOnlyList<MessageItem> _resultWarnings = [];
     [ObservableProperty] private bool _hasResultWarnings;
@@ -409,6 +413,7 @@ public sealed partial class CalculationViewModel : ObservableObject
         Result = r;
         HasResult = r.Succeeded;
         ResultLines = ResultSummary.Lines(r);
+        CapacityText = ResultSummary.CapacityText(r);
         MethodText = ResultSummary.MethodText(input);
         var criteria = BuildCriteria(out var criteriaErrors);
         Checks = DesignChecks.Evaluate(criteria, r);
