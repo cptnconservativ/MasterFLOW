@@ -251,7 +251,9 @@
                   </StackPanel>
                   <TextBlock Grid.Row="2" Classes="label" Text="Slope S"/>
                   <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
-                    <TextBox AutomationProperties.Name="Channel slope in percent" Classes="num" Text="{Binding SlopePercent}" IsVisible="{Binding SlopeIsInput}"/><Border IsVisible="{Binding !SlopeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><TextBlock Classes="unit" Text="%"/>
+                    <TextBox AutomationProperties.Name="Channel slope" Classes="num" Text="{Binding SlopeText}" IsVisible="{Binding SlopeIsInput}"/><Border IsVisible="{Binding !SlopeIsInput}" Background="{DynamicResource MfSolved}" CornerRadius="3" Padding="8,5" MinWidth="110"><TextBlock Text="{Binding SolvedValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></Border><ComboBox AutomationProperties.Name="Slope unit" Margin="4,0,0,0" ItemsSource="{x:Static vm:CalculationViewModel.SlopeUnits}" SelectedItem="{Binding SlopeUnit}" ToolTip.Tip="Type the slope in percent (0.16 = 0.16 %) or as rise over run (0.0016)">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="x:Object"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
                   </StackPanel>
                   <TextBlock Grid.Row="3" Classes="label" Text="Discharge Q"/>
                   <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">

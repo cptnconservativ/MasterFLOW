@@ -28,6 +28,8 @@ public sealed class EnumDisplayConverter : IValueConverter
         SectionShape s => s.ToString(),
         CompositeRoughnessMethod.Conveyance => "Conveyance subdivision (HEC-RAS)",
         CompositeRoughnessMethod.EqualVelocity => "Equal velocity (Horton–Einstein)",
+        SlopeUnit.Percent => "%",
+        SlopeUnit.RiseOverRun => "ft/ft (m/m)",
         CompositeRoughnessMethod.PerSegment => "Per-segment conveyance (Flow Calc)",
         TailwaterRule.FreeOutfall => "Free outfall (critical depth)",
         TailwaterRule.Elevation => "Known tailwater elevation",
