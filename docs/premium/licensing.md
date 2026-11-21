@@ -28,6 +28,7 @@ Payload: `licensee`, `features` (`*` = every premium feature, present and future
 | `cost-estimate` | Quantity takeoff and cost estimate with bid tab |
 | `batch-scenarios` | Batch scenario manager |
 | `inlet-routing` | Inlet capacity and bypass routing across a network |
+| `atlas14-idf` | NOAA Atlas 14 rainfall lookup (IDF tables, comparison with IDCM Table 4-2) |
 | `plan-review` | Storm network plan review (Rapid City IDCM §4.6) |
 | `pipe-sizing` | Automatic pipe sizing (Storm networks → Size pipes) |
 | `civil3d-export` | LandXML pipe network export and Civil 3D HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…) |
