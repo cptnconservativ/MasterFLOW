@@ -115,53 +115,72 @@ public sealed class IrregularGeometry : ISectionGeometry
     /// <summary>
     /// Roughness subareas at depth y: consecutive segments with the same n form one subarea, separated
     /// by vertical lines (which are not wetted perimeter). End walls belong to the end subareas.
+    /// A vertical wall whose n differs from its neighbours holds no area of its own, so it joins the subarea
+    /// its face looks into (see <see cref="MergeWalls"/>); otherwise its friction would be lost.
     /// </summary>
     public IReadOnlyList<Subarea> Subareas(double depth, double defaultN)
     {
         var list = new List<Subarea>();
         if (depth <= 0) return list;
-        if (Method == CompositeRoughnessMethod.PerSegment) return SegmentSubareas(depth, defaultN);
+        var raw = new List<(Subarea S, bool FacesRight)>();
         int start = 0;
+        bool perSegment = Method == CompositeRoughnessMethod.PerSegment;
         while (start < SegmentCount)
         {
             double n = _segmentN[start] ?? defaultN;
             int end = start;
-            while (end + 1 < SegmentCount && (_segmentN[end + 1] ?? defaultN) == n) end++;
-            double a = 0, p = 0, t = 0;
-            for (int i = start; i <= end; i++) { var s = Segment(i, depth); a += s.A; p += s.P; t += s.T; }
-            if (start == 0) p += LeftWall(depth);
-            if (end == SegmentCount - 1) p += RightWall(depth);
-            list.Add(new Subarea(_x[start], _x[end + 1], n, a, p, t));
+            if (perSegment)
+            {
+                // Consecutive vertical segments at one station form one wall.
+                while (_x[end] == _x[end + 1] && end + 1 < SegmentCount && _x[end + 1] == _x[end + 2] && (_segmentN[end + 1] ?? defaultN) == n) end++;
+            }
+            else
+                while (end + 1 < SegmentCount && (_segmentN[end + 1] ?? defaultN) == n) end++;
+            double a = 0, pr = 0, t = 0;
+            for (int i = start; i <= end; i++) { var sg = Segment(i, depth); a += sg.A; pr += sg.P; t += sg.T; }
+            if (start == 0) pr += LeftWall(depth);
+            if (end == SegmentCount - 1) pr += RightWall(depth);
+            // A wall that steps down to the right has water on its right, and the other way round.
+            raw.Add((new Subarea(_x[start], _x[end + 1], n, a, pr, t), _z[start] > _z[end + 1]));
             start = end + 1;
         }
-        return list;
+        return MergeWalls(raw);
     }
 
     /// <summary>
-    /// One subarea per wet sloping segment. A vertical segment carries no area, so its wetted height is added
-    /// to the subarea on its left (or right, at the left edge); end walls join the end subareas.
+    /// Folds every subarea that has wetted perimeter but no area (a vertical wall with its own n, or a lone
+    /// wall in the per-segment method) into the nearest subarea with area on the side the wall faces (the other
+    /// side if there is none). The receiving subarea keeps one n, the equal-velocity composite of its parts,
+    /// nc = [Σ Pⱼ nⱼ^1.5 / Σ Pⱼ]^(2/3), so Σ P n^1.5 (and the Horton–Einstein result) is unchanged.
+    /// Dry subareas (no area, no perimeter) are dropped.
     /// </summary>
-    private List<Subarea> SegmentSubareas(double depth, double defaultN)
+    private static List<Subarea> MergeWalls(List<(Subarea S, bool FacesRight)> raw)
     {
-        var list = new List<Subarea>();
-        double pendingP = LeftWall(depth);
-        for (int i = 0; i < SegmentCount; i++)
+        var subs = raw.Select(r => r.S).ToList();
+        var keep = subs.Select(s => s.Area > 0).ToArray();
+        for (int i = 0; i < subs.Count; i++)
         {
-            var s = Segment(i, depth);
-            double n = _segmentN[i] ?? defaultN;
-            if (_x[i] == _x[i + 1])
+            if (keep[i] || subs[i].WettedPerimeter <= 0) continue;
+            int target = Nearest(i, raw[i].FacesRight ? 1 : -1);
+            if (target < 0) target = Nearest(i, raw[i].FacesRight ? -1 : 1);
+            if (target < 0) { keep[i] = true; continue; } // no wetted area anywhere; leave as is
+            var w = subs[i]; var r = subs[target];
+            double p = r.WettedPerimeter + w.WettedPerimeter;
+            double nc = Math.Pow((r.WettedPerimeter * Math.Pow(r.ManningN, 1.5) + w.WettedPerimeter * Math.Pow(w.ManningN, 1.5)) / p, 2.0 / 3.0);
+            subs[target] = r with
             {
-                if (list.Count > 0) list[^1] = list[^1] with { WettedPerimeter = list[^1].WettedPerimeter + s.P };
-                else pendingP += s.P;
-                continue;
-            }
-            if (s.A <= 0 && s.P <= 0) continue;
-            list.Add(new Subarea(_x[i], _x[i + 1], n, s.A, s.P + pendingP, s.T));
-            pendingP = 0;
+                StationLeft = Math.Min(r.StationLeft, w.StationLeft), StationRight = Math.Max(r.StationRight, w.StationRight),
+                ManningN = nc, WettedPerimeter = p,
+            };
         }
-        double right = RightWall(depth) + pendingP;
-        if (right > 0 && list.Count > 0) list[^1] = list[^1] with { WettedPerimeter = list[^1].WettedPerimeter + right };
-        return list;
+        return subs.Where((s, i) => keep[i]).ToList();
+
+        int Nearest(int from, int step)
+        {
+            for (int j = from + step; j >= 0 && j < subs.Count; j += step)
+                if (subs[j].Area > 0) return j;
+            return -1;
+        }
     }
 
     /// <summary>Conveyance K(y) such that Q = K √S, using the section's composite-roughness method.</summary>
