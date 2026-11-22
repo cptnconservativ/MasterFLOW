@@ -22,6 +22,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Gutter spread and inlets | IDCM §4.4–4.5, HEC-22 | [gutter-inlets.md](gutter-inlets.md) |
 | ★ Inlet capacity and bypass routing | HEC-22, IDCM Table 4-11, MHFD Table 7-6 | [inlet-network.md](inlet-network.md) |
 | Street capacity and gutter spread (10-yr and 100-yr) | IDCM §4.4.9–4.4.11, HEC-22 | [street-capacity.md](street-capacity.md) |
+| Sag inlet ponding and clogging | IDCM §4.5.3–4.5.4, Tables 4-11 and 4-12; HEC-22 | [sag-ponding.md](sag-ponding.md) |
 | TR-55 hydrology: curve number, Tc, peak discharge, unit hydrograph | NRCS TR-55 (1986), NEH 630 Ch. 16 | [tr55-hydrology.md](tr55-hydrology.md) |
 | Detention pond routing | IDCM §4.10; modified rational or entered hydrographs | [detention-routing.md](detention-routing.md) |
 | Pond stage–storage from a TIN surface | Civil 3D LandXML surface; exact TIN volumes | [pond-storage.md](pond-storage.md) |
@@ -29,6 +30,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
 | Channel water surface profile and lining checks | IDCM §4.8, Table 4-14; HEC-15; Chow (1959) | [channel-profile.md](channel-profile.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
+| ★ Plan and profile sheets (DXF) with HGL and EGL | Network solution; IDCM §4.6.7 clearance | [plan-profile-dxf.md](plan-profile-dxf.md) |
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
 | Culvert analysis | FHWA HDS-5 (2012), IDCM §4.7 | [culverts.md](culverts.md) |
 | Outlet protection: riprap apron, riprap basin, plunge pool | FHWA HEC-14 (2006) §10, IDCM §4.9 | [outlet-protection.md](outlet-protection.md) |
@@ -39,6 +41,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Network optimizer: least-cost sizes and inverts | IDCM §4.6; dynamic programming | [network-optimizer.md](network-optimizer.md) |
 | ★ Drainage report builder | IDCM §1.15, §4.1.8; PDF, Word, HTML | [drainage-report.md](drainage-report.md) |
 | ★ Plan-review pre-checker: report, plans and calculations | IDCM §1.15, §4.1–4.10; SWQM 2009 | [submittal-precheck.md](submittal-precheck.md) |
+| ★ What changed? Redesign diff | Re-runs every network, channel and tool for two versions | [redesign-diff.md](redesign-diff.md) |
 | ★ Site feasibility: lot yield, drainage concept, cost range, go/no-go | FEMA NFHL, NRCS SSURGO, USGS 3DEP, NOAA Atlas 14, RCMC Title 17, TR-55, SWQM | [site-feasibility.md](site-feasibility.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
 | ★ Institutional memory search: past projects, calcs and review letters | Your project folders; runs on the computer | [memory-search.md](memory-search.md) |
