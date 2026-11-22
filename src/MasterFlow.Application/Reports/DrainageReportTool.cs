@@ -18,7 +18,7 @@ public sealed partial class DrainageReportTool : IDesignTool
 {
     public string Id => "drainage-report";
     public string Name => "Drainage report builder";
-    public string Description => "Builds a complete storm water report from your template: cover, certification and stamp area, table of contents, narrative with project fields filled in, summaries of every design tool and storm network in the project, a compliance table of every criteria check, and landscape appendices with the full calculations and their inputs. Save as PDF, HTML or Word (.docx). The default template follows IDCM §1.15 and §4.1.8 (design inputs, outputs, assumptions and calculations).";
+    public string Description => "Builds a complete storm water report from your template: cover, certification and stamp area, table of contents, narrative with project fields filled in, summaries of every design tool and storm network in the project, a compliance table of every criteria check, and landscape appendices with the full calculations and their inputs. Save as PDF, HTML or Word (.docx). The default template follows IDCM §1.15 and §4.1.8 (design inputs, outputs, assumptions and calculations). Living report: write {value: …} or {network: …} references instead of typed numbers and they are filled from the current calculations on every build; record the issued values and later builds list every number that changed since issue.";
     public bool UsesNetwork => true;
 
     public string SampleInput(DesignToolContext context) => DefaultTemplate;
@@ -27,7 +27,13 @@ public sealed partial class DrainageReportTool : IDesignTool
         # Cover fields. Placeholders in the text: {project.name} {project.number} {project.client} {project.preparedBy}
         # {project.checkedBy} {firm} {engineer} {license} {date}. Directives (one per line, in [Report]):
         #   @tool <tool id> summary | full | tables | charts | table "<title>"     @network all|<name> summary|full
-        #   @compliance   @calculations   @inputs   @certification <statement>   @pagebreak   @appendices
+        #   @compliance   @calculations   @inputs   @certification <statement>   @pagebreak   @appendices   @values
+        # Live values (rebuilt from the current calculations every time):
+        #   {value: <tool id> | <table title> | <row> | <column>}   row may be max, min, sum, avg, count, first, last or #n
+        #   {network: <name> | <pipe or structure, or max/min> | q capacity v hglup hgldown rim hgl clearance ...}
+        #   add #F1 (or any number format) at the end: {network: Main St | min | clearance #F2}
+        # When the report is issued, paste the "Issued values" result table under an [Issued values] heading here;
+        # later rebuilds then list every value that changed (mark changed values = yes also writes "12.6 (was 12.4)").
         # Sections that end up with nothing under them are left out (omit empty sections = no keeps them).
         title = Storm Water Report
         subtitle = Prepared to the City of Rapid City Infrastructure Design Criteria Manual (2012)
@@ -150,26 +156,62 @@ public sealed partial class DrainageReportTool : IDesignTool
             ["date"] = head.Text("date") ?? DateTime.Now.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture),
         };
         var unknown = new HashSet<string>();
-        string Fill(string s) => RegexField().Replace(s, x =>
+        var run = new Run_(context, msgs);
+
+        // Living report (D-230): live values resolve from the current calculations on every build; [Issued values]
+        // holds what the issued report said, so a rebuild lists every value that has moved since.
+        var issued = LiveValues.Issued(text[..at]);
+        bool markChanged = head.Flag("mark changed values", false);
+        var live = new Dictionary<string, LiveValue>(StringComparer.OrdinalIgnoreCase);
+        LiveValue Live(string reference)
+        {
+            var key = LiveValues.Normalize(reference);
+            if (!live.TryGetValue(key, out var lv))
+                live[key] = lv = LiveValues.Resolve(reference, id => run.Tool(id) is { } t ? (t.Tool, t.Result) : null, context.Networks);
+            return lv;
+        }
+        string Fill(string s) => RegexField().Replace(LiveValues.RegexLive().Replace(s, x =>
+        {
+            var lv = Live(x.Value);
+            if (!lv.Resolved) return $"[missing value: {lv.Reference}]";
+            if (markChanged && issued.TryGetValue(lv.Reference, out var was) && !LiveValues.SameValue(was, lv.Text!)) return $"{lv.Text} (was {was})";
+            return lv.Text!;
+        }), x =>
         {
             if (fields.TryGetValue(x.Groups[1].Value, out var v)) return v;
             unknown.Add(x.Value); return x.Value;
         });
 
-        var run = new Run_(context, msgs);
+        var typed = new List<(string Section, string Number, string Unit, int Decimals, string Context)>();
+        string section = "";
+        void Typed(string raw)
+        {
+            foreach (var (n, u, dec) in LiveValues.TypedNumbers(raw))
+            {
+                // The sentence the number is in.
+                string flat = raw.Replace('\n', ' ').Trim();
+                int i = flat.IndexOf(n, StringComparison.Ordinal);
+                if (i < 0) i = flat.IndexOf(n.Split('.')[0], StringComparison.Ordinal);
+                int from = i < 0 ? 0 : flat.LastIndexOf(". ", Math.Max(0, i), StringComparison.Ordinal) is var a && a >= 0 ? a + 2 : 0;
+                int to = i < 0 ? flat.Length : flat.IndexOf(". ", i, StringComparison.Ordinal) is var b && b >= 0 ? b + 1 : flat.Length;
+                string ctxText = flat[from..to].Trim();
+                typed.Add((section, n, u, dec, ctxText));
+            }
+        }
         var bodyBlocks = new List<ReportBlock>(); var appBlocks = new List<ReportBlock>();
         var target = bodyBlocks;
         var para = new StringBuilder();
         var compliancePlaceholders = new List<(List<ReportBlock> List, int Index)>();
-        void Flush() { if (para.Length > 0) { target.Add(new ReportParagraph(Fill(para.ToString().Trim()))); para.Clear(); } }
+        var valuesPlaceholders = new List<(List<ReportBlock> List, int Index)>();
+        void Flush() { if (para.Length > 0) { Typed(para.ToString()); target.Add(new ReportParagraph(Fill(para.ToString().Trim()))); para.Clear(); } }
 
         foreach (var raw in body.Split('\n'))
         {
             var line = raw.Trim();
             if (line.Length == 0) { Flush(); continue; }
             if (line.StartsWith("##", StringComparison.Ordinal)) { Flush(); target.Add(new ReportHeading(2, Fill(line.TrimStart('#').Trim()))); continue; }
-            if (line.StartsWith('#')) { Flush(); target.Add(new ReportHeading(1, Fill(line.TrimStart('#').Trim()))); continue; }
-            if (line.StartsWith("- ", StringComparison.Ordinal) || line.StartsWith("• ", StringComparison.Ordinal)) { Flush(); target.Add(new ReportParagraph(Fill(line[2..].Trim()), true)); continue; }
+            if (line.StartsWith('#')) { Flush(); section = line.TrimStart('#').Trim(); target.Add(new ReportHeading(1, Fill(section))); continue; }
+            if (line.StartsWith("- ", StringComparison.Ordinal) || line.StartsWith("• ", StringComparison.Ordinal)) { Flush(); Typed(line[2..]); target.Add(new ReportParagraph(Fill(line[2..].Trim()), true)); continue; }
             if (!line.StartsWith('@')) { para.Append(line).Append(' '); continue; }
             Flush();
             var parts = Tokens(line[1..]);
@@ -181,6 +223,7 @@ public sealed partial class DrainageReportTool : IDesignTool
                 case "certification":
                     target.Add(new ReportCertification(Fill(line["@certification".Length..].Trim()), fields["engineer"], fields["license"], fields["firm"])); break;
                 case "compliance": compliancePlaceholders.Add((target, target.Count)); break;
+                case "values": valuesPlaceholders.Add((target, target.Count)); break;
                 case "inputs":
                     foreach (var (id, inp) in context.ToolInputs.OrderBy(k => DesignTools.Find(k.Key)?.Name ?? k.Key))
                         if (run.Tool(id) is { } t) target.Add(new ReportCode(t.Tool.Name, inp));
@@ -207,6 +250,71 @@ public sealed partial class DrainageReportTool : IDesignTool
         var compliance = Compliance(run.RunTables, context.Networks);
         foreach (var (list, idx) in compliancePlaceholders.OrderByDescending(x => x.Index))
             list.Insert(idx, new ReportTable(compliance));
+
+        // Value register: every live value with what the issued report said, plus issued values no longer in the text.
+        var register = new List<IReadOnlyList<object?>>();
+        int changed = 0, missing = 0;
+        foreach (var lv in live.Values)
+        {
+            string status;
+            object? was = null, delta = null;
+            if (!lv.Resolved) { status = "MISSING"; missing++; msgs.Add(CalcMessage.Warning("W-RB-010", $"Live value {{{lv.Reference}}} could not be resolved: {lv.Problem}. The report shows [missing value] there.")); }
+            else if (issued.TryGetValue(lv.Reference, out var w))
+            {
+                was = w;
+                if (LiveValues.SameValue(w, lv.Text!)) status = "SAME";
+                else
+                {
+                    status = "CHANGED"; changed++;
+                    // The change as the report shows it (displayed values), not the unrounded difference.
+                    if (double.TryParse(lv.Text!.Replace(",", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var now)
+                        && double.TryParse(w.Replace(",", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var then))
+                        delta = then != 0 ? $"{now - then:+0.###;-0.###} ({(now - then) / Math.Abs(then):+0.0#%;-0.0#%})" : $"{now - then:+0.###;-0.###}";
+                }
+            }
+            else status = issued.Count == 0 ? "LIVE" : "NEW";
+            register.Add([lv.Reference, lv.Resolved ? lv.Text : lv.Problem, was, delta, status, lv.Source]);
+        }
+        foreach (var (key, w) in issued.Where(i => !live.ContainsKey(i.Key)))
+            register.Add([key, null, w, null, "NOT IN TEXT", ""]);
+        var registerTable = new ToolTable("Live values", ["Reference", "Value now", "Issued", "Change", "Status", "Source"], register,
+            issued.Count == 0 ? ["No [Issued values] section yet: when you issue the report, paste the \"Issued values\" table into the template head so later rebuilds list what changed."] : null);
+        foreach (var (list, idx) in valuesPlaceholders.OrderByDescending(x => x.Index))
+            if (register.Count > 0) list.Insert(idx, new ReportTable(registerTable));
+        if (changed > 0)
+            msgs.Add(CalcMessage.Warning("W-RB-011", $"{changed} live value(s) changed since the report was issued: " + string.Join("; ", register.Where(r => r[4] is "CHANGED").Take(6).Select(r => $"{r[0]} {r[2]} → {r[1]}")) + (changed > 6 ? " …" : "") + ". Revise and re-issue, or explain the change in the response letter."));
+        int dropped = register.Count(r => r[4] is "NOT IN TEXT");
+        if (dropped > 0) msgs.Add(CalcMessage.Info("I-RB-011", $"{dropped} issued value(s) are no longer referenced in the report text."));
+
+        // Typed numbers: a number with a unit typed into the narrative goes stale silently; suggest the live reference that matches it now.
+        var typedRows = new List<IReadOnlyList<object?>>();
+        foreach (var (sec, n, unit, dec, ctxText) in typed)
+        {
+            double want = double.Parse(n, CultureInfo.InvariantCulture);
+            string? hint = null; int hits = 0;
+            // Short tables (results, checks) before long ones (hydrographs, rating curves), so the first suggestion is the useful one.
+            foreach (var (src, t) in run.RunTables.OrderBy(x => x.Table.Rows.Count > 20))
+            {
+                var tool = DesignTools.All.FirstOrDefault(x => x.Name == src);
+                for (int ri = 0; ri < t.Rows.Count; ri++)
+                    for (int ci = 1; ci < t.Rows[ri].Count && ci < t.Headers.Count; ci++)
+                        if (LiveValues.Num(t.Rows[ri][ci]) is { } v && Math.Round(v, dec) == want && v != 0)
+                        {
+                            hits++;
+                            hint ??= $"{{value: {tool?.Id ?? src} | {t.Title} | {DesignTools.Cell(t.Rows[ri][0])} | {Unitless(t.Headers[ci])}{(dec > 0 ? " #F" + dec : " #F0")}}}";
+                        }
+            }
+            foreach (var (net, res) in context.Networks)
+                if (res is { Succeeded: true })
+                {
+                    foreach (var p in res.Pipes)
+                        foreach (var (f, v) in new[] { ("q", p.Pipe.Discharge), ("capacity", p.FullFlowCapacity), ("v", p.VelocityDown) })
+                            if (double.IsFinite(v) && v != 0 && Math.Round(v, dec) == want) { hits++; hint ??= $"{{network: {net.Name} | {p.Pipe.Name} | {f}{(dec > 0 ? " #F" + dec : " #F0")}}}"; }
+                }
+            typedRows.Add([sec, $"{n} {unit}", ctxText, hint ?? "no current value matches; check it by hand", hits > 1 ? $"{hits} matches, first shown" : hits == 1 ? "1 match" : ""]);
+        }
+        if (typedRows.Count > 0)
+            msgs.Add(CalcMessage.Info("I-RB-012", $"{typedRows.Count} number(s) with units are typed into the narrative. Typed numbers do not update when the design changes; see \"Typed numbers\" for the live reference that gives each one now."));
 
         foreach (var u in unknown) msgs.Add(CalcMessage.Warning("W-RB-005", $"Placeholder {u} is not a known field and was left as written."));
         if (head.Flag("omit empty sections", true)) { bodyBlocks = OmitEmpty(bodyBlocks); appBlocks = OmitEmpty(appBlocks); }
@@ -246,7 +354,18 @@ public sealed partial class DrainageReportTool : IDesignTool
             $"Criteria checks: {oks} OK, {fails} FAILS, {all - oks - fails} other.",
             "Save… writes the full report as PDF, HTML or Word (.docx).",
         };
-        return new ToolResult(title, summary, [new ToolTable("Report outline", ["No.", "Heading", "Paragraphs", "Tables", "Charts", "Networks"], outline), compliance], msgs) { Report = doc };
+        if (live.Count > 0 || issued.Count > 0)
+            summary.Insert(2, $"Live values: {live.Count} in the text, " + (issued.Count == 0 ? "no issued values recorded yet." : $"{changed} changed since issue, {register.Count(r => r[4] is "SAME")} unchanged, {register.Count(r => r[4] is "NEW")} new") + (missing > 0 ? $", {missing} missing." : issued.Count == 0 ? "" : "."));
+        var tables = new List<ToolTable> { new("Report outline", ["No.", "Heading", "Paragraphs", "Tables", "Charts", "Networks"], outline), compliance };
+        if (register.Count > 0)
+        {
+            tables.Add(registerTable);
+            var paste = live.Values.Where(v => v.Resolved).Select(v => (IReadOnlyList<object?>)[$"{{{v.Reference}}} = {v.Text}"]).ToList();
+            tables.Add(new ToolTable("Issued values", ["[Issued values]"], paste,
+                [$"When you issue the report, paste these lines under an [Issued values] heading above [Report]. Values as of {fields["date"]}."]));
+        }
+        if (typedRows.Count > 0) tables.Add(new ToolTable("Typed numbers", ["Section", "Typed", "Context", "Live reference that matches now", "Note"], typedRows));
+        return new ToolResult(title, summary, tables, msgs) { Report = doc };
     }
 
     private static void AddTool(List<ReportBlock> target, IDesignTool tool, ToolResult r, string input, string mode, string? tableTitle, List<CalcMessage> msgs)
@@ -282,6 +401,8 @@ public sealed partial class DrainageReportTool : IDesignTool
             default: msgs.Add(CalcMessage.Error("E-RB-004", $"@tool {tool.Id} {mode}: use summary, full, tables, charts or table \"title\".")); break;
         }
     }
+
+    private static string Unitless(string header) => header.IndexOf(" (", StringComparison.Ordinal) is var p && p > 0 ? header[..p] : header;
 
     private static bool IsKey(ToolTable t) =>
         t.Title.Contains("check", StringComparison.OrdinalIgnoreCase) || t.Title.Contains("criteria", StringComparison.OrdinalIgnoreCase)
