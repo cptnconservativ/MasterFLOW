@@ -25,6 +25,7 @@ public static class PremiumFeatures
         new("cost-estimate", "Quantity takeoff and cost estimate with bid tab", ["cost-estimate"]),
         new("batch-scenarios", "Batch scenario manager", ["batch-scenarios"]),
         new("inlet-routing", "Inlet capacity and bypass routing across a network", ["inlet-network"]),
+        new("atlas14-idf", "NOAA Atlas 14 rainfall lookup (IDF tables, comparison with IDCM Table 4-2)", ["atlas14-idf"]),
         new("outlet-designer", "Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages)", ["outlet-designer"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
