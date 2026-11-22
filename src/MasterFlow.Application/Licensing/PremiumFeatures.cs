@@ -27,6 +27,7 @@ public static class PremiumFeatures
         new("inlet-routing", "Inlet capacity and bypass routing across a network", ["inlet-network"]),
         new("outlet-designer", "Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages)", ["outlet-designer"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
+        new("utility-conflicts", "Utility conflict finder (3D clashes and separation rules)", ["utility-conflicts"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
         new(Civil3DExport, "Civil 3D export: LandXML pipe network and HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…)", []),
     ];
