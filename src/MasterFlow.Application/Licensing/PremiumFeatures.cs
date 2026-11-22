@@ -29,6 +29,7 @@ public static class PremiumFeatures
         new("outlet-designer", "Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages)", ["outlet-designer"]),
         new("plan-profile-dxf", "Plan and profile DXF sheets with HGL and EGL", ["plan-profile-dxf"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
+        new("submittal-precheck", "Plan-review pre-checker: drainage report and plans against Rapid City criteria", ["submittal-precheck"]),
         new("redesign-diff", "What changed? Redesign diff: re-runs every calculation and lists new failures and margin changes", ["redesign-diff"]),
         new("site-feasibility", "Site feasibility: public data, lot yield, drainage concept, cost range and go/no-go", ["site-feasibility"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
