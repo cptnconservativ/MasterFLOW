@@ -36,5 +36,6 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Drainage report builder | IDCM §1.15, §4.1.8; PDF, Word, HTML | [drainage-report.md](drainage-report.md) |
 | ★ Plan-review pre-checker: report, plans and calculations | IDCM §1.15, §4.1–4.10; SWQM 2009 | [submittal-precheck.md](submittal-precheck.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
+| ★ Institutional memory search: past projects, calcs and review letters | Your project folders; runs on the computer | [memory-search.md](memory-search.md) |
 
 Tools marked **★** need a MasterFlow Premium license key (so do **Size pipes**, **LandXML…** export and **Civil 3D results…** in the Storm networks window) (see [../premium/licensing.md](../premium/licensing.md)).
