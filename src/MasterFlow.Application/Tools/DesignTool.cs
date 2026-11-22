@@ -46,6 +46,9 @@ public sealed record ToolChart(string Title, string XLabel, string YLabel, IRead
     public bool LogY { get; init; }
 }
 
+/// <summary>A file a tool produces (e.g. a DXF drawing), offered beside the report when the result is saved.</summary>
+public sealed record ToolFile(string FileName, string Description, byte[] Content);
+
 /// <summary>
 /// The outcome of running a tool. Messages carry every error, warning and assumption; a tool with an error
 /// returns no numbers for the failed part. A tool that can change the selected network returns it in
@@ -59,6 +62,8 @@ public sealed record ToolResult(string Title, IReadOnlyList<string> Summary, IRe
     public string? UpdateDescription { get; init; }
     /// <summary>Charts for the reports (none for most tools).</summary>
     public IReadOnlyList<ToolChart> Charts { get; init; } = [];
+    /// <summary>Files produced by the tool (e.g. a DXF drawing); the Save dialog offers them by their extension.</summary>
+    public IReadOnlyList<ToolFile> Files { get; init; } = [];
     /// <summary>A whole document (the drainage report builder); when set, reports render it instead of the tables.</summary>
     public Reports.ReportDocument? Report { get; init; }
     public bool Succeeded => Messages.All(m => m.Severity != MessageSeverity.Error);

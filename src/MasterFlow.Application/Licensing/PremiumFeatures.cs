@@ -27,6 +27,7 @@ public static class PremiumFeatures
         new("inlet-routing", "Inlet capacity and bypass routing across a network", ["inlet-network"]),
         new("atlas14-idf", "NOAA Atlas 14 rainfall lookup (IDF tables, comparison with IDCM Table 4-2)", ["atlas14-idf"]),
         new("outlet-designer", "Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages)", ["outlet-designer"]),
+        new("plan-profile-dxf", "Plan and profile DXF sheets with HGL and EGL", ["plan-profile-dxf"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
         new("site-feasibility", "Site feasibility: public data, lot yield, drainage concept, cost range and go/no-go", ["site-feasibility"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
