@@ -138,10 +138,22 @@ public sealed partial class DesignToolsViewModel : ObservableObject
     private async Task SaveReport()
     {
         if (Result is null || _main.Dialogs is null) return;
-        var path = Result.Report is not null
-            ? await _main.Dialogs.PickSaveAsync(Safe(Result.Report.Title) + ".pdf", ".pdf", "PDF report", (".docx", "Word document"), (".html", "HTML report"), (".xlsx", "Excel workbook"))
-            : await _main.Dialogs.PickSaveAsync(Safe(SelectedTool?.Name ?? "tool") + ".html", ".html", "HTML report", (".pdf", "PDF report"), (".xlsx", "Excel workbook"));
+        var files = Result.Files.Select(f => (Path.GetExtension(f.FileName), f.Description)).ToArray();
+        string? path;
+        if (Result.Report is not null)
+            path = await _main.Dialogs.PickSaveAsync(Safe(Result.Report.Title) + ".pdf", ".pdf", "PDF report", (".docx", "Word document"), (".html", "HTML report"), (".xlsx", "Excel workbook"));
+        else if (Result.Files.Count > 0)   // a tool that makes a drawing offers it first
+            path = await _main.Dialogs.PickSaveAsync(Result.Files[0].FileName, Path.GetExtension(Result.Files[0].FileName), Result.Files[0].Description,
+                [.. files.Skip(1), (".html", "HTML report"), (".pdf", "PDF report"), (".xlsx", "Excel workbook")]);
+        else
+            path = await _main.Dialogs.PickSaveAsync(Safe(SelectedTool?.Name ?? "tool") + ".html", ".html", "HTML report", (".pdf", "PDF report"), (".xlsx", "Excel workbook"));
         if (path is null) return;
+        if (Result.Files.FirstOrDefault(f => path.EndsWith(Path.GetExtension(f.FileName), StringComparison.OrdinalIgnoreCase)) is { } file)
+        {
+            await File.WriteAllBytesAsync(path, file.Content);
+            _main.StatusMessage = $"Saved {path}.";
+            return;
+        }
         if (path.EndsWith(".docx", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildDocx()!);
         else if (path.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildWorkbook()!);
         else if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) await File.WriteAllBytesAsync(path, BuildPdf()!);

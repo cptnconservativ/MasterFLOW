@@ -30,6 +30,7 @@ Payload: `licensee`, `features` (`*` = every premium feature, present and future
 | `inlet-routing` | Inlet capacity and bypass routing across a network |
 | `atlas14-idf` | NOAA Atlas 14 rainfall lookup (IDF tables, comparison with IDCM Table 4-2) |
 | `outlet-designer` | Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages) |
+| `plan-profile-dxf` | Plan and profile DXF sheets with HGL and EGL |
 | `plan-review` | Storm network plan review (Rapid City IDCM §4.6) |
 | `review-comments` | Review comment tracker and response letter |
 | `pipe-sizing` | Automatic pipe sizing (Storm networks → Size pipes) |
