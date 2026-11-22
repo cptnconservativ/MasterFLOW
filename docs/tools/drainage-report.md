@@ -34,6 +34,33 @@ it is dropped, so one template serves projects with and without detention, culve
 The default template follows IDCM §1.15 (storm water report under a PE's supervision) and §4.1.8 (design inputs,
 outputs, assumptions and calculations). Firms keep their own template as text and paste it in.
 
+## Living report: live values and what changed since issue
+
+A number typed into the narrative ("the pond releases 13.7 cfs") goes stale the moment the design changes. Write a
+**live value** instead and the report fills it from the current calculations every time it is built:
+
+| Reference | Value |
+|---|---|
+| `{value: <tool id> \| <table title> \| <row> \| <column>}` | A cell of a design tool's result. Table: exact title, or the start of it (blank = first table). Row: the first cell (else any cell) of the row, or `max`, `min`, `sum`, `avg`, `count`, `first`, `last`, `#n`. Column: the header, with or without its unit ("Peak outflow" matches "Peak outflow (cfs)") |
+| `{network: <name> \| <pipe or structure> \| <field>}` | A solved storm network. Pipe fields `q capacity v vup vfull depth hglup hgldown eglup egldown size slope length`; structure fields `rim hgl egl clearance eglclearance loss`. The item can be `max`, `min`, `sum`, `avg` or `count` over every pipe or structure; the name can be blank when the project has one network |
+| `#F1` at the end | Number format (any .NET format: `F0`, `F2`, `N0`, `0.00`) |
+
+Example: `The pond releases {value: detention-routing | Routing results | 100-yr | Peak outflow #F1} cfs and the
+least HGL clearance is {network: Main St | min | clearance #F2} ft.`
+
+- `@values` puts the **value register** in the report: every live value with its current value and source. The
+  result window always shows it as the **Live values** table.
+- A reference that cannot be resolved prints `[missing value: …]` in the text and warns (W-RB-010) with the reason
+  and the tables or columns that do exist.
+- **Issue tracking.** The **Issued values** result table holds one `{reference} = value` line per live value. When
+  you issue the report, paste those lines under an `[Issued values]` heading above `[Report]`. Every later build
+  compares: the register marks each value SAME, CHANGED (with the change and percent), NEW or NOT IN TEXT, and
+  W-RB-011 lists what changed, so a resubmittal says exactly which reported numbers moved. With
+  `mark changed values = yes` the text itself reads "14.2 (was 13.7)" for a redline copy.
+- **Typed numbers.** Numbers with a unit (cfs, ac-ft, cf, ac, ft/s, fps, in/hr, cy) typed in the narrative are listed
+  in the **Typed numbers** table with the live reference that gives that number now, when one matches (I-RB-012), so
+  an old report can be converted sentence by sentence.
+
 ## Output
 
 - **PDF**: cover (logo from Project → Logo), contents with page numbers, portrait body, landscape appendices, one
@@ -51,3 +78,11 @@ outputs, assumptions and calculations). Firms keep their own template as text an
   no longer match the inputs beside them.
 - D-077: portrait body, landscape appendix: narrative and summaries read as a report, wide calculation tables
   keep readable columns.
+- D-230: live values are references into tool result tables (tool | table | row | column) rather than a second list of
+  named outputs per tool: every number any tool shows can be quoted with no per-tool code, and the reference still
+  reads plainly in the template.
+- D-231: issued values live in the template as text, not in a hidden store: the issued state travels with the
+  project file, diffs cleanly and can be edited by hand (for example to record a value from an older report).
+- D-232: values compare as numbers at the precision written (12.40 = 12.4), so a format change alone is not a change.
+- D-233: an unresolved reference prints `[missing value: …]` instead of leaving the braces or dropping the sentence,
+  so a report with a broken reference cannot pass for a finished one.
