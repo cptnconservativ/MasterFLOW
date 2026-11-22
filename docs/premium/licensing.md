@@ -28,6 +28,7 @@ Payload: `licensee`, `features` (`*` = every premium feature, present and future
 | `cost-estimate` | Quantity takeoff and cost estimate with bid tab |
 | `batch-scenarios` | Batch scenario manager |
 | `inlet-routing` | Inlet capacity and bypass routing across a network |
+| `atlas14-idf` | NOAA Atlas 14 rainfall lookup (IDF tables, comparison with IDCM Table 4-2) |
 | `outlet-designer` | Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages) |
 | `plan-review` | Storm network plan review (Rapid City IDCM §4.6) |
 | `review-comments` | Review comment tracker and response letter |
