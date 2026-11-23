@@ -110,6 +110,7 @@ public class RiverProfileTests
             for (int i = 1; i < ordered.Count; i++)
             {
                 var up = ordered[i]; var dn = ordered[i - 1];
+                if (up.Name == "790") continue;     // the sample bridge sits between RS 790 and RS 740 (BridgeTests)
                 RiverProfileTool.Result Mk(RiverSection s, double ws) { var h = s.At(ws); return new(s, q, ws, double.NaN, ws + h.VelocityHead(q, G), 0, h, "", ""); }
                 var u = Mk(up, rows[up.Name]); var d = Mk(dn, rows[dn.Name]);
                 Assert.InRange(u.Eg - (d.Eg + RiverProfileTool.Loss(u, d, G)), -0.03, 0.03);   // displayed WS are rounded to 0.01 ft

@@ -25,19 +25,32 @@ public sealed class RiverProfileTool : IDesignTool
         downstream = normal           # normal (give downstream slope), critical, or known (downstream ws = one per profile)
         downstream slope = 0.004
         # upstream = critical         # supercritical or mixed: critical, or known (upstream ws = ...)
+        bridge low flow = highest     # energy, yarnell, or highest (the higher upstream W.S. of the two)
 
         [Flows]
         # Flow change locations: each applies at its RS and downstream until the next change.
-        RS	10-yr	100-yr
-        2000	300	1200
+        RS	10-yr	100-yr	500-yr
+        2000	300	1200	2600
 
         [Sections]
-        RS	Left bank	Right bank	LOB length	Ch length	ROB length	n LOB	n Ch	n ROB	Ineff right sta	Ineff right el
+        RS	Left bank	Right bank	LOB length	Ch length	ROB length	n LOB	n Ch	n ROB	Ineff left sta	Ineff left el	Ineff right sta	Ineff right el
         2000	160	210	520	500	480	0.045	0.035	0.050
-        1500	160	210	520	500	480	0.045	0.035	0.050	270	3412.0
-        1000	120	170	520	500	480	0.045	0.035	0.050
+        1500	160	210	520	500	480	0.045	0.035	0.050			270	3412.0
+        1000	120	170	220	210	200	0.045	0.035	0.050
+        790	160	210	50	50	50	0.045	0.035	0.050	150	3413.5	222	3413.5
+        740	160	210	250	240	230	0.045	0.035	0.050	150	3413.5	222	3413.5
         500	160	210	520	500	480	0.045	0.035	0.050
         0	160	210	0	0	0	0.045	0.035	0.050
+
+        # A bridge sits between its Upstream RS (HEC-RAS section 3, at the upstream face) and the next section downstream
+        # (section 2, at the downstream face). High chord = top of deck / road; the road beyond the abutments is the weir.
+        [Bridges]
+        Name	Upstream RS	Low chord	High chord	Deck width	Left abutment	Right abutment	Pier shape	Weir C
+        Main St bridge	790	3410.0	3413.5	40	150	222	semicircular	2.6
+
+        [Bridge piers]
+        Bridge	Station	Width
+        Main St bridge	185	3
 
         [Points]
         # Station and elevation, left to right looking downstream (e.g. a Civil 3D sample-line section report). An n column, where
@@ -76,6 +89,28 @@ public sealed class RiverProfileTool : IDesignTool
         1000	170	3408.20
         1000	230	3409.00
         1000	280	3412.00
+        790	0	3412.16
+        790	40	3409.16
+        790	120	3407.66
+        790	160	3407.16
+        790	170	3404.66
+        790	178	3403.16
+        790	192	3403.16
+        790	200	3404.66
+        790	210	3407.36
+        790	270	3408.16
+        790	320	3411.16
+        740	0	3411.96
+        740	40	3408.96
+        740	120	3407.46
+        740	160	3406.96
+        740	170	3404.46
+        740	178	3402.96
+        740	192	3402.96
+        740	200	3404.46
+        740	210	3407.16
+        740	270	3407.96
+        740	320	3410.96
         500	0	3411.00
         500	40	3408.00
         500	120	3406.50
@@ -119,6 +154,9 @@ public sealed class RiverProfileTool : IDesignTool
         var p = ToolInput.Parse(input);
         var msgs = new List<CalcMessage>();
         var sections = ParseSections(p, k, msgs);
+        var bridges = ParseBridges(p, sections, msgs, si);
+        string lowFlow = (p.Text("bridge low flow") ?? "energy").ToLowerInvariant();
+        if (lowFlow is not ("energy" or "yarnell" or "highest")) msgs.Add(CalcMessage.Error("E-BR-006", "bridge low flow must be energy, yarnell or highest."));
         // Flow table.
         var fHead = p.Header("Flows");
         var profiles = fHead.Skip(1).Select(h => h.Length > 0 ? h : "Profile").ToList();
@@ -159,6 +197,7 @@ public sealed class RiverProfileTool : IDesignTool
             flowRows.Where(f => f.Rs >= s.RiverStation - 1e-9).OrderBy(f => f.Rs).First().Q;
 
         var all = new List<(string Profile, List<Result> Res)>();
+        var bridgeResults = new List<BridgeResult>();
         for (int pi = 0; pi < profiles.Count; pi++)
         {
             var qs = sections.Select(s => FlowAt(s)[pi]).ToArray();
@@ -166,7 +205,7 @@ public sealed class RiverProfileTool : IDesignTool
             if (regime != "supercritical")
             {
                 double? bc = down switch { "normal" => sections[0].Normal(qs[0], dSlope), "known" => dWs[pi], _ => null };
-                sub = Subcritical(sections, qs, bc, g, msgs, profiles[pi]);
+                sub = Subcritical(sections, qs, bc, g, msgs, profiles[pi], bridges, lowFlow, bridgeResults);
             }
             if (regime != "subcritical")
             {
@@ -207,6 +246,8 @@ public sealed class RiverProfileTool : IDesignTool
                 bankRows.Add([s.Name, prof, R(r.Ws, 2), R(s.LeftBankElevation, 2), R(s.LeftBankElevation - r.Ws, 2), R(s.RightBankElevation, 2), R(s.RightBankElevation - r.Ws, 2),
                     r.Ws > Math.Min(s.LeftBankElevation, s.RightBankElevation) ? "out of bank" : "in bank", r.H.WallLeft || r.H.WallRight ? "WS above an end point" : ""]);
             }
+        if (bridges.Count > 0 && regime != "subcritical")
+            msgs.Add(CalcMessage.Warning("W-BR-002", "Bridges are computed in the subcritical pass only; in a supercritical run they are ignored, and in a mixed run the subcritical bridge solution is used upstream of each bridge."));
         var tables = new List<ToolTable>
         {
             new("Profile output (HEC-RAS standard table)", ["River Sta", "Profile", $"Q total ({Qu})", $"Min Ch El ({L})", $"W.S. Elev ({L})", $"Crit W.S. ({L})", $"E.G. Elev ({L})", "E.G. Slope", $"Vel Chnl ({V})", $"Flow Area ({L}²)", $"Top Width ({L})", "Froude # Chl", $"Q Left ({Qu})", $"Q Channel ({Qu})", $"Q Right ({Qu})", "Alpha", "Regime", "Notes"], rows,
@@ -216,6 +257,22 @@ public sealed class RiverProfileTool : IDesignTool
             new("Bank and end-point checks", ["River Sta", "Profile", $"W.S. Elev ({L})", $"Left bank ({L})", $"Left freeboard ({L})", $"Right bank ({L})", $"Right freeboard ({L})", "Flow", "Ends"], bankRows,
                 ["Freeboard = bank elevation − W.S.; negative means the bank is overtopped. Water above an end point is held by a vertical wall (HEC-RAS); extend the section."]),
         };
+
+        if (bridgeResults.Count > 0)
+        {
+            var brows = bridgeResults.Select(b => (IReadOnlyList<object?>)[b.Bridge.Name, b.Profile, b.FlowType, R(b.Upstream.Ws, 2), R(b.Upstream.Eg, 2), R(b.Downstream.Ws, 2), R(b.Downstream.Eg, 2),
+                R(b.Upstream.Eg - b.Downstream.Eg, 2), R(b.QOpening, 1), R(b.QWeir, 1), R(b.OpeningVelocity, 2), b.EnergyWs is { } e ? R(e, 2) : null, b.YarnellWs is { } y ? R(y, 2) : null,
+                R(b.Bridge.LowChord, 2), R(b.Bridge.LowChord - b.Upstream.Ws, 2), R(b.Bridge.HighChord, 2), b.QWeir > 0 ? R(b.Upstream.Eg - BridgeHydraulics.MinCrest(b.Bridge, sections.First(x => Math.Abs(x.RiverStation - b.Bridge.UpstreamRs) < 1e-6)), 2) : null]).ToList();
+            tables.Add(new("Bridges (HEC-RAS methods)", ["Bridge", "Profile", "Flow type", $"W.S. US ({L})", $"E.G. US ({L})", $"W.S. DS ({L})", $"E.G. DS ({L})", $"Energy loss ({L})", $"Q opening ({Qu})", $"Q weir ({Qu})", $"Vel opening ({V})",
+                $"Energy-method W.S. US ({L})", $"Yarnell W.S. US ({L})", $"Low chord ({L})", $"Low chord − W.S. US ({L})", $"High chord ({L})", $"Overtopping head ({L})"], brows,
+                ["Low flow: energy method through the opening (sections BD and BU cut by the abutments and piers, deck width as reach length, bridge contraction/expansion coefficients), or Yarnell ΔH = 2K(K + 10ω − 0.6)(α + 15α⁴)·V²/2g for piers (class A).",
+                 "High flow (upstream E.G. at or above the low chord): sluice gate Q = Cd·A·√(2g(Y3 − Z/2 + V3²/2g)), or orifice Q = C·A·√(2gH) when the downstream W.S. is above the low chord; weir Q = C·∫H^1.5 dx over the road with Villemonte submergence. Opening and weir flows are balanced at one upstream E.G.",
+                 "US = the section just upstream (HEC-RAS section 3); DS = the section just downstream (section 2)."]));
+            foreach (var b in bridgeResults.Where(b => b.Upstream.Ws > b.Bridge.LowChord - 1e-9 && b.QWeir <= 0))
+                msgs.Add(CalcMessage.Warning("W-BR-003", $"{b.Profile}, {b.Bridge.Name}: the upstream W.S. {b.Upstream.Ws:F2} {L} is above the low chord {b.Bridge.LowChord:F2}: pressure flow."));
+            foreach (var b in bridgeResults.Where(b => b.QWeir > 0))
+                msgs.Add(CalcMessage.Warning("W-BR-004", $"{b.Profile}, {b.Bridge.Name}: the road is overtopped; {b.QWeir:F1} {Qu} flows over the weir."));
+        }
 
         // Charts: longitudinal profile (channel distance from the downstream section).
         var dist = new double[sections.Count];
@@ -228,6 +285,14 @@ public sealed class RiverProfileTool : IDesignTool
             series.Add(new($"WS {prof}", res.Select((r, i) => (dist[i], r.Ws)).ToList()));
             series.Add(new($"EG {prof}", res.Select((r, i) => (dist[i], r.Eg)).ToList(), Dashed: true));
         }
+        foreach (var br in bridges)
+        {
+            int iu = sections.FindIndex(x => Math.Abs(x.RiverStation - br.UpstreamRs) < 1e-6);
+            if (iu < 1) continue;
+            double x0 = dist[iu - 1], x1 = Math.Min(dist[iu], x0 + br.DeckWidth);
+            series.Add(new($"{br.Name} low chord", [(x0, br.LowChord), (x1, br.LowChord)]));
+            series.Add(new($"{br.Name} high chord", [(x0, br.HighChord), (x1, br.HighChord)]));
+        }
         var charts = new List<ToolChart> { new("Water surface profile", $"Main channel distance from RS {sections[0].Name} ({L})", $"Elevation ({L})", series) };
         var figures = new List<ToolFigure>();
         foreach (var s in sections.AsEnumerable().Reverse())
@@ -236,6 +301,13 @@ public sealed class RiverProfileTool : IDesignTool
             var (prof, res) = all[^1];
             var r = res.Single(x => x.Section == s);
             foreach (var poly in WaterPolygons(s, r.Ws)) fs.Add(new($"WS {prof}", ToolSeriesKind.Water, poly));
+            foreach (var br in bridges.Where(b => Math.Abs(b.UpstreamRs - s.RiverStation) < 1e-6))
+            {
+                fs.Add(new($"{br.Name} deck", ToolSeriesKind.Limit, [(br.LeftAbutment, s.Interp(br.LeftAbutment)), (br.LeftAbutment, br.HighChord), (br.RightAbutment, br.HighChord), (br.RightAbutment, s.Interp(br.RightAbutment))]));
+                fs.Add(new($"{br.Name} low chord", ToolSeriesKind.Limit, [(br.LeftAbutment, br.LowChord), (br.RightAbutment, br.LowChord)]));
+                foreach (var (ps, pw) in br.Piers)
+                    fs.Add(new($"{br.Name} pier", ToolSeriesKind.Limit, [(ps - pw / 2, s.Interp(ps)), (ps - pw / 2, br.LowChord), (ps + pw / 2, br.LowChord), (ps + pw / 2, s.Interp(ps))]));
+            }
             fs.Add(new("Bank stations", ToolSeriesKind.Limit, [(s.LeftBank, s.LeftBankElevation), (s.LeftBank, s.MinElevation), (s.RightBank, s.MinElevation), (s.RightBank, s.RightBankElevation)]));
             figures.Add(new ToolFigure($"RS {s.Name}: cross-section, {prof} water surface", fs, $"Station ({L})", $"Elevation ({L})"));
         }
@@ -251,6 +323,52 @@ public sealed class RiverProfileTool : IDesignTool
             summary.Add($"{prof}: W.S. {res[0].Ws:F2} {L} at RS {res[0].Section.Name} to {top.Ws:F2} {L} at RS {top.Section.Name}; max channel velocity {res.Max(r => r.VCh):F1} {V}{(crit > 0 ? $"; critical depth assumed at {crit} section(s)" : "")}.");
         }
         return new ToolResult(title, summary, tables, msgs) { Charts = charts, Figures = figures };
+    }
+
+    /// <summary>Bridges under [Bridges], with [Bridge piers] and an optional [Road profile].</summary>
+    public static List<Bridge> ParseBridges(ToolInput p, List<RiverSection> sections, List<CalcMessage> msgs, bool si)
+    {
+        var list = new List<Bridge>();
+        if (!p.HasSection("Bridges")) return list;
+        var head = p.Header("Bridges").Select(h => h.ToLowerInvariant()).ToList();
+        int Col(string key) => head.FindIndex(h => h.StartsWith(key, StringComparison.Ordinal));
+        int cRs = Col("upstream rs"), cLo = Col("low chord"), cHi = Col("high chord"), cW = Col("deck width"), cLa = Col("left abut"), cRa = Col("right abut"),
+            cSh = Col("pier shape"), cC = Col("weir c"), cCc = Col("contraction"), cCe = Col("expansion"), cCd = Col("sluice"), cCo = Col("orifice");
+        var piers = p.Rows("Bridge piers").Where(r => r.Length >= 3).GroupBy(r => r[0].Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(gr => gr.Key, gr => gr.Select(r => (p.Cell(r, 1, "pier station", gr.Key), p.Cell(r, 2, "pier width", gr.Key))).ToList(), StringComparer.OrdinalIgnoreCase);
+        var road = p.Rows("Road profile").Where(r => r.Length >= 3).GroupBy(r => r[0].Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(gr => gr.Key, gr => gr.Select(r => (p.Cell(r, 1, "road station", gr.Key) ?? double.NaN, p.Cell(r, 2, "road elevation", gr.Key) ?? double.NaN)).OrderBy(t => t.Item1).ToList(), StringComparer.OrdinalIgnoreCase);
+        var sorted = sections.OrderBy(x => x.RiverStation).ToList();
+        foreach (var r in p.Rows("Bridges"))
+        {
+            string name = r.Length > 0 && r[0].Trim().Length > 0 ? r[0].Trim() : $"Bridge {list.Count + 1}";
+            double? C(int i, string what) => i < 0 ? null : p.Cell(r, i, what, name);
+            string T(int i) => i >= 0 && i < r.Length ? r[i].Trim() : "";
+            double? rs = C(cRs, "upstream RS"), lo = C(cLo, "low chord"), hi = C(cHi, "high chord"), w = C(cW, "deck width"), la = C(cLa, "left abutment"), ra = C(cRa, "right abutment");
+            int iu = rs is { } rr ? sorted.FindIndex(x => Math.Abs(x.RiverStation - rr) < 1e-6) : -1;
+            if (iu < 1) { msgs.Add(CalcMessage.Error("E-BR-001", $"{name}: Upstream RS must be a cross-section with another section downstream of it (the bridge sits between them).")); continue; }
+            if (lo is null || hi is null || lo >= hi) { msgs.Add(CalcMessage.Error("E-BR-002", $"{name}: give the low chord and high chord (top of deck), low below high.")); continue; }
+            var up = sorted[iu];
+            if (la is null || ra is null || la >= ra) { msgs.Add(CalcMessage.Error("E-BR-003", $"{name}: give the left and right abutment stations, left < right.")); continue; }
+            if (w is not > 0) { msgs.Add(CalcMessage.Error("E-BR-004", $"{name}: deck width (bridge length along the flow) must be above zero.")); continue; }
+            if (w > up.LengthCh) { msgs.Add(CalcMessage.Error("E-BR-007", $"{name}: the deck width {w} is longer than the channel reach length {up.LengthCh} from RS {up.Name} to the section below.")); continue; }
+            var pl = new List<(double, double)>();
+            if (piers.TryGetValue(name, out var pr))
+                foreach (var (ps, pw) in pr)
+                {
+                    if (ps is null || pw is not > 0) { msgs.Add(CalcMessage.Error("E-BR-005", $"{name}: each pier needs a station and a width above zero.")); continue; }
+                    pl.Add((ps.Value, pw.Value));
+                }
+            string shape = T(cSh).Length > 0 ? T(cSh) : "semicircular";
+            if (Bridge.YarnellK(shape) is null) msgs.Add(CalcMessage.Error("E-BR-008", $"{name}: pier shape \"{shape}\" is not semicircular, twin cylinder (with diaphragm), triangular or square."));
+            list.Add(new Bridge(name, up.RiverStation, lo.Value, hi.Value, w.Value, la.Value, ra.Value, pl, shape,
+                C(cC, "weir C") ?? (si ? 1.44 : 2.6), C(cCc, "contraction") ?? 0.3, C(cCe, "expansion") ?? 0.5, C(cCd, "sluice Cd") ?? 0.5, C(cCo, "orifice C") ?? 0.8,
+                road.TryGetValue(name, out var rd) ? rd : []));
+        }
+        foreach (var key in piers.Keys.Concat(road.Keys).Distinct(StringComparer.OrdinalIgnoreCase))
+            if (list.All(b => !b.Name.Equals(key, StringComparison.OrdinalIgnoreCase)) && !msgs.Any(m => m.Text.StartsWith(key + ":")))
+                msgs.Add(CalcMessage.Error("E-BR-005", $"[Bridge piers] or [Road profile] names \"{key}\", which is not a bridge under [Bridges]."));
+        return list;
     }
 
     private static List<double> Numbers(string? s) =>
@@ -312,7 +430,7 @@ public sealed class RiverProfileTool : IDesignTool
         return sum > 0 ? (upstream.LengthLob * ql + upstream.LengthCh * qc + upstream.LengthRob * qr) / sum : upstream.LengthCh;
     }
 
-    private static Result Make(RiverSection s, double q, double ws, double crit, double g, double sf, string regime, string note)
+    public static Result Make(RiverSection s, double q, double ws, double crit, double g, double sf, string regime, string note)
     {
         var h = s.At(ws);
         return new Result(s, q, ws, crit, ws + h.VelocityHead(q, g), sf, h, regime, note);
@@ -329,7 +447,29 @@ public sealed class RiverProfileTool : IDesignTool
         return len * sf + c * Math.Abs(hvu - hvd);
     }
 
-    private static List<Result> Subcritical(List<RiverSection> secs, double[] qs, double? bc, double g, List<CalcMessage> msgs, string prof)
+    /// <summary>
+    /// One subcritical standard step: the water surface at upstream section <paramref name="s"/> that balances the energy
+    /// equation with the downstream solution <paramref name="d"/>; critical depth (with <paramref name="critical"/> set) when there is none.
+    /// </summary>
+    public static Result StepUp(RiverSection s, double q, Result d, double g, out bool critical)
+    {
+        var (crit, _) = s.Critical(q, g);
+        double target(double ws) { var u = Make(s, q, ws, crit, g, 0, "", ""); return u.Eg - (d.Eg + Loss(u, d, g)); }
+        double lo = crit + 1e-6, hi = Math.Max(crit, d.Ws) + 1;
+        Result r;
+        critical = target(lo) > 0;
+        if (critical) r = Make(s, q, crit, crit, g, 0, "subcritical", "critical depth assumed (no subcritical energy balance)");
+        else
+        {
+            for (int it = 0; it < 60 && target(hi) < 0; it++) hi += 2 * (hi - crit) + 1;
+            for (int it = 0; it < 200 && hi - lo > 1e-7; it++) { double m = 0.5 * (lo + hi); if (target(m) < 0) lo = m; else hi = m; }
+            r = Make(s, q, 0.5 * (lo + hi), crit, g, 0, "subcritical", "");
+        }
+        return r with { Sf = Math.Pow((r.Q + d.Q) / (r.H.Conveyance + d.H.Conveyance), 2) };
+    }
+
+    private static List<Result> Subcritical(List<RiverSection> secs, double[] qs, double? bc, double g, List<CalcMessage> msgs, string prof,
+        IReadOnlyList<Bridge> bridges, string lowFlow, List<BridgeResult> bridgeResults)
     {
         var res = new Result[secs.Count];
         var (c0, m0) = secs[0].Critical(qs[0], g);
@@ -341,22 +481,17 @@ public sealed class RiverProfileTool : IDesignTool
         for (int i = 1; i < secs.Count; i++)
         {
             var s = secs[i]; var d = res[i - 1];
-            var (crit, _) = s.Critical(qs[i], g);
-            double target(double ws) { var u = Make(s, qs[i], ws, crit, g, 0, "", ""); return u.Eg - (d.Eg + Loss(u, d, g)); }
-            double lo = crit + 1e-6, hi = Math.Max(crit, d.Ws) + 1;
-            Result r;
-            if (target(lo) > 0)
+            if (bridges.FirstOrDefault(b => Math.Abs(b.UpstreamRs - s.RiverStation) < 1e-6) is { } br)
             {
-                r = Make(s, qs[i], crit, crit, g, 0, "subcritical", "critical depth assumed (no subcritical energy balance)");
-                msgs.Add(CalcMessage.Warning("W-RP-003", $"{prof}, RS {s.Name}: the energy equation has no subcritical solution; critical depth assumed (HEC-RAS default). Check the section spacing or run the mixed regime."));
+                var bres = BridgeHydraulics.Solve(br, s, secs[i - 1], d, qs[i], g, lowFlow, prof, msgs);
+                bridgeResults.Add(bres);
+                var u = bres.Upstream;
+                res[i] = u with { Sf = Math.Pow((u.Q + d.Q) / (u.H.Conveyance + d.H.Conveyance), 2), Regime = "subcritical", Note = $"upstream of {br.Name}: {bres.FlowType}" };
+                continue;
             }
-            else
-            {
-                for (int it = 0; it < 60 && target(hi) < 0; it++) hi += 2 * (hi - crit) + 1;
-                for (int it = 0; it < 200 && hi - lo > 1e-7; it++) { double m = 0.5 * (lo + hi); if (target(m) < 0) lo = m; else hi = m; }
-                r = Make(s, qs[i], 0.5 * (lo + hi), crit, g, 0, "subcritical", "");
-            }
-            res[i] = r with { Sf = Math.Pow((r.Q + d.Q) / (r.H.Conveyance + d.H.Conveyance), 2) };
+            var r = StepUp(s, qs[i], d, g, out bool crit);
+            if (crit) msgs.Add(CalcMessage.Warning("W-RP-003", $"{prof}, RS {s.Name}: the energy equation has no subcritical solution; critical depth assumed (HEC-RAS default). Check the section spacing or run the mixed regime."));
+            res[i] = r;
         }
         res[0] = res[0] with { Sf = secs.Count > 1 ? res[1].Sf : 0 };
         return [.. res];

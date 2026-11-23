@@ -29,6 +29,8 @@ public sealed class RiverSection
     /// <summary>Left ineffective area: station and the elevation it becomes effective at (null = none).</summary>
     public (double Station, double Elevation)? IneffectiveLeft { get; init; }
     public (double Station, double Elevation)? IneffectiveRight { get; init; }
+    /// <summary>Bridge deck low chord over the whole section (bridge opening sections): water above it is under pressure.</summary>
+    public double? Lid { get; init; }
 
     private readonly double[] _x, _z, _n;   // segment i runs from point i to i+1 with roughness _n[i]
     private readonly int[] _sub;            // 0 LOB, 1 channel, 2 ROB per segment
@@ -79,6 +81,60 @@ public sealed class RiverSection
         MinChannelElevation = Enumerable.Range(0, _x.Length).Where(i => _x[i] >= leftBank - 1e-9 && _x[i] <= rightBank + 1e-9).Select(i => _z[i]).DefaultIfEmpty(MinElevation).Min();
     }
 
+    /// <summary>
+    /// The section as seen through a bridge opening (HEC-RAS bridge sections BU/BD): ground outside the abutment stations is
+    /// blocked by vertical walls up to <paramref name="top"/>, and each pier is a vertical block from the ground to
+    /// <paramref name="top"/>, adding its faces to the wetted perimeter. Roughness is carried from this section. Banks are
+    /// clipped to the opening; reach lengths and loss coefficients are as given.
+    /// </summary>
+    public RiverSection Opening(string name, double leftAbutment, double rightAbutment, double top, IEnumerable<(double Station, double Width)> piers,
+        double lengthLob, double lengthCh, double lengthRob, double contraction, double expansion, double? lowChord = null)
+    {
+        double NAt(double x)
+        {
+            for (int i = 0; i < _n.Length; i++) if (x <= _x[i + 1] + 1e-9) return _n[i];
+            return _n[^1];
+        }
+        var pts = new List<(double X, double Z, double? N)>();
+        double la = Math.Max(leftAbutment, _x[0]), ra = Math.Min(rightAbutment, _x[^1]);
+        // At a vertical face the ground just inside the opening is the right-hand point (left abutment) or left-hand point (right abutment).
+        double zl = Enumerable.Range(0, _x.Length).Where(i => Math.Abs(_x[i] - la) < 1e-9).Select(i => _z[i]).DefaultIfEmpty(Interp(la)).Last();
+        pts.Add((la, Math.Max(top, zl), NAt(la)));
+        pts.Add((la, zl, NAt(la + 1e-6)));
+        var blocks = piers.Select(pp => (L: pp.Station - pp.Width / 2, R: pp.Station + pp.Width / 2)).Where(b => b.R > la && b.L < ra).OrderBy(b => b.L).ToList();
+        var xs = _x.Where(x => x > la + 1e-9 && x < ra - 1e-9).ToList();
+        foreach (var b in blocks) { xs.Add(Math.Max(b.L, la + 1e-6)); xs.Add(Math.Min(b.R, ra - 1e-6)); }
+        xs = xs.Distinct().OrderBy(x => x).ToList();
+        foreach (double x in xs)
+        {
+            var blk = blocks.FirstOrDefault(b => Math.Abs(x - Math.Max(b.L, la + 1e-6)) < 1e-9);
+            var end = blocks.FirstOrDefault(b => Math.Abs(x - Math.Min(b.R, ra - 1e-6)) < 1e-9);
+            if (blk != default) { pts.Add((x, Interp(x), NAt(x))); pts.Add((x, top, NAt(x))); continue; }
+            if (end != default) { pts.Add((x, top, NAt(x))); pts.Add((x, Interp(x), NAt(x))); continue; }
+            if (blocks.Any(b => x > b.L && x < b.R)) continue;
+            pts.Add((x, Interp(x), NAt(x)));
+        }
+        double zr = Interp(ra);
+        pts.Add((ra, zr, NAt(ra)));
+        pts.Add((ra, Math.Max(top, zr), NAt(ra)));
+        double lb = Math.Clamp(LeftBank, la, ra), rb = Math.Clamp(RightBank, la, ra);
+        if (rb <= lb) { lb = la; rb = ra; }
+        return new RiverSection(name, RiverStation, pts, lb, rb, _n[0], _n[0], _n[0], _k)
+        {
+            LengthLob = lengthLob, LengthCh = lengthCh, LengthRob = lengthRob, Contraction = contraction, Expansion = expansion, Lid = lowChord,
+        };
+    }
+
+    /// <summary>A copy with other reach lengths (for splitting a reach at a bridge).</summary>
+    public RiverSection WithLengths(double lob, double ch, double rob)
+    {
+        var pts = Enumerable.Range(0, _x.Length).Select(i => (_x[i], _z[i], i < _n.Length ? (double?)_n[i] : null)).ToList();
+        return new RiverSection(Name, RiverStation, pts, LeftBank, RightBank, _n[0], _n[0], _n[0], _k, IneffectiveLeft, IneffectiveRight)
+        {
+            LengthLob = lob, LengthCh = ch, LengthRob = rob, Contraction = Contraction, Expansion = Expansion,
+        };
+    }
+
     public double Interp(double x)
     {
         if (x <= _x[0]) return _z[0];
@@ -113,14 +169,16 @@ public sealed class RiverSection
             gA = 0; gP = 0; gSub = -1; gN = double.NaN;
         }
         bool wallL = ws > _z[0], wallR = ws > _z[^1];
+        bool lidded = Lid is { } lidEl && ws > lidEl;
+        double wsl = lidded ? Lid!.Value : ws;
         for (int i = 0; i < _n.Length; i++)
         {
-            double d1 = ws - _z[i], d2 = ws - _z[i + 1], dx = _x[i + 1] - _x[i];
-            if ((d1 <= 0 && d2 <= 0) || Ineffective(i, ws)) { Flush(); continue; }
+            double d1 = wsl - _z[i], d2 = wsl - _z[i + 1], dx = _x[i + 1] - _x[i];
+            if ((d1 <= 0 && d2 <= 0) || Ineffective(i, ws)) continue;   // dry ground or an island does not break a conveyance segment (HEC-RAS: breaks at n changes only)
             if (dx <= 0)
             {
                 // Vertical face: wetted perimeter only.
-                double wet = Math.Min(ws, Math.Max(_z[i], _z[i + 1])) - Math.Min(_z[i], _z[i + 1]);
+                double wet = Math.Min(wsl, Math.Max(_z[i], _z[i + 1])) - Math.Min(_z[i], _z[i + 1]);
                 if (gSub == _sub[i] && gN == _n[i]) gP += wet;
                 else { Flush(); gSub = _sub[i]; gN = _n[i]; gP = wet; }
                 continue;
@@ -135,6 +193,7 @@ public sealed class RiverSection
             }
             if (i == 0 && wallL) pw += d1;
             if (i == _n.Length - 1 && wallR) pw += d2;
+            if (lidded) { pw += t; t = 0; mo += a * (ws - wsl); }   // the deck soffit is wetted; no free surface
             if (_sub[i] != gSub || _n[i] != gN) Flush();
             gSub = _sub[i]; gN = _n[i]; gA += a; gP += pw;
             area += a; top += t; moment += mo;

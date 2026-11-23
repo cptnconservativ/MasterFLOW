@@ -48,6 +48,72 @@ and a plot of each cross-section with the largest profile's water surface.
 - **D-343** Design-tool numbers of 1000 or more now show two decimals (was one), so elevations read to 0.01 ft in every
   tool's tables.
 
+## Bridges
+
+A bridge sits between two adjacent cross-sections. Its **Upstream RS** is HEC-RAS section 3, at the upstream face.
+The next section downstream is section 2, at the downstream face. Place sections 4 and 1 further away for the
+contraction and expansion reaches, as HEC-RAS recommends. The sample shows a bridge with ineffective areas at
+sections 2 and 3 outside the abutments, up to the deck.
+
+`[Bridges]` columns:
+- Name and Upstream RS.
+- Low chord, High chord (top of deck or road) and Deck width (length along the flow).
+- Left abutment and Right abutment stations.
+- Pier shape: semicircular, twin cylinder (with diaphragm), triangular or square.
+- Optional: Weir C (2.6 U.S. or 1.44 SI), Contraction (0.3) and Expansion (0.5), Sluice Cd (0.5) and Orifice C
+  (0.8).
+
+`[Bridge piers]` takes Bridge, Station and Width. `[Road profile]` (Bridge, Station, Elevation) gives an irregular
+weir crest; otherwise the crest is the high chord, or the ground where that is higher. `bridge low flow` is `energy`
+(default), `yarnell` or `highest`.
+
+**Low flow.**
+- *Energy method.* Two opening sections, BD and BU, are built from sections 2 and 3:
+  - Ground outside the abutments is blocked by vertical walls.
+  - Piers are vertical blocks whose faces add wetted perimeter.
+  - The deck soffit is a lid at the low chord. Above it, the area stays at its low-chord value, the top width is
+    zero and the soffit is wetted.
+  - The standard step then runs 2 → BD (no length) → BU (deck width) → 3 (the rest of section 3's reach length),
+    using the bridge's contraction and expansion coefficients through the opening.
+- *Yarnell (class A, piers only).* ΔH = 2K(K + 10ω − 0.6)(α + 15α⁴)·V₂²/2g, with K from HEC-RAS Table 5-1:
+  semicircular 0.90, twin cylinder with diaphragm 0.95, twin cylinder or triangular 1.05, square 1.25.
+
+**High flow.** This applies when the upstream energy grade reaches the low chord or the road crest.
+- *Sluice gate:* Q = Cd·A·√(2g(Y₃ − Z/2 + V₃²/2g)).
+- *Orifice*, when the downstream W.S. is above the low chord: Q = C·A·√(2g(EG₃ − WS₂)).
+- *Weir over the road:* Q = C·∫(EG₃ − crest)^1.5 dx, reduced for submergence by Villemonte's
+  (1 − (h_d/h_u)^1.5)^0.385.
+- The upstream W.S. is found where the opening flow plus the weir flow equals Q.
+- Without overtopping, the pressure answer is compared with the energy-method answer and the higher energy is kept,
+  as HEC-RAS does.
+
+The bridge table gives, for each bridge and profile:
+- The flow type.
+- Upstream and downstream W.S. and E.G., and the energy loss.
+- The opening and weir flows, and the opening velocity.
+- Both low-flow answers.
+- Low chord clearance and overtopping head.
+
+The profile chart shows the deck, and the cross-section plot of section 3 shows the deck, low chord and piers.
+
+### Bridge decisions
+
+- **D-370** Bridges are solved in the subcritical pass only. In a mixed-regime run, the subcritical bridge answer is
+  used upstream of each bridge; in a supercritical run, bridges are ignored with a warning. HEC-RAS also checks
+  class C (supercritical through the opening); here class B (critical in the opening) is flagged only.
+- **D-371** The momentum method and the WSPRO method are not included. The default is the energy method, and
+  `highest` takes the higher of energy and Yarnell.
+- **D-372** The sluice Cd and orifice C are single user values (HEC-RAS defaults 0.5 and 0.8). The Cd-versus-Y₃/Z
+  chart in HEC-RAS (Figure 5-6) could not be obtained as text.
+- **D-373** Weir submergence uses Villemonte's equation, not the HEC-RAS submergence curve (Figure 5-8), for the
+  same reason. Villemonte's equation reduces flow more gradually at low submergence.
+- **D-374** The low chord is level across the opening (one value per bridge).
+- **D-375** A downstream boundary at a bridge for a weir run holds the downstream W.S. fixed while the flow divides
+  between the opening and the weir. The split is not iterated back to section 2.
+- **D-376** Change to all sections: dry ground or an island inside a subsection no longer splits a conveyance
+  segment. Segments break at n changes only, as in HEC-RAS. Before this change, a dry pier top split the opening's
+  conveyance in two. Results for sections without dry high points inside a subsection are unchanged.
+
 ## Validation
 
 `RiverProfileTests`: a uniform reach stays at the existing engine's Manning normal depth at every section; rectangle
@@ -55,3 +121,9 @@ critical depth against (q²/g)^⅓; compound-section conveyance and α by hand; 
 RK4 integration of dy/dx = (S0 − Sf)/(1 − Fr²) (within 0.01 ft over 2000 ft); energy balance closed between every pair
 of sections in the sample; ineffective areas; a steep-to-mild mixed-regime reach; SI scaling; input errors. A run
 against HEC-RAS itself needs a Windows machine with HEC-RAS (not available here).
+- Bridges (BridgeTests):
+  - Opening area, top width and conveyance with abutments, piers and the deck lid match hand calculations.
+  - Yarnell matches the equation.
+  - Weir flow matches C·L·H^1.5 free, and with Villemonte submergence.
+  - Overtopping splits the flow so that opening flow plus weir flow equals Q.
+  - A drowned opening runs as an orifice or a lidded energy solution.
