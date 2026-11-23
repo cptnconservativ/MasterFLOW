@@ -29,6 +29,7 @@ public static class PremiumFeatures
         new("outlet-designer", "Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages)", ["outlet-designer"]),
         new("plan-profile-dxf", "Plan and profile DXF sheets with HGL and EGL", ["plan-profile-dxf"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
+        new("permit-tracker", "Permit and approval tracker (critical path to construction)", ["permit-tracker"]),
         new("utility-conflicts", "Utility conflict finder (3D clashes and separation rules)", ["utility-conflicts"]),
         new("grading-solver", "Grading solver (finished grades from ADA, driveway and drainage constraints, balanced earthwork)", ["grading-solver"]),
         new("field-to-model", "Field-to-model: as-built survey and photos update the network, HGL certification", ["field-to-model"]),
