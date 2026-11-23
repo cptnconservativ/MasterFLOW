@@ -23,7 +23,7 @@
         <Button Content="New" Command="{Binding NewNetworkCommand}" ToolTip.Tip="Add an empty storm network"/>
         <Button Content="Delete" Command="{Binding DeleteNetworkCommand}" ToolTip.Tip="Delete the selected network"/>
         <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
-        <Button Content="Solve" Command="{Binding SelectedNetwork.SolveCommand, FallbackValue={x:Null}}" ToolTip.Tip="Compute the HGL and EGL (F5)" FontWeight="SemiBold"/>
+        <Button Content="Solve" Command="{Binding SelectedNetwork.SolveCommand, FallbackValue={x:Null}}" ToolTip.Tip="Compute the HGL and EGL (F5)" FontWeight="SemiBold" Classes="accent"/>
         <Button Content="Report…" Command="{Binding ExportNetworkReportCommand}" ToolTip.Tip="Profiles and tables as PDF (or HTML)"/>
         <Button Content="Copy tables" Command="{Binding CopyNetworkResultsCommand}" ToolTip.Tip="Pipes and structures tables, tab-separated"/>
         <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>

@@ -19,6 +19,12 @@ public partial class MainWindow : Window, IDialogService
         timer.Tick += (_, _) => (DataContext as MainViewModel)?.Autosave();
         timer.Start();
         Closing += OnClosing;
+        KeyDown += (_, e) =>
+        {
+            if (!e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control) || !e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Shift)) return;
+            if (e.Key == Avalonia.Input.Key.N) { OnOpenNetworks(this, new RoutedEventArgs()); e.Handled = true; }
+            else if (e.Key == Avalonia.Input.Key.D) { OnOpenTools(this, new RoutedEventArgs()); e.Handled = true; }
+        };
     }
 
     private bool _closeConfirmed;
