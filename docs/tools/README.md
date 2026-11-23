@@ -46,6 +46,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Site feasibility: lot yield, drainage concept, cost range, go/no-go | FEMA NFHL, NRCS SSURGO, USGS 3DEP, NOAA Atlas 14, RCMC Title 17, TR-55, SWQM | [site-feasibility.md](site-feasibility.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
 | ★ Construction-phase companion | Checks submittals (pipe, castings, riprap) and RFIs against the design, re-solves the network for each change, and drafts the response letter. [construction-companion.md](construction-companion.md) |
+| ★ Field-to-model: as-built survey, photos and HGL certification | IDCM §4.6; NAD83 State Plane (SD South/North) | [field-to-model.md](field-to-model.md) |
 | ★ Inverse design: largest or smallest input that still meets the criteria | Any tool or storm network; your constraints | [inverse-design.md](inverse-design.md) |
 
 Tools marked **★** need a MasterFlow Premium license key (so do **Size pipes**, **LandXML…** export and **Civil 3D results…** in the Storm networks window) (see [../premium/licensing.md](../premium/licensing.md)).
