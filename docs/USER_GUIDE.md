@@ -1,7 +1,7 @@
 ---
 title: "MasterFlow User Manual"
 subtitle: "Storm drainage, hydrology and open-channel hydraulics for Windows"
-date: "Edition of 23 November 2026 · covers MasterFlow main after release 0.12.0, plus six tools pending merge"
+date: "Edition 2 of 23 November 2026 · covers MasterFlow main after release 0.12.0, six tools pending merge (#60–#65) and the usability and validation updates (#67–#69)"
 ---
 
 # About this manual
@@ -28,6 +28,12 @@ whether the feature is in **MasterFlow Free** or needs a **★ Premium** license
 The six tools pending merge on the date of this edition are: hydraulic jump and stilling basins (PR #60), EPA
 SWMM 5 exchange (PR #61), natural channel profiles by the HEC-RAS method (PR #62), HEC-18 bridge scour (PR #63),
 Bulletin 17C flood frequency (PR #64) and dynamic-wave storm sewer routing (PR #65).
+
+Edition 2 also describes three updates pending merge, and its screenshots are taken with them in place:
+- The redesigned Design tools window: a grouped, searchable tool list, Open report, the stale-result banner and new
+  shortcuts (PR #68).
+- The report-figure axis fix (PR #67).
+- The method-review corrections (PR #69).
 
 ## Screenshots
 
@@ -73,7 +79,7 @@ you type; there is no Calculate button.
 
 | Area | What it holds |
 |---|---|
-| Top toolbar | File commands (New, Open…, Recent ▾, Save, Save as…), Undo/Redo, Copy results, Report…, Batch report…, Compare report…, Excel…, **Storm networks…**, **Design tools…**, Log folder |
+| Top toolbar | File commands (New, Open…, Recent ▾, Save, Save as…), Undo/Redo, Copy results, Report…, More exports ▾ (Batch report…, Compare report…, Excel workbook…), **Storm networks…** (Ctrl+Shift+N), **Design tools…** (Ctrl+Shift+D), Log folder |
 | Left pane | Project information (shown on every report), the calculation list, + Channel, From template ▾, Duplicate, Save as template, Delete, Import LandXML…, Sort, and the recycle bin |
 | Middle pane | Title, item number, folder and description; Section and Flow inputs; the cross-section drawing; Design checks |
 | Right pane | Tabs: **Results**, **Compare**, **Sensitivity**, **Rating table**, and **Structures** after a pipe network import |
@@ -309,9 +315,9 @@ the comparison says so.
 | Button | Output |
 |---|---|
 | **Report…** (Ctrl+E) | The selected calculation |
-| **Batch report…** | Every ticked calculation, each on a new page |
-| **Compare report…** | The side-by-side comparison, landscape |
-| **Excel…** | Workbook: comparison sheet, one sheet per ticked calculation, rating tables |
+| **More exports ▾ → Batch report…** | Every ticked calculation, each on a new page |
+| **More exports ▾ → Compare report…** | The side-by-side comparison, landscape |
+| **More exports ▾ → Excel workbook…** | Workbook: comparison sheet, one sheet per ticked calculation, rating tables |
 
 Reports are PDF by default; choose *HTML report* in the save dialog for an HTML file. They contain the project
 information, method, inputs, cross-section, results, warnings and assumptions, rating table, sensitivity table,
@@ -437,23 +443,34 @@ whole run is one undo. Structure results (HGL, EGL, loss, rim − HGL, check) ar
 
 # The Design tools window
 
-**Design tools…** opens one window for every drainage design tool. All 42 tools work the same way.
+**Design tools…** (Ctrl+Shift+D) opens one window for every drainage design tool. All 42 tools work the same way.
 
-![The Design tools window running the culvert tool: input on the left, result on the right, messages at the bottom.](images/manual/tool-hds5-culvert.png)
+![The Design tools window running the culvert tool: the grouped tool list on the left, input and result on the right, messages at the bottom.](images/manual/tool-hds5-culvert.png)
 
-1. **Tool**: pick a tool. Premium tools carry "★ Premium". The line under the toolbar describes the tool.
-2. **Network**: the storm network the tool reads or writes, for the tools that use one.
-3. **Sample** fills in a worked example, using the selected network's structure names where it can. Every sample runs
-   without errors; they are run by the test suite.
-4. Edit the **input**: `key = value` lines, then tables under `[Section]` headings (tab- or comma-separated; the first
-   line of a table is its header; `#` starts a comment). Columns are usually found by their header, so their order is
-   free. Lengths, flows and units are stated in the sample comments.
-5. **Run** (F5). The result appears as aligned text; every error, warning and assumption is listed under Messages. A part
-   that cannot be computed is reported, never estimated.
-6. **Copy** (text plus tab-separated tables), **Save…** (HTML report, PDF report or Excel workbook; tools that draw
-   charts show them in HTML and PDF; some tools also offer Word, DXF or SWMM .inp), and **Apply to network** where the
-   tool offers it. Nothing changes in the network until you press **Apply to network**, which writes the result and
-   re-solves the network.
+1. **Pick a tool from the list on the left.** Tools are grouped by subject, in the same order as chapters 8 to 15 of
+   this manual. A Premium tool shows ★, or "★ locked" when your license does not cover it. Type in the search box
+   (Ctrl+F) to filter by name, description or subject. Enter picks the best match and Esc clears the search. The
+   heading above the input shows the tool's name, its subject and what it does.
+2. **Storm network** (top right) is the network that network-aware tools read or write.
+3. **Sample** fills in a worked example, using the selected network's structure names where it can. If you have
+   edited the input, MasterFlow asks before replacing it. Every sample runs without errors, and the test suite runs
+   them all.
+4. **Edit the input.** It is made of `key = value` lines, then tables under `[Section]` headings. Tables are tab- or
+   comma-separated, the first line of a table is its header, and `#` starts a comment. Columns are usually found by
+   their header, so their order is free. The sample comments state the lengths, flows and units.
+5. **▶ Run** (F5 or Ctrl+Enter). The result appears as aligned text, and every error, warning and assumption is
+   listed under Messages. A part that cannot be computed is reported, never estimated. If you change the input after
+   a run, an amber banner warns that the result on screen no longer matches it until you run again.
+6. **Use the result:**
+   - **Open report** shows the full report, with its charts and figures, in your browser without asking for a file
+     name.
+   - **Save…** writes an HTML report, a PDF report or an Excel workbook. Some tools also offer Word, DXF or SWMM .inp.
+   - **Copy** puts the text on the clipboard, followed by the tables tab-separated for Excel.
+   - **Apply to network** appears where the tool offers it. Nothing changes in the network until you press it; it
+     writes the result and re-solves the network.
+
+**License** at the foot of the tool list holds the Premium key box (chapter 3). It opens by itself when you select a
+locked tool, and a banner over the input explains what the tool needs.
 
 The last input of each tool is saved with the project, so a project re-runs exactly. The drainage report builder,
 the pre-checker, the redesign diff and inverse design all re-run those saved inputs.
@@ -1078,7 +1095,7 @@ Sizes protection at culvert and storm sewer outlets, one row per outlet.
 **Input.** `[Outlets]`: Name, Shape, Span, Rise, Q, Slope, n, Outlet depth, Tailwater, Channel V. `[Basin stone]` fixes a
 D50; `[Plunge pool]` adds IDCM plunge pools.
 
-**Method.** Riprap apron by HEC-14 §10.1, D50 = 0.2·D·(Q/(√g·D^2.5))^(4/3)·(D/TW), class, length and depth from Table 10.1;
+**Method.** Riprap apron by HEC-14 §10.1, D50 = 0.2·D·(Q/(√g·D^2.5))^(4/3)·(D/TW), with D = (A/2)^0.5 of the outlet flow area for a box; class, length and depth from Table 10.1;
 riprap basin by HEC-14 §10.2, hs/ye = 0.86(D50/ye)^−0.55·Fr − C0, pool 10·hs, apron 5·hs (largest D50 with hs/D50 ≥ 2,
 D-120); IDCM §4.9.5 basin layout (3D wide, 3:1 flare) and checks (Vp ≤ 3.33·Vc, outlet pipe ≤ 5 % for 5D, tailwater ≥ D/4);
 plunge pool by IDCM Eq. 4-9-1. Reproduces the HEC-14 §1.2 example in U.S. and SI units.
@@ -1446,10 +1463,26 @@ comparison program was not reachable from the build machine. Check them before r
 | Field-to-model | State Plane projection not yet checked against a surveyed control point |
 | Utility conflicts, permits | Default separation rules and permit durations are typical values, not the City's |
 
-**Display issues noticed while preparing this manual.** In the HTML and PDF reports, three charts draw their vertical axis
-from zero, which flattens the plot: the natural channel profile tool's cross-section plots, the plan and profile DXF tool's
-profile chart, and the outlet designer's front view of the structure. The numbers and the DXF drawing itself are not
-affected.
+## Method review, November 2026
+
+Every tool's sample was re-run and its printed results recomputed by hand from the published equation. The sources
+checked were IDCM 2012, SWQM 2009, HEC-22, HDS-5, HEC-14, HEC-15, HEC-18, TR-55, AH 703 and Bulletin 17C. The full
+table is in `docs/VALIDATION_RESULTS.md`. Two items were corrected:
+
+- **Riprap apron for a box culvert (HEC-14).** The equivalent depth D = (A/2)^0.5 now uses the flow area at the outlet
+  (yo × span), as HEC-14's worked 5 × 5 ft box does. The full-barrel area was used before, which under-sized the stone
+  for a box flowing part full. Circular outlets were already correct.
+- **Elevations in reports.** Values of 1,000 and above now print to 0.01 ft. Before, they printed to 0.1 ft, so 3,255.43
+  showed as 3255.4.
+
+One item is left for the engineer:
+
+- **IDCM Table 4-4 (Green–Ampt).** The table gives loam a hydraulic conductivity of 0.65 cm/h and silt loam 0.34 cm/h.
+  Rawls et al. (1983), which the table reproduces, has these two values the other way round. MasterFlow follows the
+  IDCM, because it governs in Rapid City. If your reviewer follows Rawls, enter Ks yourself.
+
+The report charts that drew their vertical axis from zero (natural channel cross-sections, the DXF tool's profile and
+the outlet designer's front view) now start just below the data.
 
 # Appendix A: Keyboard shortcuts
 
@@ -1463,6 +1496,10 @@ affected.
 | Ctrl+D | Duplicate calculation |
 | Ctrl+E | Report of the selected calculation |
 | F5 | Solve (Storm networks) or Run (Design tools) |
+| Ctrl+Enter | Run (Design tools) |
+| Ctrl+F / Enter / Esc | Search the tool list / pick the best match / clear the search (Design tools) |
+| Ctrl+Shift+N | Open the Storm networks window |
+| Ctrl+Shift+D | Open the Design tools window |
 | Tab / Shift+Tab | Next / previous field |
 
 # Appendix B: Message codes
