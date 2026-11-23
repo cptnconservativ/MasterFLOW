@@ -45,6 +45,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ What changed? Redesign diff | Re-runs every network, channel and tool for two versions | [redesign-diff.md](redesign-diff.md) |
 | ★ Site feasibility: lot yield, drainage concept, cost range, go/no-go | FEMA NFHL, NRCS SSURGO, USGS 3DEP, NOAA Atlas 14, RCMC Title 17, TR-55, SWQM | [site-feasibility.md](site-feasibility.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
+| ★ Grading solver: finished grades from ADA, driveway and drainage constraints | 2010 ADA Standards §403, §405; IBC 1804.4; balanced earthwork | [grading-solver.md](grading-solver.md) |
 | ★ Field-to-model: as-built survey, photos and HGL certification | IDCM §4.6; NAD83 State Plane (SD South/North) | [field-to-model.md](field-to-model.md) |
 | ★ Inverse design: largest or smallest input that still meets the criteria | Any tool or storm network; your constraints | [inverse-design.md](inverse-design.md) |
 
