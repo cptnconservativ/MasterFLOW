@@ -30,6 +30,7 @@ public static class PremiumFeatures
         new("plan-profile-dxf", "Plan and profile DXF sheets with HGL and EGL", ["plan-profile-dxf"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
         new("climate-stress", "Climate stress test (future rainfall: what fails first)", ["climate-stress"]),
+        new("utility-conflicts", "Utility conflict finder (3D clashes and separation rules)", ["utility-conflicts"]),
         new("grading-solver", "Grading solver (finished grades from ADA, driveway and drainage constraints, balanced earthwork)", ["grading-solver"]),
         new("field-to-model", "Field-to-model: as-built survey and photos update the network, HGL certification", ["field-to-model"]),
         new("inverse-design", "Inverse design (largest or smallest input that still meets the criteria)", ["inverse-design"]),
@@ -38,6 +39,7 @@ public static class PremiumFeatures
         new("site-feasibility", "Site feasibility: public data, lot yield, drainage concept, cost range and go/no-go", ["site-feasibility"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
         new(Civil3DExport, "Civil 3D export: LandXML pipe network and HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…)", []),
+        new("review-comments", "Review comment tracker and response letter", ["review-comments"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
