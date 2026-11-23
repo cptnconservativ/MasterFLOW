@@ -25,20 +25,20 @@ sewer outfall, by **FHWA HEC-14, 3rd edition (2006)**, the reference the Rapid C
 | `tailwater`, `[Tailwater rating]` (Q, depth), or `tw bottom width`, `tw side slope`, `tw slope` (%), `tw n` | Tailwater depth above the channel bed at the basin exit |
 | `[Check flows]` | Flows to check with the chosen basin as built |
 | `outlet shape`, `outlet span`, `outlet rise`, `outlet depth` or `outlet slope` + `outlet n` | Pipe or box outlet for the impact and CSU basins |
-| `impact Q`, `impact basins`, `impact Ho/WB`, `impact HL/Ho` | Type VI flow, number of basins side by side, and values read from HEC-14 Figures 9.14 and 9.15 |
-| `csu Q`, `exit velocity`, `expansion ratio` (2-4, 5, 6, 7, 8, auto), `basin slope` (%), `csu yA`, `Cp`, `anchor lever` | CSU basin; `csu yA` and `Cp` are values read from HEC-14 Figures 4.3/4.4 and 9.4 |
+| `impact Q`, `impact basins`, `impact Ho/WB`, `impact HL/Ho` | Type VI flow, number of basins side by side, and overrides for the HEC-14 Figure 9.14 and 9.15 values |
+| `csu Q`, `exit velocity`, `expansion ratio` (2-4, 5, 6, 7, 8, auto), `basin slope` (%), `csu yA`, `Cp`, `anchor lever` | CSU basin; `csu yA` and `Cp` override the Figure 4.3/4.4 and 9.4 values |
 
 ## Method
 
 | Item | Method (HEC-14 unless noted) |
 |---|---|
 | Sequent depth | Equal specific force M = Q²/(gA) + A·ȳ (Eq. 6.1) for any section; Eq. 6.3/8.4 for a rectangle; a circle is exact (Table 6.1), and once y2 ≥ D the pressure head acts on the full area (Eq. 6.5) |
-| Jump | Fr1 = V1/√(g·A/T); form by Fr1 (Figure 6.2); ΔE = E1 − E2. Length: rectangle from the Figure 8.2 free-jump curve; circle 7(y2 − y1) when y2 ≥ D, else Figure 6.8 (not shown); trapezoid 6.9(y2 − y1) as an estimate only (HEC-14 asks for model tests) |
+| Jump | Fr1 = V1/√(g·A/T); form by Fr1 (Figure 6.2); ΔE = E1 − E2. Length: rectangle (L/y1)·y1 from Figure 6.5; circle 7(y2 − y1) when y2 ≥ D, else 10·Fr1·y1 from Figure 6.8 (Fr1 about 1.35–6 only); trapezoid 6.9(y2 − y1) as an estimate only (HEC-14 asks for model tests) |
 | Need for a basin | Step 3: TW against y2 at the outlet with C = 1 |
 | Entering flow | E1 = (zo − z1) + yo + Vo²/2g with no loss (Eq. 8.2), y1 the supercritical depth in WB; Fr1 = V1/√(g·y1) (Eq. 8.1) |
 | Geometry | LT = (zo − z1)/ST (Eq. 8.5); LS = [LT(ST − So) − LB·So]/(SS + So) (Eq. 8.6, not below 0); z3 = z1 + LS·SS (Eq. 8.7). The jump holds when z1 + y2 ≤ z3 + TW |
 | Tailwater ratio C | Free jump and Type III 1.0; Type IV 1.1; SAF Eq. 8.18. y2 = C·y1/2·(√(1 + 8Fr1²) − 1) (Eq. 8.4) |
-| Basin length LB | Free jump and Type IV: Figure 8.2 free-jump curve × y2; Type III: Figure 8.2 Type III curve × y2; SAF: 4.5·y2/(C·Fr1^0.76) (Eq. 8.19). Total = LT + LB + LS |
+| Basin length LB | Free jump and Type IV: Figure 8.2 free-jump curve × y2; Type III: Figure 8.2 Type III curve × y2 (Fr1 4.5–16.5); SAF: 4.5·y2/(C·Fr1^0.76) (Eq. 8.19). Total = LT + LB + LS |
 | Ranges | Type III Fr1 4.5–17, V1 ≤ 60 ft/s, q ≤ 200 cfs/ft; Type IV 2.5–4.5; SAF 1.7–17 (Table 8.1) |
 | Type III elements | Chute blocks h1 = y1 (≥ 0.66 ft), Nc = WB/(2y1), W1 = W2 = WB/(2Nc); baffles h3 = y1(0.168Fr1 + 0.58), NB = WB/(1.5h3), W3 = W4 = WB/(2NB), 0.8y2 downstream; end sill h4 = y1(0.0536Fr1 + 1.04) (Eqs. 8.9–8.14) |
 | Type IV elements | Chute blocks 2y1, Nc = WB/(2.625y1), W1 = WB/(3.5Nc), W2 = 2.5W1; end sill as Type III (Eqs. 8.15–8.16) |
@@ -47,9 +47,9 @@ sewer outfall, by **FHWA HEC-14, 3rd edition (2006)**, the reference the Rapid C
 | Curvature | r = y/(e^(1.5/Fr²) − 1) at both slope changes (Eq. 8.8) |
 | Recommended | The applicable basin with the shortest total length that holds the jump at the design flow |
 | Flow range | Each [Check flows] flow with the chosen basin as built (floor and exit fixed) |
-| Type VI impact basin | ye = (A/2)^0.5 for a pipe, the depth for a rectangle; Fr = Vo/√(g·ye); Ho = ye + Vo²/2g; WB = Ho/(Ho/WB) from Figure 9.14, rounded to the nearest Table 9.2 entry; dimensions from Table 9.2; exit velocity from Q/(WB·VB) + VB²/2g = Ho(1 − HL/Ho), HL/Ho from Figure 9.15, supercritical root unless the tailwater reaches the subcritical one. Limits 400 cfs and 50 ft/s per basin; maximum tailwater h3 + h2/2 |
+| Type VI impact basin | ye = (A/2)^0.5 for a pipe, the depth for a rectangle; Fr = Vo/√(g·ye); Ho = ye + Vo²/2g; WB = Ho/(Ho/WB) from Figure 9.14 (Fr 1–7), rounded to the nearest Table 9.2 entry; dimensions from Table 9.2; exit velocity from Q/(WB·VB) + VB²/2g = Ho(1 − HL/Ho), HL/Ho from Figure 9.15 (Fr 1.4–7), supercritical root unless the tailwater reaches the subcritical one. Limits 400 cfs and 50 ft/s per basin; maximum tailwater h3 + h2/2 |
 | Type VI, IDCM check | D = √A, W = larger of 2.88·Fr^0.566·D (Figure 4-8) and Table 4-15 (log–log), and the Table 4-15 row |
-| CSU basin | VA by Eq. 4.1/4.2; yA from Figures 4.3/4.4 for WB/Wo 4–8 and Eq. 9.3 for WB/Wo < 4 or slopes above 10 %; every Table 9.1 layout: h = (h/yA)·yA, L = (L/h)·h, W1 = (W1/Wo)·Wo, CB·AF·N against Eq. 9.1 (Eq. 9.2 with the water weight above 10 %). Option 1 holds the exit at the tailwater depth; otherwise the given exit velocity. Option 2 VB (the basin's own drag) is listed too. LB = 2Wo + L·Nr, W1/h 2–8, flare Eq. 9.5, freeboard Eq. 9.4; anchor force IDCM Eq. 4-9-8 |
+| CSU basin | VA by Eq. 4.1/4.2; yA from Figures 4.3/4.4 at L = 2Wo for WB/Wo 4–8 (yA/yo = 0.187 + 0.150(Fr − 1) rectangular, 0.161 + 0.212(Fr − 1) circular) and Eq. 9.3 for WB/Wo < 4 or slopes above 10 %; Cp from Figure 9.4 (0.70 rectangular; circular 0.56 to KuQ/D^2.5 = 3.8, then to 0.30 at 5.9); every Table 9.1 layout: h = (h/yA)·yA, L = (L/h)·h, W1 = (W1/Wo)·Wo, CB·AF·N against Eq. 9.1 (Eq. 9.2 with the water weight above 10 %). Option 1 holds the exit at the tailwater depth; otherwise the given exit velocity. Option 2 VB (the basin's own drag) is listed too. LB = 2Wo + L·Nr, W1/h 2–8, flare Eq. 9.5, freeboard Eq. 9.4; anchor force IDCM Eq. 4-9-8 |
 
 ## Decisions
 
@@ -71,22 +71,23 @@ sewer outfall, by **FHWA HEC-14, 3rd edition (2006)**, the reference the Rapid C
 - **D-326** HEC-14 rounds the Type VI width to the nearest Table 9.2 entry ("interpolation is not necessary"); the tool
   does the same, so the width can round down by up to half a step. Outside the table the dimensions are scaled in
   proportion from the end row, with a warning.
-- **D-327** Provisional figure values. HEC-14 prints these curves only as images, which were not available as text:
-  Figure 8.2 (basin length: free-jump and Type III curves, digitized from the USBR curves and matching every Ch. 8
-  example to 1 %), Figure 9.14 and 9.15 (Type VI: lines through the two Ch. 9 example points, Fr 4.7–5.1, warned
-  outside 4–6), Figure 9.4 (Cp: 0.7 as in the example), Figures 4.3/4.4 (yA: the IDCM Eq. 4-9-6/4-9-7 lines, 0.35
-  against HEC-14's 0.33 at Fr 2.1), Figure 6.5 (jump length; Figure 8.2 is used) and Figure 6.8 (jump length in a
-  pipe with y2 < D; not given). Each has an input to type the value read from the figure. To be digitized from the
-  HEC-14 PDF.
-- **D-328** Eq. 9.3 is scrambled in the HEC-14 text. Provisionally read as yA + (Q/(WA·yA))²/2g =
-  2Wo·So + yo + 0.75·Vo²/2g (a quarter of the outlet velocity head lost) with WA = Wo(4/(3Fr) + 1). To be confirmed
-  against the printed equation.
+- **D-327** Figure curves digitized from HEC-14 page images supplied by Kyle (2026-11-23): Figure 6.5 (rectangular
+  jump L/y1), Figure 6.8 (circular, y2 < D: Lj/y1 = 10·Fr1, not extrapolated beyond about 1.35–6), Figure 8.2
+  (free-jump/Type IV and Type III LB/y2), Figures 4.3/4.4 at L = 2Wo (straight lines), Figure 9.4 (Cp) and Figures
+  9.14/9.15 (Type VI). Read to about ±1 % of the plotted range; the end values are held beyond each curve, with a
+  warning for Type VI. They reproduce the Ch. 8 and Ch. 9 example readings except one: the §8.3 Type III example reads
+  LB/y2 = 2.7 at Fr1 6.9, where the printed Type III curve gives 2.54 (LB 24.6 ft against the example's 26.0). The
+  tool follows the figure. Figure 4.4 (circular) differs from the IDCM Eq. 4-9-7 line, which is no longer used.
+- **D-328** Eq. 9.3 is implemented as printed on HEC-14 p. 9-4: 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/2g,
+  with WA = Wo(4/(3Fr) + 1) and the smaller (supercritical) root. As printed, the slope term lowers the energy
+  available at section A, the opposite of a drop between the outlet and section A; whether to move it to the right
+  side is open with Kyle. Where the equation has no root the layouts that need it are skipped (W-SB-016).
 
 ## Validation
 
 `StillingBasinTests` reproduces the HEC-14 worked examples: §6.2.1 rectangular jump, §6.2.2 circular jump, the
 §8.2 free-jump basin, §8.3 Type III, §8.4 Type IV and §8.5 SAF (y1, Fr1, y2, LB, LS, z3, blocks, baffles and sills
 within the examples' rounding), Eq. 8.8 radii, §9.4 Type VI in SI and CU (WB 5.0 m and 16 ft, VB 6.9 m/s and
-22.7 ft/s), and §9.1 CSU in SI (required CB·AF·N 4.63, 4 rows short, 5 rows pass, LB 17.75 m). Also Bélanger's closed
+22.7 ft/s), and §9.1 CSU in SI (required CB·AF·N 4.63, 4 rows short, 5 rows pass, LB 17.75 m). Also the digitized figures against the example readings, Eq. 9.3 as printed, Bélanger's closed
 form, the trapezoid and circle momentum balance, Table 6.1's K, the Table 9.1 column order, SI scaling and input
 errors.

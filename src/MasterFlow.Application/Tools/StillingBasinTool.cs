@@ -70,23 +70,70 @@ public sealed class StillingBasinTool : IDesignTool
         """;
 
     // ---------------------------------------------------------------------------------------------------------------
-    // Curves read from figures. HEC-14 prints these only as images; the values below are provisional (see D-327) and
-    // each can be replaced by a typed value read off the figure.
+    // Curves read from figures. HEC-14 prints these only as images; the values below were digitized from the figures
+    // (D-327). Each can be replaced by a typed value read off the figure.
     // ---------------------------------------------------------------------------------------------------------------
 
-    /// <summary>HEC-14 Figure 8.2 free-jump curve, LB/y2 against Fr1 (USBR). Provisional; matches the Ch. 8 examples (6.1 at Fr 5.7–8.0).</summary>
+    /// <summary>HEC-14 Figure 8.2 free-jump curve (also the Type IV basin), LB/y2 against Fr1, digitized.</summary>
     public static readonly (double Fr, double Ratio)[] Fig82Free =
-        [(1.7, 4.0), (2.0, 4.35), (2.5, 4.85), (3.0, 5.28), (3.5, 5.55), (4.0, 5.8), (5.0, 6.0), (6.0, 6.1), (8.0, 6.12), (17, 6.1)];
+        [(1.8, 4.02), (2.1, 4.38), (2.4, 4.67), (2.6, 4.87), (3.0, 5.16), (3.4, 5.43), (3.8, 5.61), (4.2, 5.76), (4.7, 5.88),
+         (5.1, 5.95), (6.1, 6.04), (7.0, 6.06), (10.0, 6.06), (12.0, 6.05), (14.1, 5.95), (15.1, 5.90), (16.1, 5.82), (17.1, 5.76),
+         (18.1, 5.66), (19.1, 5.54), (19.6, 5.46)];
 
-    /// <summary>HEC-14 Figure 8.2 USBR Type III curve, LB/y2 against Fr1. Provisional; matches the Ch. 8 example (2.7 at Fr 6.9).</summary>
+    /// <summary>HEC-14 Figure 8.2 USBR Type III curve, LB/y2 against Fr1, digitized (the curve ends near Fr 16.5).</summary>
     public static readonly (double Fr, double Ratio)[] Fig82TypeIII =
-        [(4.5, 2.40), (5.0, 2.45), (6.0, 2.58), (7.0, 2.70), (8.0, 2.75), (10.0, 2.80), (17, 2.80)];
+        [(4.5, 2.19), (5.1, 2.30), (5.5, 2.38), (6.1, 2.46), (7.1, 2.56), (8.1, 2.63), (9.1, 2.69), (10.1, 2.69), (11.1, 2.72),
+         (12.1, 2.74), (13.1, 2.75), (14.1, 2.75), (15.1, 2.74), (16.1, 2.72)];
 
-    /// <summary>HEC-14 Figure 9.14, Ho/WB against Fr for the Type VI basin. Provisional line through the Ch. 9 examples (1.55 at 4.745, 1.68 at 5.065).</summary>
-    public static double Fig914(double fr) => 1.55 + (fr - 4.745) * (0.13 / 0.32);
+    /// <summary>HEC-14 Figure 6.5, jump length L/y1 against Fr1 in a horizontal rectangular channel, digitized.</summary>
+    public static readonly (double Fr, double Ratio)[] Fig65 =
+        [(1, 0), (2, 10), (3, 20), (4, 30), (5, 40), (6, 49.5), (7, 59), (8, 68), (9, 77), (10, 85.5), (11, 94), (12, 102),
+         (13, 110), (14, 117.5), (15, 124), (16, 130)];
 
-    /// <summary>HEC-14 Figure 9.15, HL/Ho against Fr for the Type VI basin. Provisional line through the Ch. 9 examples (0.65 at 4.745, 0.67 at 5.065).</summary>
-    public static double Fig915(double fr) => Math.Clamp(0.65 + (fr - 4.745) * (0.02 / 0.32), 0.2, 0.9);
+    /// <summary>HEC-14 Figure 6.8, jump length in a circular conduit with y2 &lt; D: Lj/y1 = 10·Fr1 (digitized; valid about 1.35–6, "do not extrapolate").</summary>
+    public static double Fig68(double fr) => 10 * fr;
+
+    /// <summary>HEC-14 Figure 4.3 (rectangular outlet) at L = 2B: yA/yo against Fr, digitized (Fr 1–3.2).</summary>
+    public static double Fig43(double fr) => 0.187 + 0.150 * (fr - 1);
+
+    /// <summary>HEC-14 Figure 4.4 (circular outlet) at L = 2D: yA/yo against Fr, digitized (Fr 1–3).</summary>
+    public static double Fig44(double fr) => 0.161 + 0.212 * (fr - 1);
+
+    /// <summary>HEC-14 Figure 9.4 pressure coefficient Cp. Rectangular: 0.70 (Fr 1.3–2.4). Circular: against KuQ/D^2.5 (Ku = 1.0 CU, 1.811 SI), 0.56 to 3.8 then falling to 0.30 at 5.9.</summary>
+    public static double Fig94(bool box, double kuQd) => box ? 0.70 : kuQd <= 3.8 ? 0.56 : Math.Max(0.30, 0.56 - (kuQd - 3.8) * (0.26 / 2.1));
+
+    /// <summary>HEC-14 Figure 9.14, Ho/WB against Fr for the Type VI basin, digitized (Fr 1–7).</summary>
+    public static readonly (double Fr, double Ratio)[] Fig914Curve =
+        [(1, 0.25), (1.5, 0.38), (2, 0.52), (2.5, 0.68), (3, 0.85), (3.5, 1.04), (4, 1.25), (4.5, 1.44), (5, 1.64), (5.5, 1.84),
+         (6, 2.07), (6.5, 2.38), (7, 2.78)];
+
+    /// <summary>HEC-14 Figure 9.15, HL/Ho against Fr for the Type VI basin, digitized (Fr 1.4–7).</summary>
+    public static readonly (double Fr, double Ratio)[] Fig915Curve =
+        [(1.4, 0.31), (2, 0.43), (2.5, 0.49), (3, 0.54), (3.5, 0.575), (4, 0.605), (4.5, 0.635), (5, 0.665), (5.5, 0.69), (6, 0.715),
+         (6.5, 0.74), (7, 0.765)];
+
+    public static double Fig914(double fr) => Curve(Fig914Curve, fr);
+    public static double Fig915(double fr) => Curve(Fig915Curve, fr);
+
+    /// <summary>
+    /// HEC-14 Eq. 9.3 as printed: 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/(2g). Returns the smaller root, or
+    /// NaN when there is none.
+    /// </summary>
+    public static double Eq93(double q, double wo, double wa, double so, double yo, double vo, double g)
+    {
+        double h = yo + 0.25 * vo * vo / (2 * g) - 2 * wo * so;
+        double k = 0.25 * q * q / (wa * wa * 2 * g);
+        double f(double y) => y + k / (y * y);
+        double yMin = Math.Cbrt(2 * k);
+        if (h <= 0 || f(yMin) > h) return double.NaN;
+        double lo = 1e-9 * Math.Max(yMin, 1e-6), hi = yMin;
+        for (int i = 0; i < 200; i++)
+        {
+            double mid = 0.5 * (lo + hi);
+            if (f(mid) > h) lo = mid; else hi = mid;
+        }
+        return 0.5 * (lo + hi);
+    }
 
     /// <summary>Linear interpolation in a curve, held flat beyond its ends.</summary>
     public static double Curve((double X, double Y)[] c, double x)
@@ -455,8 +502,19 @@ public sealed class StillingBasinTool : IDesignTool
             double y2o = Sequent(sec, q, yo, g), e2o = Energy(sec, q, y2o, g);
             double tw = TailwaterAt(q) ?? double.NaN;
             double? lj; string ljNote;
-            if (rect) { lj = Curve(Fig82Free, fro) * y2o; ljNote = "Lj = (LB/y2)·y2, LB/y2 from the HEC-14 Figure 8.2 free-jump curve (provisional digitization, D-327)."; }
-            else if (sec is Circle c) { lj = y2o >= c.D ? 7 * (y2o - yo) : null; ljNote = y2o >= c.D ? "Lj = 7(y2 − y1) since y2 ≥ D (HEC-14 §6.2.2)." : "y2 < D: read Lj/y1 from HEC-14 Figure 6.8 (not available as text)."; }
+            if (rect)
+            {
+                lj = Curve(Fig65, fro) * yo;
+                ljNote = $"Lj = (L/y1)·y1, L/y1 = {Curve(Fig65, fro):F1} from HEC-14 Figure 6.5{(fro > 16 ? " (Fr1 above 16, the end of the figure; held at 130)" : "")}.";
+            }
+            else if (sec is Circle c)
+            {
+                bool inRange = fro >= 1.35 && fro <= 6.0;
+                lj = y2o >= c.D ? 7 * (y2o - yo) : inRange ? Fig68(fro) * yo : null;
+                ljNote = y2o >= c.D ? "Lj = 7(y2 − y1) since y2 ≥ D (HEC-14 §6.2.2)."
+                    : inRange ? "y2 < D: Lj = (Lj/y1)·y1 with Lj/y1 = 10·Fr1 from HEC-14 Figure 6.8."
+                    : $"y2 < D and Fr1 = {fro:F2} is outside Figure 6.8 (about 1.35–6, \"do not extrapolate\"); no length given.";
+            }
             else { lj = 6.9 * (y2o - yo); ljNote = "Trapezoid: HEC-14 gives no length (model tests advised); Lj ≈ 6.9(y2 − y1) is shown as an estimate only."; }
             string position = double.IsNaN(tw) ? "tailwater not given"
                 : tw < 0.98 * y2o ? "TW below y2: the jump is swept downstream; a basin is needed"
@@ -546,7 +604,7 @@ public sealed class StillingBasinTool : IDesignTool
                 [$"HEC-14 §8.1–8.2: y1 from the energy at the floor, E1 = (zo − z1) + yo + Vo²/2g (Eq. 8.2), in a rectangular basin WB = {basinW:G4} {L}; y2 = C·y1/2·(√(1 + 8Fr1²) − 1) (Eq. 8.4).",
                  $"Geometry: LT = (zo − z1)/ST (Eq. 8.5), LS = [LT(ST − So) − LB·So]/(SS + So) (Eq. 8.6), z3 = z1 + LS·SS (Eq. 8.7). ST = {st:G3}, SS = {ss:G3}, So = {so * 100:G3} %. The jump holds when z1 + y2 ≤ z3 + TW.",
                  "C: free jump and Type III 1.0 (Type III may use 0.85 at a minimum), Type IV 1.1, SAF Eq. 8.18 (1.1 − Fr²/120 for 1.7–5.5, 0.85 for 5.5–11, 1.0 − Fr²/800 for 11–17).",
-                 "LB: free jump and Type IV from the Figure 8.2 free-jump curve, Type III from its Figure 8.2 curve (both provisional digitizations, D-327), SAF LB = 4.5·y2/(C·Fr1^0.76) (Eq. 8.19). Total = LT + LB + LS.",
+                 "LB: free jump and Type IV from the Figure 8.2 free-jump curve, Type III from its Figure 8.2 curve (digitized, D-327), SAF LB = 4.5·y2/(C·Fr1^0.76) (Eq. 8.19). Total = LT + LB + LS.",
                  fixedDrop is null ? "floor drop = auto: the least drop that holds the jump for each basin." : $"floor drop = {fixedDrop:G4} {L} for every basin."]));
             if (detail.Count > 0)
                 tables.Add(new("Blocks, baffles and sills (HEC-14 Ch. 8)", ["Basin", "Element", "Count", $"Height ({L})", $"Width ({L})", $"Spacing ({L})", $"Wall gap ({L})", $"Position ({L})", "Notes"], detail,
@@ -750,9 +808,9 @@ public sealed class StillingBasinTool : IDesignTool
                 ["Q per basin", R(qb, 3), Qu], ["Outlet depth (" + o.Basis + ")", R(o.Y, 3), L], ["Flow area A", R(o.A, 3), si ? "m²" : "ft²"],
                 ["Entering velocity Vo", R(o.Vel, 2), V], [box ? "Equivalent depth ye = y (rectangular)" : "Equivalent depth ye = (A/2)^0.5", R(ye, 3), L],
                 ["Fr = Vo/(g·ye)^0.5", R(fr, 2), ""], ["Ho = ye + Vo²/2g", R(ho, 3), L],
-                [hoWbIn is null ? "Ho/WB (Figure 9.14, provisional)" : "Ho/WB (given)", R(hoWb, 3), ""], ["Required width Ho/(Ho/WB)", R(wReq, 2), L],
+                [hoWbIn is null ? "Ho/WB (Figure 9.14)" : "Ho/WB (given)", R(hoWb, 3), ""], ["Required width Ho/(Ho/WB)", R(wReq, 2), L],
                 ["Design WB (Table 9.2)", R(wB, 2), L],
-                [hlIn is null ? "HL/Ho (Figure 9.15, provisional)" : "HL/Ho (given)", R(hl, 3), ""], ["HB = Ho(1 − HL/Ho)", R(hb, 3), L],
+                [hlIn is null ? "HL/Ho (Figure 9.15)" : "HL/Ho (given)", R(hl, 3), ""], ["HB = Ho(1 − HL/Ho)", R(hb, 3), L],
                 ["Exit depth yB, supercritical", R(ySup, 3), L], ["Exit depth yB, subcritical", R(ySub, 3), L],
                 [$"Exit velocity VB ({(useSub ? "subcritical: tailwater sufficient" : "supercritical: low or no tailwater")})", R(vB, 2), V],
             ];
@@ -768,7 +826,7 @@ public sealed class StillingBasinTool : IDesignTool
             if (twImp is { } tw2 && tw2 > h3 + h2 / 2) msgs.Add(CalcMessage.Warning("W-SB-014", $"Tailwater {tw2:F2} {L} is above h3 + h2/2 = {h3 + h2 / 2:F2} {L}, half the baffle; HEC-14 §9.4 advises setting the basin so maximum tailwater stays below that."));
             if (qb * toCfs > 400) msgs.Add(CalcMessage.Warning("W-SB-006", $"{qb * toCfs:F0} cfs per basin is above the 400 cfs (11.3 m³/s) the Type VI basin was tested for (HEC-14 §9.4); set impact basins = 2 or more to place basins side by side."));
             if (o.Vel * toFt > 50) msgs.Add(CalcMessage.Warning("W-SB-007", $"Entering velocity {o.Vel:F1} {V} is above 50 ft/s (15.2 m/s), the HEC-14 limit for the impact basin."));
-            if (hoWbIn is null && (fr < 4.0 || fr > 6.0)) msgs.Add(CalcMessage.Warning("W-SB-015", $"Fr = {fr:F2} is outside 4–6, where the provisional Figure 9.14/9.15 lines are anchored. Read Ho/WB (and HL/Ho) from HEC-14 Figures 9.14 and 9.15 and give impact Ho/WB and impact HL/Ho."));
+            if ((hoWbIn is null && (fr < 1.0 || fr > 7.0)) || (hlIn is null && (fr < 1.4 || fr > 7.0))) msgs.Add(CalcMessage.Warning("W-SB-015", $"Fr = {fr:F2} is beyond the ends of HEC-14 Figure 9.14 (Fr 1–7) or 9.15 (Fr 1.4–7); the end values are held. The Type VI basin is outside its tested range."));
             if (sl is > 27) msgs.Add(CalcMessage.Info("I-SB-010", "The entrance conduit is steeper than 15° (27 %): HEC-14 asks for a horizontal section at least four conduit widths long ahead of the basin (and a vent if a jump forms in a full pipe)."));
             msgs.Add(CalcMessage.Info("I-SB-008", "Type VI (HEC-14 §9.4): not recommended where debris or ice may clog it; a short support under the centre of the baffle adds strength and dissipation."));
             summary.Add($"USBR Type VI impact basin (HEC-14): WB = {wB:G3} {L}, L = {dims[5]:G3} {L}, exit velocity {vB:F1} {V}{(count > 1 ? $" (each of {count} basins)" : "")}.");
@@ -803,15 +861,17 @@ public sealed class StillingBasinTool : IDesignTool
                 return;
             }
             double wo = span, yo = o.Y, vo = o.Vel, fr = vo / Math.Sqrt(g * yo);
-            double gamma = si ? 9810 : 62.4, rho = gamma / g, cp = cpIn ?? 0.7, so = slopePct / 100;
+            double gamma = si ? 9810 : 62.4, rho = gamma / g, so = slopePct / 100;
+            double kuQd = (si ? 1.811 : 1.0) * q / Math.Pow(wo, 2.5);
+            double cp = cpIn ?? Fig94(box, kuQd);
             double vaRatio = box ? 1.65 - 0.3 * fr : 1.65 - 0.45 * q / Math.Sqrt(g * Math.Pow(wo, 5));
             double vaEq = vaRatio * vo;
             if (vaEq <= 0) { msgs.Add(CalcMessage.Error("E-SB-013", $"VA/Vo = {vaRatio:F3} is not positive (Eq. {(box ? "4.1" : "4.2")}); the outlet is beyond the tests.")); return; }
             double wa = wo * (4 / (3 * fr) + 1);   // HEC-14 Eq. 9.3 note, from Eqs. 4.3–4.4 at L = 2Wo
-            // Provisional reading of HEC-14 Eq. 9.3 (D-328): energy from the outlet to 2Wo downstream, a quarter of the outlet velocity head lost.
-            double eA = 2 * wo * so + yo + 0.75 * vo * vo / (2 * g);
-            var aSec = new Trap(wa, 0);
-            double yaEq93 = SupercriticalDepth(aSec, q, eA, g);
+            // HEC-14 Eq. 9.3 as printed (D-328): 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/2g; the supercritical (smaller) root.
+            double yaEq93 = Eq93(q, wo, wa, so, yo, vo, g);
+            if (double.IsNaN(yaEq93) && yaIn is null && (so > 0.10 || ratioText is "auto" or "2" or "3" or "4" or "2-4"))
+                msgs.Add(CalcMessage.Warning("W-SB-016", "HEC-14 Eq. 9.3 as printed has no root for this outlet (the 2Wo·So term exceeds the outlet energy available); the layouts that need it are skipped. Give csu yA to override."));
             var ratios = ratioText == "auto" ? new[] { "2-4", "5", "6", "7", "8" } : [ratioText is "2" or "3" or "4" or "2-4" ? "2-4" : ratioText];
             if (ratios.Any(r => r is not ("2-4" or "5" or "6" or "7" or "8"))) { msgs.Add(CalcMessage.Error("E-SB-014", "expansion ratio must be 2-4, 5, 6, 7, 8 or auto (HEC-14 Table 9.1).")); return; }
             var rows = new List<IReadOnlyList<object?>>();
@@ -825,7 +885,7 @@ public sealed class StillingBasinTool : IDesignTool
                 double wb = wbRatio * wo;
                 bool steep = so > 0.10;
                 double va = steep && !double.IsNaN(yaEq93) ? q / (wa * yaEq93) : vaEq;
-                double ya = yaIn ?? (wbRatio < 4 || steep ? yaEq93 : yo * (box ? 0.19 + (fr - 1) * 0.145 : 0.21 + (fr - 1) * 0.19));
+                double ya = yaIn ?? (wbRatio < 4 || steep ? yaEq93 : yo * (box ? Fig43(fr) : Fig44(fr)));
                 if (double.IsNaN(ya)) continue;
                 // Downstream condition: option 1 (tailwater or normal depth) or a target exit velocity.
                 double vbT = option1 ? q / (wb * twC!.Value) : vbIn!.Value;
@@ -861,8 +921,8 @@ public sealed class StillingBasinTool : IDesignTool
             tables.Add(new("CSU rigid boundary basin (HEC-14 §9.1)", ["WB/Wo", "Rows Nr", "Elements N", "h/yA", "L/h", $"yA ({L})", $"h ({L})", $"Row spacing L ({L})", $"W1 ({L})", "W1/h", $"WB ({L})", "CB", "CB·AF·N provided", "CB·AF·N required", $"Length LB ({L})", "Flare ue", $"Freeboard FB ({L})", $"VB option 2 ({V})", $"yB option 2 ({L})", si ? "Anchor force FA (N)" : "Anchor force FA (lb)", "Result"], rows,
                 [$"Outlet: yo = {yo:F3} {L} ({o.Basis}), Vo = {vo:F2} {V}, Fr = Vo/√(g·yo) = {fr:F2}; VA = {vaEq:F2} {V} (Eq. {(box ? "4.1" : "4.2")}){(so > 0.10 ? "; slope above 10 %, so VA and yA come from Eq. 9.3" : "")}.",
                  option1 ? $"Option 1 (HEC-14 Step 5): the basin exit is held at the tailwater depth {twC:F3} {L}, VB = Q/(WB·TW); required CB·AF·N from Eq. {(so > 0.10 ? "9.2" : "9.1")} must not exceed the basin's." : $"Exit velocity VB = {vbIn:G4} {V} as given; required CB·AF·N from Eq. {(so > 0.10 ? "9.2" : "9.1")}.",
-                 $"Eq. 9.1: ρVoQ + Cp·γ·yo²·Wo/2 = CB·AF·N·ρVA²/2 + ρVBQ + γQ²/(2VB²WB); Cp = {cp:G3}{(cpIn is null ? " (Figure 9.4 not available as text; 0.7 as in the HEC-14 example, D-327)" : " (given)")}. Option 2 solves it for VB with the basin's own drag (the larger, supercritical root) and yB = Q/(WB·VB); blank where the basin's drag exceeds what the flow can supply at critical depth, so the exit is subcritical and tailwater controls.",
-                 yaIn is { } yg ? $"yA = {yg:G4} {L} as given." : "yA: WB/Wo 4–8 from Figures 4.3/4.4 at 2Wo (the IDCM Eq. 4-9-6/4-9-7 lines stand in until the figures are digitized, D-327); WB/Wo < 4 from Eq. 9.3 (provisional reading, D-328). Give csu yA read from the figure to override.",
+                 $"Eq. 9.1: ρVoQ + Cp·γ·yo²·Wo/2 = CB·AF·N·ρVA²/2 + ρVBQ + γQ²/(2VB²WB); Cp = {cp:G3}{(cpIn is null ? (box ? " (Figure 9.4a, rectangular)" : $" (Figure 9.4b at KuQ/D^2.5 = {kuQd:F2}{(kuQd > 6 ? ", beyond the data; 0.30 held" : "")})") : " (given)")}. Option 2 solves it for VB with the basin's own drag (the larger, supercritical root) and yB = Q/(WB·VB); blank where the basin's drag exceeds what the flow can supply at critical depth, so the exit is subcritical and tailwater controls.",
+                 yaIn is { } yg ? $"yA = {yg:G4} {L} as given." : (box ? $"yA: WB/Wo 4–8 from Figure 4.3 at L = 2Wo, yA/yo = 0.187 + 0.150(Fr − 1) = {Fig43(fr):F3}" : $"yA: WB/Wo 4–8 from Figure 4.4 at L = 2D, yA/yo = 0.161 + 0.212(Fr − 1) = {Fig44(fr):F3}") + "; WB/Wo < 4 and slopes above 10 % from Eq. 9.3 as printed (D-328). Give csu yA to override.",
                  "LB = 2Wo + L·Nr; W1/h 2–8; element spacing ≈ W1 and never under 0.75·W1; at least half the rows need an element near the wall; alternate rows staggered. Flare ue = 4/7 + (10/7)L/Wo (Eq. 9.5). Freeboard FB = h + yA + 0.5(VA·sin45°)²/g (Eq. 9.4).",
                  "Table 9.1's circular 2–4 / 6-row column is printed upside down; it is used reversed (D-321)."]));
             if (best is { } bst)

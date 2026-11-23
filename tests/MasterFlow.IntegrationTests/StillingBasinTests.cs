@@ -39,7 +39,8 @@ public class StillingBasinTests
         Assert.Equal(fr, (double)Item(r, "Hydraulic jump", "Froude")!, 2);
         Assert.Equal(y2, (double)Item(r, "Hydraulic jump", "Sequent")!, 3);
         Assert.Equal(Math.Pow(y2 - 1, 3) / (4 * y2), (double)Item(r, "Hydraulic jump", "Energy loss")!, 3);
-        Assert.Equal(StillingBasinTool.Curve(StillingBasinTool.Fig82Free, fr) * y2, (double)Item(r, "Hydraulic jump", "Jump length")!, 2);
+        // Figure 6.5: L/y1 = 40 at Fr1 5, 49.5 at 6.
+        Assert.Equal((40 + 9.5 * (fr - 5)) * 1, (double)Item(r, "Hydraulic jump", "Jump length")!, 2);
         Assert.Equal("steady", Item(r, "Hydraulic jump", "Jump type"));
         Assert.StartsWith("TW ≈ y2", (string)Item(r, "Hydraulic jump", "Jump position")!);
     }
@@ -80,7 +81,9 @@ public class StillingBasinTests
         Assert.InRange(y2, 5.2, 5.8);
         var r = Ok("Q = 200\ndiameter = 7\ny1 = 2.4");
         Assert.Equal(y2, (double)Item(r, "Hydraulic jump", "Sequent")!, 3);
-        Assert.Null(Item(r, "Hydraulic jump", "Jump length"));   // y2 < D: needs Figure 6.8
+        double fr1 = (double)Item(r, "Hydraulic jump", "Froude")!;
+        Assert.InRange(fr1, 1.35, 6);
+        Assert.Equal(10 * fr1 * 2.4, (double)Item(r, "Hydraulic jump", "Jump length")!, 1);   // y2 < D: Figure 6.8, Lj/y1 = 10·Fr1
     }
 
     [Fact]
@@ -104,13 +107,14 @@ public class StillingBasinTests
     public void TypeIIIBasin_Hec14Example()
     {
         // HEC-14 §8.3 (CU): z1 = 87.5 → y1 = 1.04, Fr1 = 6.9, y2 = 9.64, LB = 26.0, LS = 16.3; 5 chute blocks 1.0 ft,
+        // The example reads LB/y2 = 2.7 at Fr1 6.9; the printed Figure 8.2 Type III curve gives 2.54, so LB ≈ 24.6 here.
         // 4 baffles h3 = 1.8 at 1.3 ft, end sill 1.5 ft.
         var r = Ok(Hec14Ch8 + "floor drop = 12.5");
         var b = Basin(r, "USBR Type III");
         Assert.Equal(1.04, (double)b[4]!, 2);
         Assert.Equal(6.9, (double)b[6]!, 1);
         Assert.InRange((double)b[9]!, 9.6, 9.75);
-        Assert.InRange((double)b[14]!, 25.5, 26.5);
+        Assert.InRange((double)b[14]!, 24.2, 25.0);
         Assert.InRange((double)b[15]!, 16.0, 16.5);
         var chute = Element(r, "USBR Type III", "Chute blocks");
         Assert.Equal(5, chute[2]);
@@ -306,7 +310,7 @@ public class StillingBasinTests
         double req = (rho * vo * 180 + 0.7 * 62.4 * 1.5 * 1.5 * 4 / 2 - rho * 6 * 180 - 62.4 * 180 * 180 / (2 * 36 * wb)) / (rho * va * va / 2);
         var t = r.Tables.Single(x => x.Title.StartsWith("CSU"));
         Assert.All(t.Rows, row => Assert.Equal(req, (double)row[13]!, 2));
-        double ya = 1.5 * (0.19 + (fr - 1) * 0.145);
+        double ya = 1.5 * (0.187 + (fr - 1) * 0.150);   // Figure 4.3 at L = 2B
         var first = t.Rows.First(row => (double)row[3]! == 0.91 && (int)row[1]! == 4);
         Assert.Equal(ya, (double)first[5]!, 3);
         Assert.Equal(0.31 * 0.60 * 4 * 0.91 * ya * 17, (double)first[12]!, 2);   // CB · W1 · h · N
@@ -318,6 +322,35 @@ public class StillingBasinTests
             double resid = rho * vo * 180 + 0.7 * 62.4 * 2.25 * 4 / 2 - prov * rho * va * va / 2 - rho * vb2 * 180 - 62.4 * 180 * 180 / (2 * vb2 * vb2 * wb);
             Assert.InRange(resid / (rho * vo * 180), -0.01, 0.01);
         }
+    }
+
+    [Fact]
+    public void DigitizedFigures_MatchHec14Examples()
+    {
+        // Figure 9.14/9.15 against the Ch. 9 Type VI examples: Ho/WB 1.55 at Fr 4.74 and 1.68 at 5.07.
+        Assert.InRange(StillingBasinTool.Fig914(4.74), 1.53, 1.57);
+        Assert.InRange(StillingBasinTool.Fig914(5.07), 1.66, 1.70);
+        Assert.InRange(StillingBasinTool.Fig915(4.74), 0.64, 0.66);
+        // Figure 8.2 free jump ≈ 6.1 at the §8.2 example's Fr1 7.6.
+        Assert.InRange(StillingBasinTool.Curve(StillingBasinTool.Fig82Free, 7.6), 6.0, 6.1);
+        // Figure 4.3 at Fr 2.1 against the §9.1 example's 0.33 read from the chart.
+        Assert.InRange(StillingBasinTool.Fig43(2.1), 0.33, 0.36);
+        // Figure 9.4: rectangular 0.70; circular 0.56 to KuQ/D^2.5 = 3.8, then down to 0.30.
+        Assert.Equal(0.70, StillingBasinTool.Fig94(true, 5), 9);
+        Assert.Equal(0.56, StillingBasinTool.Fig94(false, 2), 9);
+        Assert.Equal(0.30, StillingBasinTool.Fig94(false, 5.9), 2);
+    }
+
+    [Fact]
+    public void Eq93_AsPrinted()
+    {
+        // 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/2g.
+        double q = 180, wo = 4, so = 0.12, yo = 1.5, vo = 30, fr = vo / Math.Sqrt(G * yo), wa = wo * (4 / (3 * fr) + 1);
+        double ya = StillingBasinTool.Eq93(q, wo, wa, so, yo, vo, G);
+        double lhs = 2 * wo * so + ya + 0.25 * Math.Pow(q / (wa * ya), 2) / (2 * G), rhs = yo + 0.25 * vo * vo / (2 * G);
+        Assert.Equal(rhs, lhs, 6);
+        Assert.True(ya < Math.Cbrt(2 * 0.25 * q * q / (wa * wa * 2 * G)));   // smaller root
+        Assert.True(double.IsNaN(StillingBasinTool.Eq93(q, wo, wa, 2.0, yo, vo, G)));
     }
 
     [Fact]
