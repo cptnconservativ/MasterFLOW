@@ -35,6 +35,7 @@ public static class PremiumFeatures
         new("field-to-model", "Field-to-model: as-built survey and photos update the network, HGL certification", ["field-to-model"]),
         new("inverse-design", "Inverse design (largest or smallest input that still meets the criteria)", ["inverse-design"]),
         new("submittal-precheck", "Plan-review pre-checker: drainage report and plans against Rapid City criteria", ["submittal-precheck"]),
+        new("memory-search", "Institutional memory search (past projects, calcs and review letters)", ["memory-search"]),
         new("redesign-diff", "What changed? Redesign diff: re-runs every calculation and lists new failures and margin changes", ["redesign-diff"]),
         new("site-feasibility", "Site feasibility: public data, lot yield, drainage concept, cost range and go/no-go", ["site-feasibility"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
