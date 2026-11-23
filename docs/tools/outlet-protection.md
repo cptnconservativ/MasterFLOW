@@ -61,8 +61,8 @@ Froude number is Fr = Vo/√(g·ye) (HEC-14).
   (e.g. an available gradation) can be fixed under `[Basin stone]`.
 - **D-121** Widths follow the IDCM §4.9.5 rule (3·D at the outlet, 3:1 flare), for the apron as well as the basin. That
   is the local criterion, and it governs over HEC-14 per the project's precedence.
-- **D-122** Not sized here: the USBR Type VI and CSU impact basins and the downstream jet-decay riprap length for
-  TW/ye > 0.75. Each depends on tables or figures that could not be obtained as text: IDCM Table 4-15 / Figure 4-17,
+- **D-122** Not sized here: the downstream jet-decay riprap length for TW/ye > 0.75. (The USBR Type VI and CSU basins
+  are now sized in [stilling-basin.md](stilling-basin.md), from IDCM Table 4-15 and Figure 4-17 read off the page images.) Each depends on tables or figures that could not be obtained as text: IDCM Table 4-15 / Figure 4-17,
   HEC-14 Table 9.2 and Figure 10.x. The tool flags where each is needed. For a box apron, D is taken as (A/2)^0.5 of
   the full barrel. This should be checked against the HEC-14 Chapter 10 text when it is available.
 

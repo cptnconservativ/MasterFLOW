@@ -35,6 +35,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
 | Culvert analysis | FHWA HDS-5 (2012), IDCM §4.7 | [culverts.md](culverts.md) |
 | Outlet protection: riprap apron, riprap basin, plunge pool | FHWA HEC-14 (2006) §10, IDCM §4.9 | [outlet-protection.md](outlet-protection.md) |
+| Hydraulic jump and stilling basins: USBR Type I–IV, SAF, Type VI impact, CSU roughness | USBR EM-25, HEC-14, IDCM §4.9.2, §4.9.6, Table 4-15, Figure 4-17 | [stilling-basin.md](stilling-basin.md) |
 | ★ Batch scenarios | Any tool or the network HGL, side by side | [batch-scenarios.md](batch-scenarios.md) |
 | ★ Cost estimate and bid tabulation | Network takeoff, your prices and bids | [cost-estimate.md](cost-estimate.md) |
 | ★ Water quality and LID sizing | Rapid City Storm Water Quality Manual (2009) via IDCM §4.1.7; MHFD USDCM Vol. 3 option | [water-quality.md](water-quality.md) |
