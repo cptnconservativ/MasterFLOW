@@ -30,7 +30,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Multi-stage outlet designer | IDCM §4.10, SWQM 2009 §2.3.2 | [outlet-designer.md](outlet-designer.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
 | Channel water surface profile and lining checks | IDCM §4.8, Table 4-14; HEC-15; Chow (1959) | [channel-profile.md](channel-profile.md) |
-| ★ Natural channel water surface profiles (surveyed cross-sections, several flows) | HEC-RAS Hydraulic Reference Manual Ch. 2 (energy method, conveyance subdivision, mixed regime) | [river-profile.md](river-profile.md) |
+| ★ Natural channel water surface profiles and bridges (surveyed cross-sections, several flows) | HEC-RAS Hydraulic Reference Manual Ch. 2 and 5 (energy method, conveyance subdivision, mixed regime; bridge energy, Yarnell, pressure and weir flow) | [river-profile.md](river-profile.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | ★ Review comment tracker and response letter | Agency review rounds; network results; IDCM §4.6 plan review | [review-comments.md](review-comments.md) |
 | ★ Plan and profile sheets (DXF) with HGL and EGL | Network solution; IDCM §4.6.7 clearance | [plan-profile-dxf.md](plan-profile-dxf.md) |
