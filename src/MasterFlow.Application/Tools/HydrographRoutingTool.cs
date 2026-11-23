@@ -7,7 +7,7 @@ namespace MasterFlow.Application.Tools;
 
 /// <summary>
 /// Hydrograph network routing (Premium): design storms (Rapid City IDCM Table 4-2 frequency storm, NRCS Type II, or entered
-/// rainfall), losses (NRCS curve number or Green–Ampt with IDCM Table 4-4 soils), NRCS dimensionless unit hydrograph with
+/// rainfall), losses (NRCS curve number or Green–Ampt with Rawls (1983) or IDCM Table 4-4 soils), NRCS dimensionless unit hydrograph with
 /// TR-55 time of concentration, Muskingum–Cunge routing through pipes and channels, and level-pool routing through ponds
 /// (the detention tool's stage–storage and outlet works). Peak flows can be written to the selected storm network.
 /// </summary>
@@ -15,7 +15,7 @@ public sealed partial class HydrographRoutingTool : IDesignTool
 {
     public string Id => "hydrograph-routing";
     public string Name => "Hydrograph network routing (NRCS UH, TR-55)";
-    public string Description => "Runoff hydrographs for every subbasin (NRCS dimensionless unit hydrograph, lag = 0.6 tc, tc from TR-55 flow paths or entered; NRCS curve number or Green–Ampt losses with IDCM Table 4-4 soils) under the Rapid City frequency storms (IDCM §4.3.2, Table 4-2, peak at the first quartile), NRCS Type II or your own rainfall; routed through pipes and channels by Muskingum–Cunge (IDCM §4.3.8) and through ponds by storage indication (§4.3.9). With a storm network open and no [Reaches], its pipes are the reaches; Apply writes the routed peak flows into the pipes.";
+    public string Description => "Runoff hydrographs for every subbasin (NRCS dimensionless unit hydrograph, lag = 0.6 tc, tc from TR-55 flow paths or entered; NRCS curve number or Green–Ampt losses with Rawls et al. (1983) soils, or IDCM Table 4-4 by choice) under the Rapid City frequency storms (IDCM §4.3.2, Table 4-2, peak at the first quartile), NRCS Type II or your own rainfall; routed through pipes and channels by Muskingum–Cunge (IDCM §4.3.8) and through ponds by storage indication (§4.3.9). With a storm network open and no [Reaches], its pipes are the reaches; Apply writes the routed peak flows into the pipes.";
     public bool UsesNetwork => true;
 
     private const double G = 32.174;
@@ -33,7 +33,7 @@ public sealed partial class HydrographRoutingTool : IDesignTool
         return Header + """
 
             [Subbasins]
-            # Losses: CN, or Green–Ampt from Soil (IDCM Table 4-4 class) or Ks/Suction; Ia (in), Deficit, Impervious (%) or MIA (%, Sutherland EIA).
+            # Losses: CN, or Green–Ampt from Soil (a Rawls / IDCM Table 4-4 class, see "soil table") or Ks/Suction; Ia (in), Deficit, Impervious (%) or MIA (%, Sutherland EIA).
             # Tc (min), Lag (min), or blank Tc with rows under [Tc flow paths].
             Name	Node	Area (ac)	CN	Soil	Ia (in)	Deficit	Impervious (%)	Tc (min)
             North	J1	18	78
@@ -84,6 +84,7 @@ public sealed partial class HydrographRoutingTool : IDesignTool
         storms = 2, 10, 100
         rainfall = rapid-city
         storm duration = 120      # min (rapid-city: 60 to 1440)
+        soil table = rawls        # Green–Ampt soils: rawls (Rawls et al. 1983, default) or idcm (Rapid City IDCM Table 4-4)
         time step = 1             # min, computation step
         simulation = 480          # min, total time simulated (≥ storm duration)
         # With a storm network open: routed peaks go into the pipes on Apply.
@@ -337,6 +338,10 @@ public sealed partial class HydrographRoutingTool : IDesignTool
     private static List<Subbasin> ParseSubbasins(ToolInput p, List<CalcMessage> msgs, out List<IReadOnlyList<object?>> tcRows)
     {
         tcRows = [];
+        string table = (p.Text("soil table") ?? "rawls").Trim().ToLowerInvariant();
+        bool useIdcm = table.StartsWith("idcm") || table.Contains("rapid");
+        if (!useIdcm && !table.StartsWith("rawls")) msgs.Add(CalcMessage.Warning("W-HR-004", $"soil table = {table} is not rawls or idcm; Rawls et al. (1983) used."));
+        var soils = useIdcm ? Losses.RapidCitySoils : Losses.RawlsSoils;
         var head = p.Header("Subbasins");
         var rows = p.Rows("Subbasins");
         if (rows.Count == 0) { msgs.Add(CalcMessage.Error("E-HR-010", "[Subbasins] is empty: Name, Node, Area (ac), then CN or Green–Ampt columns and Tc (min).")); return []; }
@@ -372,10 +377,16 @@ public sealed partial class HydrographRoutingTool : IDesignTool
             {
                 if (soil is not null)
                 {
-                    if (!Losses.RapidCitySoils.TryGetValue(soil, out var sp)) { msgs.Add(CalcMessage.Error("E-HR-013", $"{where}: soil \"{soil}\" is not an IDCM Table 4-4 class ({string.Join(", ", Losses.RapidCitySoils.Keys)}).")); continue; }
+                    if (!soils.TryGetValue(soil, out var sp)) { msgs.Add(CalcMessage.Error("E-HR-013", $"{where}: soil \"{soil}\" is not a Green–Ampt soil class ({string.Join(", ", soils.Keys)}).")); continue; }
+                    // Both tables are shown where they differ, so a reviewer on either basis can follow the number used.
+                    var other = useIdcm ? Losses.RawlsSoils[soil] : Losses.RapidCitySoils[soil];
+                    if (ks is null && Math.Abs(other.Ks - sp.Ks) > 1e-9)
+                        msgs.Add(CalcMessage.Info("I-HR-014", useIdcm
+                            ? $"{where}: {soil} Ks = {sp.Ks:G3} in/h from IDCM Table 4-4 (used); Rawls et al. (1983) gives {other.Ks:G3} in/h. The IDCM lists the loam and silt loam conductivities the other way round from Rawls."
+                            : $"{where}: {soil} Ks = {sp.Ks:G3} in/h from Rawls et al. (1983) (used); Rapid City IDCM Table 4-4 lists {other.Ks:G3} in/h. Set soil table = idcm for a Rapid City submittal that follows the IDCM table."));
                     ks ??= sp.Ks; suc ??= sp.Suction;
                 }
-                if (ks is not > 0 || suc is not >= 0) { msgs.Add(CalcMessage.Error("E-HR-014", $"{where}: give a CN, or Green–Ampt Ks (in/h) and suction (in) or an IDCM Table 4-4 soil.")); continue; }
+                if (ks is not > 0 || suc is not >= 0) { msgs.Add(CalcMessage.Error("E-HR-014", $"{where}: give a CN, or Green–Ampt Ks (in/h) and suction (in) or a soil class.")); continue; }
                 if (def is null) msgs.Add(CalcMessage.Info("I-HR-010", $"{where}: moisture deficit not given; 0.20 used (IDCM §4.3.6: 0.15 to 0.25)."));
                 if (ia is null) msgs.Add(CalcMessage.Info("I-HR-011", $"{where}: initial abstraction not given; 0.35 in used (IDCM Table 4-3, lawn and grass)."));
                 loss = "GA";

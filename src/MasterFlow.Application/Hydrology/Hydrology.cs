@@ -141,7 +141,24 @@ public static class Losses
         return r;
     }
 
-    /// <summary>Rapid City IDCM 2012 Table 4-4 Green–Ampt soil parameters: suction head (in) and Ks (in/h) by soil class.</summary>
+    /// <summary>
+    /// Green–Ampt soil parameters of Rawls, Brakensiek and Miller (1983), as reprinted in Chow, Maidment and Mays (1988)
+    /// Table 4.3.1: suction head (in), Ks (in/h) and effective porosity by soil class. The default soil table.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, (double Suction, double Ks, double EffPorosity)> RawlsSoils =
+        new Dictionary<string, (double, double, double)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sand"] = (1.949, 4.638, 0.417), ["loamy sand"] = (2.413, 1.177, 0.401), ["sandy loam"] = (4.335, 0.429, 0.412),
+            ["loam"] = (3.500, 0.134, 0.434), ["silt loam"] = (6.567, 0.256, 0.486), ["sandy clay loam"] = (8.602, 0.059, 0.330),
+            ["clay loam"] = (8.220, 0.039, 0.309), ["silty clay loam"] = (10.748, 0.039, 0.432), ["sandy clay"] = (9.409, 0.024, 0.321),
+            ["silty clay"] = (11.504, 0.020, 0.423), ["clay"] = (12.453, 0.012, 0.385),
+        };
+
+    /// <summary>
+    /// Rapid City IDCM 2012 Table 4-4 Green–Ampt soil parameters: suction head (in) and Ks (in/h) by soil class. Same as
+    /// <see cref="RawlsSoils"/> except that the IDCM prints the loam and silt loam conductivities the other way round
+    /// (loam 0.65 cm/h, silt loam 0.34 cm/h).
+    /// </summary>
     public static readonly IReadOnlyDictionary<string, (double Suction, double Ks, double EffPorosity)> RapidCitySoils =
         new Dictionary<string, (double, double, double)>(StringComparer.OrdinalIgnoreCase)
         {
