@@ -43,6 +43,7 @@ public static class PremiumFeatures
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
         new(Civil3DExport, "Civil 3D export: LandXML pipe network and HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…)", []),
         new("review-comments", "Review comment tracker and response letter", ["review-comments"]),
+        new("river-profile", "Natural channel water surface profiles (HEC-RAS method, surveyed cross-sections)", ["river-profile"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
