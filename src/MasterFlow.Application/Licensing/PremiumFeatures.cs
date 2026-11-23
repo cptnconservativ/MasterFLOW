@@ -29,6 +29,7 @@ public static class PremiumFeatures
         new("outlet-designer", "Multi-stage detention outlet designer (WQCV plate, 2-, 10-, 100-yr stages)", ["outlet-designer"]),
         new("plan-profile-dxf", "Plan and profile DXF sheets with HGL and EGL", ["plan-profile-dxf"]),
         new("plan-review", "Storm network plan review (Rapid City IDCM §4.6)", ["network-plan-review"]),
+        new("field-to-model", "Field-to-model: as-built survey and photos update the network, HGL certification", ["field-to-model"]),
         new("inverse-design", "Inverse design (largest or smallest input that still meets the criteria)", ["inverse-design"]),
         new("submittal-precheck", "Plan-review pre-checker: drainage report and plans against Rapid City criteria", ["submittal-precheck"]),
         new("redesign-diff", "What changed? Redesign diff: re-runs every calculation and lists new failures and margin changes", ["redesign-diff"]),
