@@ -128,3 +128,39 @@ Qfull 48.467 cfs, plot drawn to true scale. Fixed in this pass: the "Vertical (V
 5. **Irregular I5 wetted regions** first returned 1 instead of 2: two partly wet segments meeting at a dry
    ridge crest were counted as touching. Fixed in the engine (a region continues only if wet pieces
    actually touch); the reference value was unchanged.
+
+## Design tools method review (2026-11-23)
+
+Each tool's sample was run and its printed results re-computed by hand from the published equation. The governing
+source is noted in each line. Rapid City precedence: IDCM 2012, then the SWQM 2009, then the Drainage Criteria Manual.
+
+| Tool | Hand check | Result |
+|---|---|---|
+| Rational method | ti = 1.87(1.1 − C5)√L·S^−0.33 (IDCM Eq. 4-2-4): A1 8.39 min. Table 4-2 log-log i10 at 14.63 min 4.20 in/h. Gutter V = (1.12/n)Sx^0.67 S^0.5 T^0.67 1.85 ft/s. Full pipe V 4.71 ft/s. Urban cap L/180 + 10 | Agrees |
+| Gutter spread and inlets | Eq. 4-4-1 T = 11.25 ft. HEC-22 curb LT = 21.0 ft with Se = Sx + S'w·Eo, Eo = 1 − (1 − W/T)^2.67 (uniform section). E = 0.687. Grate Eo 0.401, Rs 0.072, E 0.444. Sag weir/orifice coefficients (2.3, 3.0, 0.67) | Agrees |
+| Street capacity | Composite-gutter Eo (HEC-22 Eq. 4-4) 0.4594 at T = 12 ft, Q/√S 44.05 | Agrees |
+| Sag ponding | Flanking inlet X = (200·d·K)^0.5 = 41.4 ft (IDCM Eq. 4-5-2) | Agrees |
+| Culvert (HDS-5) | Submerged inlet c = 0.0398, Y = 0.67, Ks = −0.5: HW/D 1.575. Kf = 2g n²L/(k²R^4/3) 0.839. Outlet ho = (dc + D)/2, HWo 5.964 ft | Agrees |
+| Detention routing | Circular orifice to centroid 2.711 cfs. Rectangular orifice as weir below its crown 0.527 cfs. Riser weir 9.996 cfs. Trapezoidal spillway C(Lh^1.5 + 0.8zh^2.5) 19.86 cfs. Frustum storage. Modified Puls | Agrees |
+| TR-55 | Table F-1 Type II qu at Ia/P 0.24, Tc 0.635 h: 407.9 csm/in. qp 27.4 cfs. Fp 0.9325 at 0.5 % ponding. Fig. 2-4 CN 73.35. Sheet flow Eq. 3-3 | Agrees |
+| Hydrograph routing | IDCM §4.3.2 storm: 5-min step, peak at the first quartile. Green–Ampt parameters equal IDCM Table 4-4 | Agrees with the IDCM. See the note below |
+| Water quality | SWQM Eq.: WQCV = 1.16·a·(0.91I³ − 1.191I² + 0.78I), I = 0.65 → 0.2943 in. EDB 40 h plate | Agrees |
+| Erosion and sediment | RUSLE (AH 703) β, m, L, S: Lots 1-12 m = 0.361, L = 1.388, S = 0.462, A = 8.2 t/ac/yr. 50 % slope S = 7.013 | Agrees |
+| Outlet protection | Basin hs/ye = 0.86(D50/ye)^−0.55·Fr − C0 reproduces the HEC-14 5 × 5 ft example. Plunge pool IDCM Eq. 4-9-1 | Agrees after the fix below |
+| Stilling basins | Bélanger y2 5.21 ft, Lj = 6.9(y2 − y1), SAF tailwater and length (Blaisdell, HEC-14 Ch. 8) | Agrees |
+| Bridge scour (HEC-18) | Vc = 11.17·y^(1/6)·D50^(1/3) 2.96 ft/s. Live-bed y2 11.99 ft. Rubey fall velocity 0.472 ft/s. CSU pier 7.97 ft, K2 1.917. Froehlich 11.73 ft, HIRE 7.64 ft | Agrees |
+| Flood frequency (17C) | MGBT outward (α 0.005) and inward (α 0.10) sweeps on the sample give 2 PILFs | Agrees |
+| Channel profile, backwater | Standard-step energy balance between rows. HEC-15 D50 = SF·τd/(F*(γs − γ)) with F* 0.047, SF 1.0 (the conservative pair) | Agrees |
+| Pond storage from a TIN | Exact clipped-prism volume equals the conic method on the same areas (0.00 %) | Agrees |
+
+### Fixed in this pass
+1. **Riprap apron, box culverts (HEC-14).**
+   - D in D50 = 0.2·D·(Q/(√g·D^2.5))^(4/3)·(D/TW) was taken as (A/2)^0.5 of the *full barrel*.
+   - HEC-14 uses the flow area at the outlet. Its worked 5 × 5 ft box gives ye = 2.32 ft from yo = 2.15 ft.
+   - At the TW = 0.4·D limit, D50 ∝ D^−7/3. The larger D therefore *under*-sized the stone: 36.4 in. against the corrected value for the sample.
+   - Circular outlets were already right.
+2. **Report numbers from 1,000 up showed one decimal.** Elevations near 3,255 ft printed as "3255" or "3255.1". They now keep two decimals (0.01 ft) up to 100,000.
+
+### For the engineer's attention, not changed
+- **IDCM Table 4-4 (Green–Ampt).** It lists loam K = 0.65 cm/h and silt loam K = 0.34 cm/h. Rawls et al. (1983), which the table reproduces, gives loam 0.34 and silt loam 0.65 (the two are swapped). MasterFlow follows the IDCM, the governing document. A silt-loam basin therefore gets the lower conductivity and more runoff (conservative), and a loam basin the higher one. Override Ks in the input if your reviewer follows Rawls.
+- **The multi-stage outlet designer sample does not meet the 72 h drain time (93.8 h).** The tool reports this as NO. It is a property of the sample's small WQ plate and orifice, not of the method.
