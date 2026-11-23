@@ -37,6 +37,7 @@ public static class PremiumFeatures
         new("site-feasibility", "Site feasibility: public data, lot yield, drainage concept, cost range and go/no-go", ["site-feasibility"]),
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
         new(Civil3DExport, "Civil 3D export: LandXML pipe network and HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…)", []),
+        new("review-comments", "Review comment tracker and response letter", ["review-comments"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
