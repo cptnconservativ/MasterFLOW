@@ -60,7 +60,7 @@ sewer outfall, by **FHWA HEC-14, 3rd edition (2006)**, the reference the Rapid C
   same step the rectangular columns show; read top to bottom it runs against every other column. The column is used
   reversed (0.18, 0.25, 0.34, 0.40, 0.48). Circular with WB/Wo = 8 is blank in both.
 - **D-322** Kyle (2026-11-23): HEC-14 is the reference for this tool, ahead of the IDCM, which is based on it. The
-  USBR Type II basin is not in HEC-14 and was removed (pending Kyle's answer; see the PR). The Type III baffle and
+  USBR Type II basin is not in HEC-14 and was removed (Kyle, 2026-11-23). The Type III baffle and
   sill and the Type IV blocks use the HEC-14 equations, which replace the earlier EM-25 curve fits.
 - **D-323** Eq. 9.1 (IDCM Eq. 4-9-3, garbled in the IDCM text) has the pressure term Cp·γ·yo²·Wo/2; HEC-14 prints it.
 - **D-324** For WB/Wo < 4, HEC-14 Step 3 takes yA from Eq. 9.3 (energy from the outlet to two widths downstream),
