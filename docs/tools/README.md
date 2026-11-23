@@ -46,6 +46,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ What changed? Redesign diff | Re-runs every network, channel and tool for two versions | [redesign-diff.md](redesign-diff.md) |
 | ★ Site feasibility: lot yield, drainage concept, cost range, go/no-go | FEMA NFHL, NRCS SSURGO, USGS 3DEP, NOAA Atlas 14, RCMC Title 17, TR-55, SWQM | [site-feasibility.md](site-feasibility.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
+| ★ Construction-phase companion | Checks submittals (pipe, castings, riprap) and RFIs against the design, re-solves the network for each change, and drafts the response letter. [construction-companion.md](construction-companion.md) |
 | ★ Institutional memory search: past projects, calcs and review letters | Your project folders; runs on the computer | [memory-search.md](memory-search.md) |
 | ★ Permit and approval tracker: critical path to construction | Rapid City, Pennington County, SD DANR, USACE, FEMA, SDDOT approvals | [permit-tracker.md](permit-tracker.md) |
 | ★ Utility conflict finder: 3D clashes and separation rules | Ten States Standards §38.3; your separation rules | [utility-conflicts.md](utility-conflicts.md) |
