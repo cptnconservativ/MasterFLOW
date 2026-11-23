@@ -133,8 +133,10 @@ public sealed class OutletProtectionTool : IDesignTool
             double fr = vo / Math.Sqrt(g * ye);
             cond.Add([o.Name, o.Box ? $"Box {o.Span:G4} × {o.Rise:G4}" : $"Circular {o.Span:G4}", o.Q, R(yc, 3), double.IsNaN(yn) ? null : R(yn, 3), R(yo, 3), basis, R(vo, 2), R(ye, 3), R(fr, 2), o.Tw]);
 
-            // Riprap apron, HEC-14 §10.1: D50 = 0.2 D (Q / (√g D^2.5))^(4/3) (D / TW), 0.4 D ≤ TW ≤ D; D = ye for a box.
-            double dA = o.Box ? Math.Sqrt(o.Span * o.Rise / 2) : o.Span;
+            // Riprap apron, HEC-14 §10.1: D50 = 0.2 D (Q / (√g D^2.5))^(4/3) (D / TW), 0.4 D ≤ TW ≤ D; for a box D = ye = (A/2)^0.5
+            // with A the FLOW area at the outlet (yo × span), as in HEC-14's worked 5 × 5 ft box (yo 2.15 ft → ye 2.32 ft).
+            // The full-barrel area overstated D for a part-full box and, since D50 ∝ D^-7/3 at the TW limit, undersized the stone.
+            double dA = o.Box ? Math.Sqrt(ao / 2) : o.Span;
             double tw = Math.Clamp(o.Tw ?? 0.4 * dA, 0.4 * dA, dA);
             double d50 = 0.2 * dA * Math.Pow(o.Q / (Math.Sqrt(g) * Math.Pow(dA, 2.5)), 4.0 / 3) * (dA / tw);
             double d50In = si ? d50 * 1000 : d50 * 12;
@@ -216,7 +218,7 @@ public sealed class OutletProtectionTool : IDesignTool
             tables.Add(new("Outlet conditions", ["Outlet", "Barrel", $"Q ({Qu})", $"yc ({L})", $"yn ({L})", $"yo ({L})", "yo basis", $"Vo ({V})", $"ye ({L})", "Fr", $"TW ({L})"], cond,
                 ["ye = yo for a box; ye = (A/2)^0.5 for a circular outlet (HEC-14). Fr = Vo/√(g·ye).", "A steep barrel flows at normal depth; a mild one at critical depth, or the tailwater up to the crown."]));
             tables.Add(new("Riprap apron (HEC-14 §10.1)", ["Outlet", $"D ({L})", $"TW used ({L})", $"D50 req. ({(si ? "mm" : "in.")})", "Class", $"Length ({L})", $"Depth ({L})", $"Width at outlet ({L})", $"Width at end ({L})", "Notes"], apron,
-                ["D50 = 0.2·D·(Q/(√g·D^2.5))^(4/3)·(D/TW), with 0.4·D ≤ TW ≤ D; for a box D = (A/2)^0.5 of the full barrel.", "Class, length (in culvert rises) and depth (in D50) from HEC-14 Table 10.1.",
+                ["D50 = 0.2·D·(Q/(√g·D^2.5))^(4/3)·(D/TW), with 0.4·D ≤ TW ≤ D; for a box D = (A/2)^0.5 with A the flow area at the outlet (yo × span).", "Class, length (in culvert rises) and depth (in D50) from HEC-14 Table 10.1.",
                  "Width 3·D at the outlet, flaring 1 on 3 each side (IDCM §4.9.5 riprap basin geometry, applied to the apron); riprap side slopes no steeper than 2H:1V; place over a granular filter or geotextile."]));
             tables.Add(new("Riprap basin (HEC-14 §10.2)", ["Outlet", "C0", $"D50 ({L})", "D50/ye", $"Pool depth hs ({L})", "hs/D50", $"Pool length ({L})", $"Apron length ({L})", $"Basin length ({L})", $"Thickness, approach ({L})", $"Thickness, rest ({L})", $"Width ({L}); notes"], basin,
                 ["hs/ye = 0.86·(D50/ye)^-0.55·Fr − C0; C0 = 1.4 for TW/ye < 0.75, 4·TW/ye − 1.6 up to 1.0, 2.4 above.",

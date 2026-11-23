@@ -34,6 +34,19 @@ public class OutletProtectionTests
     }
 
     [Fact]
+    public void Apron_BoxEquivalentDepth_UsesTheOutletFlowArea()
+    {
+        // HEC-14: for a box, D in the apron equation is ye = (A/2)^0.5 with A the flow area at the outlet.
+        // 5 × 5 ft RCB with yo = 2.15 ft → A = 10.75 ft², ye = 2.318 ft (HEC-14 Ch. 1 prints 2.32 ft), not √(25/2) = 3.54 ft.
+        var r = Tool.Run(Head + "CV\tbox\t5\t5\t60\t3\t0.012\t2.15\t1.5\t", Ctx());
+        var a = Row(r, "Riprap apron", "CV");
+        double d = (double)a[1]!, tw = (double)a[2]!;
+        Assert.Equal(2.318, d, 3);
+        double expected = 0.2 * d * Math.Pow(60 / (Math.Sqrt(32.174) * Math.Pow(d, 2.5)), 4.0 / 3) * (d / tw) * 12;
+        Assert.Equal(expected, (double)a[3]!, 1);
+    }
+
+    [Fact]
     public void RiprapBasin_MatchesHec14Example_SI()
     {
         // SI: 1.524 m RCB, Q = 5.66 m³/s, yo = 0.655 m, TW = 0 → D50 = 0.38 m, hs = 0.78 m, pool 7.8 m, apron 3.9 m, basin 11.7 m.
