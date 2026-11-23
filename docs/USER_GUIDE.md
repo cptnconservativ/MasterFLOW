@@ -1,7 +1,7 @@
 ---
 title: "MasterFlow User Manual"
 subtitle: "Storm drainage, hydrology and open-channel hydraulics for Windows"
-date: "Edition 2 of 23 November 2026 · covers MasterFlow main after release 0.12.0, six tools pending merge (#60–#65) and the usability and validation updates (#67–#69)"
+date: "Edition 2 of 23 November 2026 · covers MasterFlow main after release 0.12.0, five tools pending merge (#60, #61, #63–#65) and the usability and validation updates (#67–#69)"
 ---
 
 # About this manual
@@ -25,9 +25,9 @@ whether the feature is in **MasterFlow Free** or needs a **★ Premium** license
 | **★ Premium** | Runs only with a MasterFlow Premium license key that covers it (Chapter 3) |
 | **Pending merge (PR #nn)** | Built, tested and screenshotted from its pull request, but not yet merged into `main`. It will appear in the next build once merged |
 
-The six tools pending merge on the date of this edition are: hydraulic jump and stilling basins (PR #60), EPA
-SWMM 5 exchange (PR #61), natural channel profiles by the HEC-RAS method (PR #62), HEC-18 bridge scour (PR #63),
-Bulletin 17C flood frequency (PR #64) and dynamic-wave storm sewer routing (PR #65).
+The five tools pending merge on the date of this edition are: hydraulic jump and stilling basins (PR #60), EPA
+SWMM 5 exchange (PR #61), HEC-18 bridge scour (PR #63), Bulletin 17C flood frequency (PR #64) and dynamic-wave storm
+sewer routing (PR #65). Natural channel profiles by the HEC-RAS method (PR #62) is merged.
 
 Edition 2 also describes three updates pending merge, and its screenshots are taken with them in place:
 - The redesigned Design tools window: a grouped, searchable tool list, Open report, the stale-result banner and new
@@ -158,7 +158,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Streets and inlets | Gutter spread and inlets, street capacity, sag ponding and clogging | Inlet capacity and bypass routing across a network |
 | Storm sewer design | | Plan review (IDCM §4.6), network optimizer, plan and profile DXF, SWMM 5 exchange *(pending)*, dynamic-wave routing *(pending)* |
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
-| Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins *(pending)*, bridge scour *(pending)* | Natural channel profiles (HEC-RAS method) *(pending)* |
+| Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins *(pending)*, bridge scour *(pending)* | Natural channel profiles (HEC-RAS method) |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
@@ -500,7 +500,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Erosion and sediment control | `erosion-sediment` | Free |
 | 12 Open channels and structures | Backwater / drawdown profile | `backwater-profile` | Free |
 | | Channel water surface profile and lining checks | `channel-profile` | Free |
-| | Natural channel profiles (HEC-RAS method) *pending #62* | `river-profile` | ★ Premium |
+| | Natural channel profiles (HEC-RAS method) | `river-profile` | ★ Premium |
 | | Culvert analysis (FHWA HDS-5) | `hds5-culvert` | Free |
 | | Outlet protection (HEC-14) | `outlet-protection` | Free |
 | | Hydraulic jump and stilling basins *pending #60* | `stilling-basin` | Free |
@@ -625,7 +625,7 @@ ponds.
 | Step | Method |
 |---|---|
 | Design storm | `rapid-city` (default): IDCM §4.3.2 frequency storm from Table 4-2, 5-min blocks peaking at the first quartile, `storm duration` 60–1440 min (default 120); `type-ii` NRCS 24-h; or `table` of cumulative depths |
-| Losses | Curve number (TR-55 Eqs. 2-1 to 2-4) or Green–Ampt per IDCM §4.3.3–4.3.6: soil class from Table 4-4 (Ks, suction), deficit 0.20, Ia from Table 4-3, EIA = 0.1·MIA^1.5 (Eq. 4-3-1) |
+| Losses | Curve number (TR-55 Eqs. 2-1 to 2-4) or Green–Ampt per IDCM §4.3.3–4.3.6: Ks and suction by soil class from Rawls et al. (1983) by default, or from IDCM Table 4-4 with `soil table = idcm` (the two differ only for loam and silt loam, and the report shows both values there, I-HR-014); deficit 0.20, Ia from Table 4-3, EIA = 0.1·MIA^1.5 (Eq. 4-3-1) |
 | Tc | Entered Tc or lag, or TR-55 Chapter 3 flow paths |
 | Transform | NRCS dimensionless unit hydrograph (NEH 630 Ch. 16), PRF 484, lag = 0.6 Tc |
 | Reaches | Variable-parameter Muskingum–Cunge (IDCM §4.3.8, Ponce and Theurer 1982). With a network selected and no `[Reaches]`, the network's pipes are the reaches. A pipe whose peak exceeds full capacity is flagged OVER CAPACITY |
@@ -1037,7 +1037,7 @@ HEC-15 §6.1, with the 20 % velocity increase at transitions (§4.8.3(2)(c)).
 
 ## Natural channel profiles (HEC-RAS method) ★ Premium
 
-`river-profile` · **Pending merge (PR #62)**
+`river-profile` · Merged (PR #62)
 
 Steady water surface profiles through surveyed natural cross-sections by the method of HEC-RAS (USACE *Hydraulic
 Reference Manual*, Ch. 2), for floodplains at crossings, drainageway master plans or checks of FEMA effective sections.
@@ -1455,7 +1455,7 @@ comparison program was not reachable from the build machine. Check them before r
 | Stilling basins *(pending)* | USBR Type III baffle and sill heights and Type II/III lengths are fits of EM-25 curves; IDCM Eq. 4-9-3 is printed garbled and was interpreted (D-323) |
 | Outlet protection | The downstream riprap length for TW/ye > 0.75 is flagged but not sized |
 | SWMM exchange, dynamic wave *(pending)* | Not yet opened or compared in EPA SWMM |
-| Natural channel profiles *(pending)* | Not yet compared with a HEC-RAS run |
+| Natural channel profiles | Not yet compared with a HEC-RAS run |
 | Flood frequency *(pending)* | Confidence limits use the Bulletin 17B approximation; compare with PeakFQ for formal submittals |
 | Bridge scour *(pending)* | NCHRP 24-20 abutment method, coarse-bed and pressure-flow scour not included |
 | Hydrograph routing | NRCS unit hydrograph in place of the IDCM's Snyder unit hydrograph |
@@ -1467,19 +1467,17 @@ comparison program was not reachable from the build machine. Check them before r
 
 Every tool's sample was re-run and its printed results recomputed by hand from the published equation. The sources
 checked were IDCM 2012, SWQM 2009, HEC-22, HDS-5, HEC-14, HEC-15, HEC-18, TR-55, AH 703 and Bulletin 17C. The full
-table is in `docs/VALIDATION_RESULTS.md`. Two items were corrected:
+table is in `docs/VALIDATION_RESULTS.md`. Three items were corrected:
 
 - **Riprap apron for a box culvert (HEC-14).** The equivalent depth D = (A/2)^0.5 now uses the flow area at the outlet
   (yo × span), as HEC-14's worked 5 × 5 ft box does. The full-barrel area was used before, which under-sized the stone
   for a box flowing part full. Circular outlets were already correct.
 - **Elevations in reports.** Values of 1,000 and above now print to 0.01 ft. Before, they printed to 0.1 ft, so 3,255.43
   showed as 3255.4.
-
-One item is left for the engineer:
-
-- **IDCM Table 4-4 (Green–Ampt).** The table gives loam a hydraulic conductivity of 0.65 cm/h and silt loam 0.34 cm/h.
-  Rawls et al. (1983), which the table reproduces, has these two values the other way round. MasterFlow follows the
-  IDCM, because it governs in Rapid City. If your reviewer follows Rawls, enter Ks yourself.
+- **Green–Ampt soil table.** IDCM Table 4-4 gives loam a hydraulic conductivity of 0.65 cm/h and silt loam 0.34 cm/h.
+  Rawls et al. (1983), which the table reproduces, has these two values the other way round. Hydrograph network routing
+  now uses Rawls by default. `soil table = idcm` selects the IDCM table for a Rapid City submittal. For loam and silt
+  loam the report states both values.
 
 The report charts that drew their vertical axis from zero (natural channel cross-sections, the DXF tool's profile and
 the outlet designer's front view) now start just below the data.
