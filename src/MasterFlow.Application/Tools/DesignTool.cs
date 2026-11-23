@@ -147,7 +147,7 @@ public static class DesignTools
     {
         null => "",
         double d when !double.IsFinite(d) => "—",
-        double d => d.ToString(Math.Abs(d) >= 1000 ? "0.#" : Math.Abs(d) >= 1 || d == 0 ? "0.###" : "0.####", CultureInfo.InvariantCulture),
+        double d => d.ToString(Math.Abs(d) >= 1000 ? "0.##" : Math.Abs(d) >= 1 || d == 0 ? "0.###" : "0.####", CultureInfo.InvariantCulture),
         bool b => b ? "yes" : "no",
         _ => v.ToString() ?? "",
     };
