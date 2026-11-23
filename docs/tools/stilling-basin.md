@@ -74,7 +74,8 @@ sewer outfall, by **FHWA HEC-14, 3rd edition (2006)**, the reference the Rapid C
 - **D-327** Figure curves digitized from HEC-14 page images supplied by Kyle (2026-11-23): Figure 6.5 (rectangular
   jump L/y1), Figure 6.8 (circular, y2 < D: Lj/y1 = 10·Fr1, not extrapolated beyond about 1.35–6), Figure 8.2
   (free-jump/Type IV and Type III LB/y2), Figures 4.3/4.4 at L = 2Wo (straight lines), Figure 9.4 (Cp) and Figures
-  9.14/9.15 (Type VI). Read to about ±1 % of the plotted range; the end values are held beyond each curve, with a
+  9.14/9.15 (Type VI). Checked against the full HEC-14 PDF (2026-11-23): Figures 4.3/4.4 traced at full resolution
+  agree within 0.003 in yA/yo, and the other figures are the same images. Read to about ±1 % of the plotted range; the end values are held beyond each curve, with a
   warning for Type VI. They reproduce the Ch. 8 and Ch. 9 example readings except one: the §8.3 Type III example reads
   LB/y2 = 2.7 at Fr1 6.9, where the printed Type III curve gives 2.54 (LB 24.6 ft against the example's 26.0). The
   tool follows the figure. Figure 4.4 (circular) differs from the IDCM Eq. 4-9-7 line, which is no longer used.
