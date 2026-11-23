@@ -43,6 +43,7 @@ public static class PremiumFeatures
         new(PipeSizing, "Automatic storm network pipe sizing (Storm networks → Size pipes)", []),
         new(Civil3DExport, "Civil 3D export: LandXML pipe network and HGL/EGL write-back (Storm networks → LandXML…, Civil 3D results…)", []),
         new("review-comments", "Review comment tracker and response letter", ["review-comments"]),
+        new("dynamic-wave", "Dynamic-wave storm sewer routing (unsteady HGL, surcharge and flooding)", ["dynamic-wave"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
