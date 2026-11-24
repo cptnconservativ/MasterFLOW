@@ -53,11 +53,18 @@
         <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
         <Button Content="Copy results" Command="{Binding CopyResultsCommand}" ToolTip.Tip="Copy results as tab-separated text"/>
         <Button Content="Report…" Command="{Binding ExportReportCommand}" ToolTip.Tip="Selected calculation as PDF (or HTML) (Ctrl+E)"/>
-        <Button Content="Batch report…" Command="{Binding ExportAllReportsCommand}" ToolTip.Tip="Every calculation in one PDF (or HTML)"/>
-        <Button Content="Compare report…" Command="{Binding ExportComparisonReportCommand}" ToolTip.Tip="Side-by-side table of every calculation, PDF (or HTML)"/>
-        <Button Content="Excel…" Command="{Binding ExportWorkbookCommand}" ToolTip.Tip="Workbook: comparison, one sheet per calculation, rating table"/>
-        <Button Content="Storm networks…" Click="OnOpenNetworks" ToolTip.Tip="Storm sewer HGL/EGL: pipes, structures, Rapid City criteria, profile"/>
-        <Button Content="Design tools…" Click="OnOpenTools" ToolTip.Tip="Rational method and other drainage design tools"/>
+        <Button Content="More exports ▾" ToolTip.Tip="Every calculation in one report, a side-by-side comparison, or an Excel workbook">
+          <Button.Flyout>
+            <MenuFlyout>
+              <MenuItem Header="Batch report… (every calculation, PDF or HTML)" Command="{Binding ExportAllReportsCommand}"/>
+              <MenuItem Header="Compare report… (side-by-side table, PDF or HTML)" Command="{Binding ExportComparisonReportCommand}"/>
+              <MenuItem Header="Excel workbook… (comparison, one sheet per calculation, rating table)" Command="{Binding ExportWorkbookCommand}"/>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+        <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
+        <Button Content="Storm networks…" Click="OnOpenNetworks" Classes="accent" ToolTip.Tip="Storm sewer HGL/EGL: pipes, structures, Rapid City criteria, profile (Ctrl+Shift+N)"/>
+        <Button Content="Design tools…" Click="OnOpenTools" Classes="accent" ToolTip.Tip="Hydrology, inlets, detention, culverts, channels, reports and more, grouped by subject (Ctrl+Shift+D)"/>
         <Button Content="Log folder" Command="{Binding OpenLogFolderCommand}" ToolTip.Tip="Open the local log (kept on this computer only, 14 days)"/>
       </StackPanel>
     </Border>

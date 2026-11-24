@@ -1,43 +1,46 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MasterFlow.Desktop.ViewModels"
-        xmlns:tools="using:MasterFlow.Application.Tools"
-        xmlns:c="using:MasterFlow.Desktop.Controls"
         x:Class="MasterFlow.Desktop.Views.DesignToolsWindow"
         x:DataType="vm:MainViewModel"
         Title="Design tools — MasterFlow"
-        Width="1300" Height="820" MinWidth="800" MinHeight="500"
+        Width="1360" Height="840" MinWidth="900" MinHeight="520"
         Background="{DynamicResource MfPane}">
+  <Window.Styles>
+    <Style Selector="ListBoxItem.header">
+      <Setter Property="IsHitTestVisible" Value="False"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Padding" Value="8,10,8,2"/>
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="14,4,8,4"/>
+    </Style>
+  </Window.Styles>
   <DockPanel>
+    <!-- Toolbar: actions on the selected tool -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource MfCard}" BorderBrush="{DynamicResource MfRule}" BorderThickness="0,0,0,1" Padding="8,6">
-      <StackPanel Spacing="4">
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock Text="Tool" VerticalAlignment="Center" Margin="4,0"/>
-          <ComboBox AutomationProperties.Name="Design tool" MinWidth="360" ItemsSource="{Binding Tools.Tools}" SelectedItem="{Binding Tools.SelectedTool}">
-            <ComboBox.ItemTemplate><DataTemplate x:DataType="tools:IDesignTool"><TextBlock Text="{Binding Converter={x:Static c:EnumDisplayConverter.Instance}}"/></DataTemplate></ComboBox.ItemTemplate>
-          </ComboBox>
-          <Button Content="Sample" Command="{Binding Tools.LoadSampleCommand}" ToolTip.Tip="Replace the input with a worked example (uses the selected network's structure names where it can)"/>
-          <Button Content="Run" Command="{Binding Tools.RunCommand}" FontWeight="SemiBold" ToolTip.Tip="Run the tool (F5)"/>
-          <Button Content="Apply to network" Command="{Binding Tools.ApplyToNetworkCommand}" IsEnabled="{Binding Tools.CanApply}" ToolTip.Tip="Write the tool's result into the selected storm network and re-solve it"/>
-          <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
-          <Button Content="Copy" Command="{Binding Tools.CopyCommand}"/>
-          <Button Content="Save…" Command="{Binding Tools.SaveReportCommand}" ToolTip.Tip="HTML report, PDF report or Excel workbook (and the drawing of tools that make one, e.g. DXF sheets)"/>
-          <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
-          <TextBlock Text="Network:" VerticalAlignment="Center" Margin="4,0"/>
-          <ComboBox AutomationProperties.Name="Storm network for tools" MinWidth="180" ItemsSource="{Binding Networks}" SelectedItem="{Binding SelectedNetwork}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+          <TextBlock Text="Storm network" VerticalAlignment="Center" Margin="4,0"/>
+          <ComboBox AutomationProperties.Name="Storm network for tools" MinWidth="180" ItemsSource="{Binding Networks}" SelectedItem="{Binding SelectedNetwork}"
+                    ToolTip.Tip="Network that network-aware tools read (Sample uses its structure names) and that Apply to network changes">
             <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:NetworkViewModel"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
           </ComboBox>
         </StackPanel>
-        <TextBlock Text="{Binding Tools.Description}" TextWrapping="Wrap" Opacity="0.8" Margin="4,0"/>
         <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock Text="License" VerticalAlignment="Center" Margin="4,0"/>
-          <TextBox AutomationProperties.Name="License key" Width="360" Watermark="Paste a MasterFlow Premium key (MF1-…); empty + Activate returns to Free" Text="{Binding Tools.LicenseKeyText}"/>
-          <Button Content="Activate" Command="{Binding Tools.ActivateLicenseCommand}" ToolTip.Tip="Check the key offline and keep it for this user"/>
-          <TextBlock Text="{Binding Tools.LicenseSummary}" VerticalAlignment="Center" Opacity="0.8" Margin="6,0" TextWrapping="Wrap"/>
+          <Button Content="▶ Run" Command="{Binding Tools.RunCommand}" FontWeight="SemiBold" Classes="accent" ToolTip.Tip="Run the tool (F5 or Ctrl+Enter)"/>
+          <Button Content="Sample" Command="{Binding Tools.LoadSampleCommand}" ToolTip.Tip="Replace the input with a worked example (uses the selected network's structure names where it can)"/>
+          <Button Content="Apply to network" Command="{Binding Tools.ApplyToNetworkCommand}" IsEnabled="{Binding Tools.CanApply}" ToolTip.Tip="Write the tool's result into the selected storm network and re-solve it"/>
+          <Rectangle Width="1" Fill="{DynamicResource MfRule}" Margin="8,2"/>
+          <Button Content="Open report" Command="{Binding Tools.OpenReportCommand}" ToolTip.Tip="Show the full report, with its charts and figures, in your browser"/>
+          <Button Content="Save…" Command="{Binding Tools.SaveReportCommand}" ToolTip.Tip="HTML report, PDF report or Excel workbook (and the drawing of tools that make one, e.g. DXF sheets)"/>
+          <Button Content="Copy" Command="{Binding Tools.CopyCommand}" ToolTip.Tip="Copy the result as text, then the tables tab-separated for Excel"/>
         </StackPanel>
-      </StackPanel>
+      </DockPanel>
     </Border>
-    <Border DockPanel.Dock="Bottom" Padding="8,4" Background="{DynamicResource MfCard}" MaxHeight="140">
+
+    <!-- Status and messages -->
+    <Border DockPanel.Dock="Bottom" Padding="8,4" Background="{DynamicResource MfCard}" BorderBrush="{DynamicResource MfRule}" BorderThickness="0,1,0,0" MaxHeight="150">
       <ScrollViewer>
         <StackPanel>
           <SelectableTextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
@@ -47,16 +50,74 @@
         </StackPanel>
       </ScrollViewer>
     </Border>
-    <Grid ColumnDefinitions="*,4,1.3*" Margin="6">
-      <DockPanel Grid.Column="0">
-        <TextBlock DockPanel.Dock="Top" Text="Input (key = value lines; tables under [Section] headings, tab- or comma-separated; # comments)" FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
-        <TextBox AutomationProperties.Name="Tool input" Text="{Binding Tools.InputText}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
-                 FontFamily="Consolas,Menlo,monospace" FontSize="12"/>
+
+    <Grid ColumnDefinitions="320,4,*">
+      <!-- Tool list: search, grouped by subject, Premium marks; license at the foot -->
+      <DockPanel Grid.Column="0" Background="{DynamicResource MfCard}">
+        <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="8,8,8,4" Watermark="Search tools (Ctrl+F)" Text="{Binding Tools.SearchText}"
+                 AutomationProperties.Name="Search design tools"/>
+        <Expander DockPanel.Dock="Bottom" Margin="6" Header="License" HorizontalAlignment="Stretch" IsExpanded="{Binding Tools.IsLocked, Mode=OneWay}">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding Tools.LicenseSummary}" TextWrapping="Wrap" Opacity="0.85"/>
+            <TextBox AutomationProperties.Name="License key" Watermark="Paste a Premium key (MF1-…)" Text="{Binding Tools.LicenseKeyText}"/>
+            <Button Content="Activate" Command="{Binding Tools.ActivateLicenseCommand}" ToolTip.Tip="Check the key offline and keep it for this user. Activate with the box empty to return to Free."/>
+          </StackPanel>
+        </Expander>
+        <TextBlock DockPanel.Dock="Top" Text="No tool matches the search." Margin="12,8" Opacity="0.7" IsVisible="{Binding Tools.NoToolsMatch}"/>
+        <ListBox AutomationProperties.Name="Design tools" ItemsSource="{Binding Tools.ToolList}" SelectedItem="{Binding Tools.SelectedListItem}" Background="Transparent">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DesignToolsViewModel+ToolListItem">
+              <Panel>
+                <TextBlock Text="{Binding Text}" IsVisible="{Binding IsHeader}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource MfAccent}"/>
+                <DockPanel IsVisible="{Binding IsTool}">
+                  <TextBlock DockPanel.Dock="Right" Text="{Binding Badge}" IsVisible="{Binding HasBadge}" Margin="6,0,0,0" FontSize="11" Opacity="0.75" VerticalAlignment="Center"/>
+                  <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}"/>
+                </DockPanel>
+              </Panel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+          <ListBox.Styles>
+            <Style Selector="ListBoxItem" x:DataType="vm:DesignToolsViewModel+ToolListItem">
+              <Setter Property="Classes.header" Value="{Binding IsHeader}"/>
+            </Style>
+          </ListBox.Styles>
+        </ListBox>
       </DockPanel>
-      <GridSplitter Grid.Column="1" ResizeDirection="Columns"/>
-      <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto">
-        <SelectableTextBlock AutomationProperties.Name="Tool result" Text="{Binding Tools.ResultText}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="6,0"/>
-      </ScrollViewer>
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource MfRule}"/>
+
+      <DockPanel Grid.Column="2" Margin="8,6">
+        <!-- What the tool does -->
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="2,0,2,6">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="{Binding Tools.Heading}" FontSize="17" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding Tools.CategoryText}" VerticalAlignment="Bottom" Opacity="0.6" Margin="0,0,0,2"/>
+          </StackPanel>
+          <TextBlock Text="{Binding Tools.Description}" TextWrapping="Wrap" Opacity="0.85"/>
+          <Border Background="#FFF4E0" BorderBrush="#E0B060" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,4,0,0" IsVisible="{Binding Tools.IsLocked}">
+            <TextBlock Text="{Binding Tools.LockedText}" TextWrapping="Wrap" Foreground="#5A3E00"/>
+          </Border>
+        </StackPanel>
+        <Grid ColumnDefinitions="*,4,1.3*">
+          <DockPanel Grid.Column="0">
+            <TextBlock DockPanel.Dock="Top" Text="INPUT" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource MfAccent}"/>
+            <TextBlock DockPanel.Dock="Top" Text="key = value lines; tables under [Section] headings, tab- or comma-separated; # starts a comment" FontSize="11" Opacity="0.65" TextWrapping="Wrap" Margin="0,0,0,4"/>
+            <TextBox AutomationProperties.Name="Tool input" Text="{Binding Tools.InputText}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                     FontFamily="Consolas,Menlo,monospace" FontSize="12"/>
+          </DockPanel>
+          <GridSplitter Grid.Column="1" ResizeDirection="Columns"/>
+          <DockPanel Grid.Column="2">
+            <TextBlock DockPanel.Dock="Top" Text="RESULT" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource MfAccent}" Margin="6,0,0,4"/>
+            <Border DockPanel.Dock="Top" Background="#FFF4E0" BorderBrush="#E0B060" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="6,0,0,4" IsVisible="{Binding Tools.IsStale}">
+              <TextBlock Text="The input changed after this result was calculated. Press Run (F5) to update it." TextWrapping="Wrap" Foreground="#5A3E00"/>
+            </Border>
+            <Border Background="{DynamicResource MfCard}" BorderBrush="{DynamicResource MfRule}" BorderThickness="1" Margin="6,0,0,0">
+              <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                <SelectableTextBlock AutomationProperties.Name="Tool result" Text="{Binding Tools.ResultText}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="8,6"/>
+              </ScrollViewer>
+            </Border>
+          </DockPanel>
+        </Grid>
+      </DockPanel>
     </Grid>
   </DockPanel>
 </Window>

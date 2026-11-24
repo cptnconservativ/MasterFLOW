@@ -27,6 +27,28 @@ public class HydrographRoutingTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void SoilTables_RawlsByDefault_IdcmByChoice_AndBothShownWhereTheyDiffer()
+    {
+        // Rawls et al. (1983): loam 0.34 cm/h, silt loam 0.65 cm/h; IDCM Table 4-4 prints them the other way round.
+        Assert.Equal(0.134, Losses.RawlsSoils["loam"].Ks, 3);
+        Assert.Equal(0.256, Losses.RawlsSoils["silt loam"].Ks, 3);
+        Assert.Equal(0.256, Losses.RapidCitySoils["loam"].Ks, 3);
+        Assert.Equal(0.134, Losses.RapidCitySoils["silt loam"].Ks, 3);
+        foreach (var k in Losses.RawlsSoils.Keys.Where(k => k is not ("loam" or "silt loam")))
+            Assert.Equal(Losses.RawlsSoils[k], Losses.RapidCitySoils[k]);
+
+        const string body = "storms = 10\nrainfall = rapid-city\n[Subbasins]\nName\tNode\tArea (ac)\tSoil\tTc (min)\nA\tOUT\t10\tloam\t15\n";
+        var rawls = _tool.Run(body, Us);
+        var idcm = _tool.Run("soil table = idcm\n" + body, Us);
+        Assert.True(rawls.Succeeded && idcm.Succeeded, string.Join("\n", rawls.Messages.Concat(idcm.Messages).Select(m => m.Text)));
+        Assert.Contains(rawls.Messages, m => m.Code == "I-HR-014" && m.Text.Contains("0.134") && m.Text.Contains("0.256") && m.Text.Contains("Rawls et al. (1983) (used)"));
+        Assert.Contains(idcm.Messages, m => m.Code == "I-HR-014" && m.Text.Contains("IDCM Table 4-4 (used)"));
+        // Lower conductivity (Rawls loam) gives more runoff than the IDCM loam value.
+        double Vol(ToolResult r) => (double)r.Tables.First(t => t.Title.StartsWith("Subbasin")).Rows[0][9]!;
+        Assert.True(Vol(rawls) > Vol(idcm), $"{Vol(rawls)} vs {Vol(idcm)}");
+    }
+
+    [Fact]
     public void CurveNumber_ClosedForm()
     {
         Assert.Equal(20.25 / 7, Losses.CurveNumberRunoff(5, 80), 9);
