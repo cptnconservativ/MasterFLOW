@@ -243,9 +243,13 @@ public static class ToolFigureSvg
         var inv = System.Globalization.CultureInfo.InvariantCulture;
         const double padL = 52, padR = 16, padT = 12, padB = 54;
         double w = width - padL - padR, h = height - padT - padB;
-        double xMin = all.Min(p => p.X), xMax = all.Max(p => p.X), yMin = Math.Min(0, all.Min(p => p.Y)), yMax = all.Max(p => p.Y);
+        double xMin = all.Min(p => p.X), xMax = all.Max(p => p.X), yMin = all.Min(p => p.Y), yMax = all.Max(p => p.Y);
         if (xMax <= xMin) xMax = xMin + 1;
         if (yMax <= yMin) yMax = yMin + 1;
+        // Elevation figures (e.g. 3400 ft cross-sections) must not be pulled down to zero, which flattens them.
+        // Keep zero as the base only when the data already sit near it (depth-style figures), like the chart layout does.
+        if (yMin >= 0 && yMin < 0.25 * yMax) yMin = 0;
+        else yMin -= 0.05 * (yMax - yMin);
         yMax += 0.08 * (yMax - yMin);
         static double Nice(double raw)
         {

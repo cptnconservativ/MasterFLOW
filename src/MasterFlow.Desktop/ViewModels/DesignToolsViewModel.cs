@@ -18,7 +18,7 @@ public sealed partial class DesignToolsViewModel : ObservableObject
     private readonly Dictionary<string, string> _inputs = new();
     private bool _switching;
 
-    public DesignToolsViewModel(MainViewModel main) { _main = main; _inputText = ""; }
+    public DesignToolsViewModel(MainViewModel main) { _main = main; _inputText = ""; RebuildToolList(); }
 
     /// <summary>Selects the first tool when none is selected (the window calls this when it opens, so the sample uses the current network).</summary>
     public void EnsureSelection() { SelectedTool ??= Tools.FirstOrDefault(); }
@@ -33,11 +33,75 @@ public sealed partial class DesignToolsViewModel : ObservableObject
 
     public string Description => SelectedTool is null ? "" : (PremiumFeatures.IsPremium(SelectedTool) ? "★ Premium. " : "") + SelectedTool.Description;
 
+    /// <summary>Selected tool's heading (name and category) for the panel above the input.</summary>
+    public string Heading => SelectedTool is null ? "No tool selected" : SelectedTool.Name;
+    public string CategoryText => SelectedTool is null ? "" : DesignToolCatalog.Category(SelectedTool);
+
+    /// <summary>True when the selected Premium tool cannot run under the current license; the window shows how to unlock it.</summary>
+    public bool IsLocked => SelectedTool is not null && PremiumFeatures.ForTool(SelectedTool.Id) is { } f && !_main.License.Allows(f.Id);
+    public string LockedText => SelectedTool is not null && PremiumFeatures.ForTool(SelectedTool.Id) is { } f
+        ? $"This is a Premium tool, part of \u201c{f.Name}\u201d. You can edit the input and load the sample; Run needs a Premium license key, entered under License at the foot of the tool list."
+        : "";
+
+    // ---- Tool list: grouped by subject, searchable, with Premium and locked marks ----
+
+    /// <summary>One row of the tool list: a category heading (Tool is null) or a tool.</summary>
+    public sealed record ToolListItem(string Text, IDesignTool? Tool, string Badge)
+    {
+        public bool IsHeader => Tool is null;
+        public bool IsTool => Tool is not null;
+        public bool HasBadge => Badge.Length > 0;
+    }
+
+    public ObservableCollection<ToolListItem> ToolList { get; } = [];
+    [ObservableProperty] private string _searchText = "";
+    [ObservableProperty] private ToolListItem? _selectedListItem;
+    public bool NoToolsMatch => ToolList.Count == 0;
+
+    partial void OnSearchTextChanged(string value) => RebuildToolList();
+
+    partial void OnSelectedListItemChanged(ToolListItem? value)
+    {
+        if (value?.Tool is { } t) { if (!ReferenceEquals(t, SelectedTool)) SelectedTool = t; }
+        else if (value is not null) SelectedListItem = ToolList.FirstOrDefault(i => ReferenceEquals(i.Tool, SelectedTool));   // headings are not selectable
+    }
+
+    private void RebuildToolList()
+    {
+        ToolList.Clear();
+        string? last = null;
+        foreach (var (cat, tool) in DesignToolCatalog.Grouped(Tools, SearchText))
+        {
+            if (cat != last) { ToolList.Add(new ToolListItem(cat.ToUpperInvariant(), null, "")); last = cat; }
+            string badge = PremiumFeatures.ForTool(tool.Id) is not { } f ? "" : _main.License.Allows(f.Id) ? "★" : "★ locked";
+            ToolList.Add(new ToolListItem(tool.Name, tool, badge));
+        }
+        SelectedListItem = ToolList.FirstOrDefault(i => i.Tool is not null && ReferenceEquals(i.Tool, SelectedTool));
+        OnPropertyChanged(nameof(NoToolsMatch));
+    }
+
+    /// <summary>Enter in the search box: pick the first tool whose name matches, else the first match of any kind.</summary>
+    public void SelectFirstMatch()
+    {
+        var tools = ToolList.Where(i => i.Tool is not null).ToList();
+        var byName = tools.FirstOrDefault(i => SearchText.Split(' ', StringSplitOptions.RemoveEmptyEntries).All(w => i.Text.Contains(w, StringComparison.OrdinalIgnoreCase)));
+        if ((byName ?? tools.FirstOrDefault()) is { } first) SelectedListItem = first;
+    }
+
+    /// <summary>True after the input changed since the last Run, so the result on screen no longer matches it.</summary>
+    [ObservableProperty] private bool _isStale;
+
     /// <summary>License key box (Premium); Activate checks it offline and keeps it in the user settings.</summary>
     [ObservableProperty] private string _licenseKeyText = "";
     public string LicenseSummary => _main.License.Summary;
 
-    public void RefreshLicense() => OnPropertyChanged(nameof(LicenseSummary));
+    public void RefreshLicense()
+    {
+        OnPropertyChanged(nameof(LicenseSummary));
+        OnPropertyChanged(nameof(IsLocked));
+        OnPropertyChanged(nameof(LockedText));
+        RebuildToolList();
+    }
 
     [RelayCommand]
     private void ActivateLicense()
@@ -78,23 +142,34 @@ public sealed partial class DesignToolsViewModel : ObservableObject
         _switching = true;
         InputText = newValue is null ? "" : _inputs.TryGetValue(newValue.Id, out var t) ? t : newValue.SampleInput(Context());
         _switching = false;
-        Result = null; CanApply = false; Messages.Clear();
-        ResultText = "Press Run.";
+        Result = null; CanApply = false; Messages.Clear(); IsStale = false;
+        ResultText = "Press Run (F5 or Ctrl+Enter) to calculate. Sample replaces the input with a worked example.";
         OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(Heading));
+        OnPropertyChanged(nameof(CategoryText));
+        OnPropertyChanged(nameof(IsLocked));
+        OnPropertyChanged(nameof(LockedText));
+        if (SelectedListItem?.Tool != newValue) SelectedListItem = ToolList.FirstOrDefault(i => i.Tool is not null && ReferenceEquals(i.Tool, newValue));
     }
 
     partial void OnInputTextChanged(string value)
     {
         if (_switching || SelectedTool is null) return;
         _inputs[SelectedTool.Id] = value;
+        if (Result is not null) IsStale = true;
         _main.MarkDirtyFromTools();
     }
 
     [RelayCommand]
-    private void LoadSample()
+    private async Task LoadSample()
     {
         if (SelectedTool is null) return;
-        InputText = SelectedTool.SampleInput(Context());
+        var sample = SelectedTool.SampleInput(Context());
+        // Edited input is project data: don't throw it away on a stray click.
+        if (!string.IsNullOrWhiteSpace(InputText) && InputText.Trim() != sample.Trim() && _main.Dialogs is { } d
+            && !await d.ConfirmDiscardAsync($"Replace your {SelectedTool.Name} input with the worked example? Your edits will be lost."))
+            return;
+        InputText = sample;
     }
 
     [RelayCommand]
@@ -105,12 +180,26 @@ public sealed partial class DesignToolsViewModel : ObservableObject
         try { r = PremiumFeatures.Run(SelectedTool, InputText, Context(), _main.License); }
         catch (Exception ex) { r = ToolResult.Failed(SelectedTool.Name, Hydraulics.CalcMessage.Error("E-TL-999", "The tool stopped with an internal error: " + ex.Message)); }
         Result = r;
+        IsStale = false;
         ResultText = DesignTools.ToText(r);
         Messages.Clear();
         foreach (var m in r.Messages) Messages.Add($"{m.Severity} [{m.Code}] {m.Text}");
         CanApply = r.UpdatedNetwork is not null && _main.SelectedNetwork is not null;
         _main.StatusMessage = r.Succeeded ? $"{SelectedTool.Name}: done." + (CanApply ? " " + r.UpdateDescription + " Press Apply to network to use it." : "")
                                           : $"{SelectedTool.Name}: {r.Messages.Count(m => m.Severity == Hydraulics.MessageSeverity.Error)} error(s); see Messages.";
+    }
+
+    /// <summary>Shows the full report (tables, charts and figures) in the default browser, without asking for a file name.</summary>
+    [RelayCommand]
+    private async Task OpenReport()
+    {
+        if (Result is null || _main.Dialogs is null) return;
+        var dir = Path.Combine(Path.GetTempPath(), "MasterFlow", "reports");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, Safe(SelectedTool?.Name ?? "tool") + ".html");
+        await File.WriteAllTextAsync(path, BuildHtml()!);
+        _main.Dialogs.OpenWithShell(path);
+        _main.StatusMessage = "Report opened in your browser. Use Save… to keep a copy with the project.";
     }
 
     [RelayCommand]
@@ -177,6 +266,6 @@ public sealed partial class DesignToolsViewModel : ObservableObject
         _switching = true;
         InputText = SelectedTool is null ? "" : _inputs.TryGetValue(SelectedTool.Id, out var t) ? t : "";
         _switching = false;
-        Result = null; CanApply = false; Messages.Clear();
+        Result = null; CanApply = false; Messages.Clear(); IsStale = false;
     }
 }
