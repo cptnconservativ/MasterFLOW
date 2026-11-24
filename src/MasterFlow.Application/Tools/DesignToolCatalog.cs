@@ -25,6 +25,7 @@ public static class DesignToolCatalog
         ["erosion-sediment"] = "Detention and water quality",
         ["backwater-profile"] = "Open channels and structures", ["channel-profile"] = "Open channels and structures",
         ["river-profile"] = "Open channels and structures", ["hds5-culvert"] = "Open channels and structures",
+        ["aop-culvert"] = "Open channels and structures",
         ["outlet-protection"] = "Open channels and structures", ["stilling-basin"] = "Open channels and structures",
         ["bridge-scour"] = "Open channels and structures",
         ["quantity-takeoff"] = "Quantities and cost", ["cost-estimate"] = "Quantities and cost",
