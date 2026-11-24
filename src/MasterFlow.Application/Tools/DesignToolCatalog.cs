@@ -26,6 +26,7 @@ public static class DesignToolCatalog
         ["backwater-profile"] = "Open channels and structures", ["channel-profile"] = "Open channels and structures",
         ["river-profile"] = "Open channels and structures", ["hds5-culvert"] = "Open channels and structures",
         ["outlet-protection"] = "Open channels and structures", ["stilling-basin"] = "Open channels and structures",
+        ["riprap-revetment"] = "Open channels and structures",
         ["bridge-scour"] = "Open channels and structures",
         ["quantity-takeoff"] = "Quantities and cost", ["cost-estimate"] = "Quantities and cost",
         ["batch-scenarios"] = "Productivity and deliverables", ["inverse-design"] = "Productivity and deliverables",
