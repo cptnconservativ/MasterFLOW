@@ -153,6 +153,23 @@ public sealed class RiverProfileTool : IDesignTool
         string L = si ? "m" : "ft", V = si ? "m/s" : "ft/s", Qu = si ? "m³/s" : "cfs";
         var p = ToolInput.Parse(input);
         var msgs = new List<CalcMessage>();
+        if (p.Text("hec-ras geometry") is { } geomPath)
+        {
+            if (p.HasSection("Sections") || p.HasSection("Points"))
+                msgs.Add(CalcMessage.Error("E-RAS-001", "Use either hec-ras geometry = ... or [Sections] and [Points], not both."));
+            else
+            {
+                string? text = null;
+                try { text = File.ReadAllText(geomPath.Trim().Trim('"')); }
+                catch (Exception ex) { msgs.Add(CalcMessage.Error("E-RAS-002", $"Cannot read the HEC-RAS geometry file \"{geomPath}\": {ex.Message}")); }
+                if (text is not null)
+                {
+                    var (rasTables, notes) = ImportHecRas(text, p.Text("hec-ras reach"));
+                    msgs.AddRange(notes);
+                    if (rasTables is not null) p = ToolInput.Parse(input + "\n" + rasTables);
+                }
+            }
+        }
         var sections = ParseSections(p, k, msgs);
         var bridges = ParseBridges(p, sections, msgs, si);
         string lowFlow = (p.Text("bridge low flow") ?? "energy").ToLowerInvariant();
@@ -373,6 +390,46 @@ public sealed class RiverProfileTool : IDesignTool
 
     private static List<double> Numbers(string? s) =>
         (s ?? "").Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries).Select(t => ToolInput.TryNumber(t, out double v) ? v : double.NaN).ToList();
+
+    /// <summary>
+    /// Turns the text of a HEC-RAS geometry file into [Sections] and [Points] tables for one river and reach
+    /// (<paramref name="reach"/> as "River, Reach"; the first reach when null). Returns null tables when nothing can be imported.
+    /// </summary>
+    public static (string? Tables, List<CalcMessage> Messages) ImportHecRas(string geometryText, string? reach)
+    {
+        var msgs = new List<CalcMessage>();
+        HecRasGeometry.Result g;
+        try { g = HecRasGeometry.Parse(geometryText); }
+        catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException or OverflowException)
+        {
+            msgs.Add(CalcMessage.Error("E-RAS-003", $"The HEC-RAS geometry file could not be read: {ex.Message}"));
+            return (null, msgs);
+        }
+        var reaches = g.Sections.Select(s => (s.River, s.Reach)).Distinct().ToList();
+        if (reaches.Count == 0) { msgs.Add(CalcMessage.Error("E-RAS-004", "The HEC-RAS geometry file has no cross-sections.")); return (null, msgs); }
+        var pick = reaches[0];
+        if (reach is not null)
+        {
+            var parts = reach.Split(',').Select(t => t.Trim()).ToArray();
+            int idx = reaches.FindIndex(r => r.River.Equals(parts[0], StringComparison.OrdinalIgnoreCase)
+                && (parts.Length < 2 || r.Reach.Equals(parts[1], StringComparison.OrdinalIgnoreCase)));
+            if (idx < 0)
+            {
+                msgs.Add(CalcMessage.Error("E-RAS-005", $"hec-ras reach \"{reach}\" is not in the file. Reaches: {string.Join("; ", reaches.Select(r => $"{r.River}, {r.Reach}"))}."));
+                return (null, msgs);
+            }
+            pick = reaches[idx];
+        }
+        else if (reaches.Count > 1)
+            msgs.Add(CalcMessage.Warning("W-RAS-001", $"The file has {reaches.Count} reaches; {pick.River}, {pick.Reach} was imported. Set hec-ras reach = River, Reach for another. Junctions are not modeled."));
+        var secs = g.Sections.Where(s => (s.River, s.Reach) == pick).Select(HecRasGeometry.WithManningPoints).ToList();
+        foreach (var s in secs.Where(s => s.Manning.Count == 0))
+            msgs.Add(CalcMessage.Warning("W-RAS-002", $"RS {s.Rs}: no Manning's n in the file."));
+        foreach (var note in g.Skipped.Where(n => n.StartsWith($"{pick.River} {pick.Reach} ", StringComparison.Ordinal)))
+            msgs.Add(CalcMessage.Warning("W-RAS-003", note + (note.Contains("bridge") || note.Contains("culvert") ? ". Enter bridges under [Bridges] if needed." : ".")));
+        msgs.Add(CalcMessage.Info("I-RAS-001", $"Imported {secs.Count} cross-sections of {pick.River}, {pick.Reach}{(g.Title.Length > 0 ? $" from \"{g.Title}\"" : "")}. The file does not record its units: they must match the units chosen here."));
+        return (HecRasGeometry.ToToolInput(secs), msgs);
+    }
 
     public static List<RiverSection> ParseSections(ToolInput p, double k, List<CalcMessage> msgs)
     {
