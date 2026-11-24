@@ -19,6 +19,7 @@ public static class DesignToolCatalog
         ["gutter-inlets"] = "Streets and inlets", ["street-capacity"] = "Streets and inlets", ["inlet-network"] = "Streets and inlets",
         ["sag-ponding"] = "Streets and inlets",
         ["network-plan-review"] = "Storm sewer design", ["network-optimizer"] = "Storm sewer design", ["plan-profile-dxf"] = "Storm sewer design",
+        ["pump-station"] = "Storm sewer design",
         ["swmm-exchange"] = "Storm sewer design", ["dynamic-wave"] = "Storm sewer design",
         ["detention-routing"] = "Detention and water quality", ["pond-storage"] = "Detention and water quality",
         ["outlet-designer"] = "Detention and water quality", ["water-quality"] = "Detention and water quality",
