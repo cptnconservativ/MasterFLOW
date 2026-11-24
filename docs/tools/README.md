@@ -26,6 +26,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | TR-55 hydrology: curve number, Tc, peak discharge, unit hydrograph | NRCS TR-55 (1986), NEH 630 Ch. 16 | [tr55-hydrology.md](tr55-hydrology.md) |
 | Flood frequency from annual peaks (log-Pearson III, EMA, low outliers, historical data) | USGS Bulletin 17C (2019) | [flood-frequency.md](flood-frequency.md) |
 | Detention pond routing | IDCM §4.10; modified rational or entered hydrographs | [detention-routing.md](detention-routing.md) |
+| Pond sediment accumulation and clean-out interval | Brune (1953) / Dendy (1974) trap efficiency; Lara and Pemberton (1963), Miller (1953) deposit density; simple method annual runoff (Schueler 1987) | [pond-sediment.md](pond-sediment.md) |
 | Pond stage–storage from a TIN surface | Civil 3D LandXML surface; exact TIN volumes | [pond-storage.md](pond-storage.md) |
 | ★ Multi-stage outlet designer | IDCM §4.10, SWQM 2009 §2.3.2 | [outlet-designer.md](outlet-designer.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
