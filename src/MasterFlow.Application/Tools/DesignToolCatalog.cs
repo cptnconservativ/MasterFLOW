@@ -22,6 +22,7 @@ public static class DesignToolCatalog
         ["swmm-exchange"] = "Storm sewer design", ["dynamic-wave"] = "Storm sewer design",
         ["detention-routing"] = "Detention and water quality", ["pond-storage"] = "Detention and water quality",
         ["outlet-designer"] = "Detention and water quality", ["water-quality"] = "Detention and water quality",
+        ["spillway-breach"] = "Detention and water quality",
         ["erosion-sediment"] = "Detention and water quality",
         ["backwater-profile"] = "Open channels and structures", ["channel-profile"] = "Open channels and structures",
         ["river-profile"] = "Open channels and structures", ["hds5-culvert"] = "Open channels and structures",
