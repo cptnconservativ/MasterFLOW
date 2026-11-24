@@ -23,6 +23,7 @@ public static class DesignToolCatalog
         ["detention-routing"] = "Detention and water quality", ["pond-storage"] = "Detention and water quality",
         ["outlet-designer"] = "Detention and water quality", ["water-quality"] = "Detention and water quality",
         ["erosion-sediment"] = "Detention and water quality",
+        ["groundwater-mounding"] = "Detention and water quality",
         ["backwater-profile"] = "Open channels and structures", ["channel-profile"] = "Open channels and structures",
         ["river-profile"] = "Open channels and structures", ["hds5-culvert"] = "Open channels and structures",
         ["outlet-protection"] = "Open channels and structures", ["stilling-basin"] = "Open channels and structures",

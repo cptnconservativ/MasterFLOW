@@ -42,6 +42,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Batch scenarios | Any tool or the network HGL, side by side | [batch-scenarios.md](batch-scenarios.md) |
 | ★ Cost estimate and bid tabulation | Network takeoff, your prices and bids | [cost-estimate.md](cost-estimate.md) |
 | ★ Water quality and LID sizing | Rapid City Storm Water Quality Manual (2009) via IDCM §4.1.7; MHFD USDCM Vol. 3 option | [water-quality.md](water-quality.md) |
+| Groundwater mounding under infiltration basins | Hantush (1967); USGS SIR 2010-5102 | [groundwater-mounding.md](groundwater-mounding.md) |
 | Erosion and sediment control (RUSLE, silt fence, sediment basin) | Rapid City SWQM 2009 Ch. 1; USDA AH 703 (RUSLE) | [erosion-sediment.md](erosion-sediment.md) |
 | ★ Network optimizer: least-cost sizes and inverts | IDCM §4.6; dynamic programming | [network-optimizer.md](network-optimizer.md) |
 | ★ Drainage report builder | IDCM §1.15, §4.1.8; PDF, Word, HTML; live values and changes since issue | [drainage-report.md](drainage-report.md) |
