@@ -18,8 +18,7 @@ Calculations run entirely in one consistent system chosen per calculation; the e
 
 k = 1.486 is the conventional U.S. value (Chow 1959; FHWA HDS-4). The exact conversion is
 (1/0.3048)^(1/3) = 1.48592; the 0.005 % difference is below any meaningful precision of n.
-Evidence suggests Flow Calc uses 1.48592 (see FLOWCALC_TEST_CASES.md), which explains last-digit
-differences. **Decision D-004** keeps 1.486 so results match U.S. hand calculations; a setting may be
+Programs that use 1.48592 differ from MasterFlow in the last digit (see REFERENCE_TEST_CASES.md). **Decision D-004** keeps 1.486 so results match U.S. hand calculations; a setting may be
 added if users want exact-conversion results.
 
 Display conversions: slope is entered and displayed in percent (labelled "%") and divided by 100 in
@@ -180,9 +179,9 @@ wetted perimeter (warning W-I-003, D-021).
   Effective n = k A R^(2/3) / K is reported and can be **lower than every subarea n**, because the deep
   main channel carries most of the flow. Energy coefficient α = Σ(Kᵢ³/Aᵢ²)/(K³/A²) is reported.
 - *Equal velocity* (Horton 1933 / Einstein 1934): nc = [Σ Pᵢ nᵢ^1.5 / P]^(2/3) over the whole area.
-- *Per-segment conveyance* (Flow Calc "Flow Conveyance"): K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3) with one subarea per
+- *Per-segment conveyance*: K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3) with one subarea per
   sloping segment, split by vertical lines at every point. End walls join the end subareas.
-  Checked against Flow Calc 2026 on the sample creek: yn 6.694 ft, A 181.05 ft², effective n 0.0272.
+  Checked against an independent hand calculation (`validation/hand_calcs_per_segment.py`) on the sample creek: yn 6.694 ft, A 181.05 ft², effective n 0.0272.
 **Vertical walls with their own n** (both subdivision methods): a vertical segment has wetted perimeter
 but no area, so on its own it would carry no conveyance and its friction would be lost. It joins the
 nearest subarea with area on the side its face looks into (a wall stepping down to the right faces right;

@@ -5,8 +5,8 @@ using MasterFlow.Hydraulics;
 namespace MasterFlow.Application;
 
 /// <summary>
-/// Catches a slope typed in the wrong unit. Flow Calc reads "0.02" as 0.02 ft/ft (2 %), MasterFlow's
-/// percent field reads it as 0.02 %: a 100× difference for anyone who uses both. The warning gives both
+/// Catches a slope typed in the wrong unit. "0.02" meant as 0.02 ft/ft (2 %) is read by the
+/// percent field as 0.02 %: a 100× difference that is easy to miss. The warning gives both
 /// readings and says how to switch.
 /// </summary>
 public static class SlopeEntry

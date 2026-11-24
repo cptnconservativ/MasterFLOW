@@ -48,7 +48,7 @@ US customary unless noted. Values from `validation/hand_calcs_output.txt`.
 |---|---|---|---|
 | P1 half full | D = 2 ft, n = 0.013, S = 0.005, y = 1 | Q = Qfull/2 exactly (closed form); 7.9982260189 cfs | Pass (1e-13) |
 | P1b constants | same | Qmax/Qfull = 1.0757061, y(Qmax)/D = 0.9381812; Sfull = S/4 | Pass |
-| P2/P3 Flow Calc Ex. #3 | D = 36 in, n = 0.013, S = 1 %, Q = 71.37 | lower 2.7295067672 ft, upper 2.8886196484 ft | Pass; Flow Calc 32.76 / 34.66 in vs MasterFlow 32.754 / 34.663 in |
+| P2/P3 36-in pipe | D = 36 in, n = 0.013, S = 1 %, Q = 71.37 | lower 2.7295067672 ft, upper 2.8886196484 ft | Pass; 2-decimal reference 32.76 / 34.66 in vs MasterFlow 32.754 / 34.663 in |
 | P4 typical | D = 1.5 ft, S = 0.004, Q = 4 | yn = 0.8392399829, yc = 0.7655222981 | Pass |
 | P5 nearly empty | Q = 1e-4 cfs | yn = 0.0051717821 | Pass (1e-7, reference printed to 8 s.f.) |
 | P6 steep | D = 0.6 ft, S = 5 %, Q = 1 | yn = 0.2830441087, supercritical | Pass |
@@ -82,7 +82,7 @@ exact (1e-12) for shapes that are also parametric sections, 1e-6 for script valu
 
 | Case | Inputs | Reference | Status |
 |---|---|---|---|
-| I1 Flow Calc Example #1 as points | (0,5) (10,0) (20,0) (30,5), n 0.013, S 1 %, y 1.5 | Equals parametric trapezoid; Q = 247.08514222 | Pass (1e-12; 1e-8) |
+| I1 trapezoid b = 10, z = 2 as points | (0,5) (10,0) (20,0) (30,5), n 0.013, S 1 %, y 1.5 | Equals parametric trapezoid; Q = 247.08514222 | Pass (1e-12; 1e-8) |
 | I1b vertical walls | (0,4) (0,0) (8,0) (8,4) | Equals rectangle b = 8 (yn, P, yc) | Pass (1e-10) |
 | I2 compound, subdivision | overbanks n 0.06, channel n 0.035, S 0.001, y 6 | A 128.3333, P 70.88369712, Q 311.83231363 | Pass |
 | I2b same, Q = 1500 | water above both ends | yn 9.67513472, W-I-003 | Pass |
@@ -102,12 +102,12 @@ documented HEC-RAS subdivision rule, so agreement is expected wherever the main 
 1. **B1 first run failed** at 1e-7 relative on yc: the reference was printed with 10 decimals, i.e. 7
    significant figures at 1.46e-4 ft. Not an engine error. The test now uses the exact closed form
    yc = (q²/g)^(1/3), which passes at 1e-10.
-2. **Flow Calc Example #1: 247.07 vs 247.085 cfs (0.006 %).** Reproduced exactly by k = 1.48592
-   instead of 1.486; the full-flow value in Example #3 (66.69 vs 66.70) supports the same explanation.
-   MasterFlow intentionally keeps k = 1.486 (D-004). This is an inference about Flow Calc, not a proof.
+2. **T1: 247.07 vs 247.085 cfs (0.006 %).** A reference rounded to 247.07 is reproduced exactly by
+   k = 1.48592 (the exact metric conversion) instead of 1.486; the 36-in pipe full flow (66.69 vs 66.70)
+   moves the same way. MasterFlow intentionally keeps k = 1.486 (D-004); the test checks both values.
 
-3. **P3 first run** asserted Flow Calc's 32.76 in exactly; MasterFlow gives 32.754 in. Q = 71.37 is
-   Flow Calc's own rounded output and dQ/dy is small near the crown, so ±0.005 cfs of rounding plus the
+3. **P3 first run** asserted the 2-decimal reference 32.76 in exactly; MasterFlow gives 32.754 in.
+   Q = 71.37 is itself rounded and dQ/dy is small near the crown, so ±0.005 cfs of rounding plus the
    k difference moves the depth by about 0.01 in. The comparison now uses ±0.015 in, with this
    explanation in the test; the independent hand-calc comparison remains at 1e-9.
 

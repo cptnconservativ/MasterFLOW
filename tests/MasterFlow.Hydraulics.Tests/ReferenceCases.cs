@@ -78,8 +78,8 @@ public class ReferenceCases
         Near(2.1482332137, r.Critical.Depth, 1e-9, "yc");
     }
 
-    [Fact] // T1: the case observed in the Flow Calc example project (comparison point only)
-    public void Trapezoidal_FlowCalcExample_Discharge()
+    [Fact] // T1: trapezoid b = 10 ft, z = 2, supercritical (independent hand calc)
+    public void Trapezoidal_T1_Discharge()
     {
         var r = Solve(new TrapezoidalSection(10, 2, 2), SolveFor.Discharge, 0.013, 0.01, y: 1.5);
         Near(247.0851422290, r.Discharge, 1e-10, "Q");
@@ -88,10 +88,9 @@ public class ReferenceCases
         Near(2.2745285019, r.Critical.Depth, 1e-9, "yc");
         Near(2.0234951913, r.Normal.Froude, 1e-9, "Fr");
         Assert.Equal(FlowRegime.Supercritical, r.Regime);
-        // Flow Calc displayed 247.07 cfs. With k = 1.486 we get 247.085; the difference (0.006 %) equals
-        // the ratio 1.48592/1.486, i.e. Flow Calc appears to use the exact metric conversion of k.
-        // This is an inference from one observation; see docs/VALIDATION_RESULTS.md.
-        Near(247.07, r.Discharge * 1.4859185 / 1.486, 2e-5, "Flow Calc display with exact k");
+        // Constant sensitivity: k = 1.486 gives 247.085 cfs; the exact metric conversion k = 1.48592 gives
+        // 247.07 (0.006 % lower). Last-digit differences against other references can come from k alone.
+        Near(247.07, r.Discharge * 1.4859185 / 1.486, 2e-5, "Q with exact-conversion k");
     }
 
     [Fact] // T3: asymmetric side slopes

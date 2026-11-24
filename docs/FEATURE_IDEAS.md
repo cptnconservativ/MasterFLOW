@@ -1,8 +1,7 @@
-# Feature ideas beyond Flow Calc parity
+# Feature ideas
 
-Written 2026-11-18 after the v0.11.0 parity review. Every Flow Calc capability that can be seen in the
-installed build (26.8.23) or read in its public material is now in MasterFlow (see
-[FEATURE_PARITY_MATRIX.md](FEATURE_PARITY_MATRIX.md)). These are ideas to go further. Ranking is
+Written 2026-11-18 after the v0.11.0 feature review (see [FEATURE_MATRIX.md](FEATURE_MATRIX.md)).
+These are ideas to go further. Ranking is
 engineering value for a drainage or roadway engineer against effort; **H/M/L** = value, **S/M/L** = effort.
 
 ## A. Hydraulics that engineers reach for right after Manning
@@ -34,7 +33,7 @@ engineering value for a drainage or roadway engineer against effort; **H/M/L** =
 | B8 | **User precision settings** | M | S | Decimal places per quantity, saved per user |
 | B9 | **Quick calculator** pane that does not create a project item | L | S | |
 
-## C. Review and QA (where MasterFlow can clearly beat Flow Calc)
+## C. Review and QA (where MasterFlow stands apart)
 
 | # | Idea | Value | Effort | Notes |
 |---|---|---|---|---|

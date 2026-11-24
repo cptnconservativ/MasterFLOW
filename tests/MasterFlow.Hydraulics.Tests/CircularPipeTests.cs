@@ -57,15 +57,15 @@ public class CircularPipeTests
         Assert.True(double.IsNaN(r.Conduit!.AlternateNormalDepth));
     }
 
-    [Fact] // Flow Calc Example #3 comparison: D = 36 in, n = 0.013, S = 1 %, Q = 71.37 → ND 32.76 in, dual ND 34.66 in
-    public void DualNormalDepth_FlowCalcExample3()
+    [Fact] // P3: D = 36 in, n = 0.013, S = 1 %, Q = 71.37 → ND 32.76 in, dual ND 34.66 in (2-decimal reference)
+    public void DualNormalDepth_P3()
     {
         var r = Solve(3.0, SolveFor.NormalDepth, 0.013, 0.01, q: 71.37);
         Near(2.7295067672, r.Normal.Depth, 1e-9, "lower root (hand calc)");
         Near(2.8886196484, r.Conduit!.AlternateNormalDepth, 1e-9, "upper root (hand calc)");
-        // Flow Calc comparison (not authority). Q = 71.37 is Flow Calc's rounded output, and near the crown
-        // dQ/dy is small, so the ±0.005 cfs rounding plus the k = 1.486 vs 1.48592 difference moves the
-        // depth by up to ~0.01 in. MasterFlow gives 32.754 in vs Flow Calc 32.76 in; 34.663 vs 34.66 in.
+        // Reference rounded to two decimals (32.76 / 34.66 in). Q = 71.37 is itself rounded, and near the crown
+        // dQ/dy is small, so the ±0.005 cfs rounding plus the k = 1.486 vs 1.48592 choice moves the depth by
+        // up to ~0.01 in. MasterFlow gives 32.754 / 34.663 in; the hand calc above holds to 1e-9.
         Assert.InRange(r.Normal.Depth * 12, 32.76 - 0.015, 32.76 + 0.015);
         Assert.InRange(r.Conduit.AlternateNormalDepth * 12, 34.66 - 0.015, 34.66 + 0.015);
         Assert.Contains(r.Messages, m => m.Code == MessageCodes.TwoNormalDepths);

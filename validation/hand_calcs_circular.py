@@ -51,8 +51,8 @@ def case(name, D, n, S, Qt=None, y=None):
 
 if __name__ == "__main__":
     case("P1 half full", 2.0, 0.013, 0.005, y=1.0)
-    case("P2 FlowCalc Ex3 Q from y", 3.0, 0.013, 0.01, y=2.73)
-    case("P3 FlowCalc Ex3 dual depth", 3.0, 0.013, 0.01, Qt=71.37)
+    case("P2 36-in pipe Q from y", 3.0, 0.013, 0.01, y=2.73)
+    case("P3 36-in pipe dual depth", 3.0, 0.013, 0.01, Qt=71.37)
     case("P4 typical storm sewer yn", 1.5, 0.013, 0.004, Qt=4.0)
     case("P5 nearly empty", 1.5, 0.013, 0.004, Qt=1e-4)
     case("P6 SI-like steep", 0.6, 0.012, 0.05, Qt=1.0)

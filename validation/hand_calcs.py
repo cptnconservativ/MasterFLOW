@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     report("CASE R1 rect basic Q", 10, 0, 0, 0.013, 0.001, US, y=2.0)
     report("CASE R2 rect yn", 10, 0, 0, 0.013, 0.001, US, Q=50.0)
-    report("CASE T1 trap FlowCalc example", 10, 2, 2, 0.013, 0.01, US, y=1.5)
+    report("CASE T1 trap b=10 z=2 supercritical", 10, 2, 2, 0.013, 0.01, US, y=1.5)
     report("CASE T2 trap Chow Ex.6-2", 20, 2, 2, 0.025, 0.0016, US, Q=400.0)
     report("CASE T3 trap asym", 4, 3, 1.5, 0.030, 0.005, US, Q=120.0)
     report("CASE V1 tri yn", 0, 3, 3, 0.015, 0.002, US, Q=20.0)
