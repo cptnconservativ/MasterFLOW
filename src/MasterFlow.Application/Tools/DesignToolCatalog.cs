@@ -28,6 +28,7 @@ public static class DesignToolCatalog
         ["outlet-protection"] = "Open channels and structures", ["stilling-basin"] = "Open channels and structures",
         ["riprap-revetment"] = "Open channels and structures",
         ["bridge-scour"] = "Open channels and structures",
+        ["scour-countermeasures"] = "Open channels and structures",
         ["quantity-takeoff"] = "Quantities and cost", ["cost-estimate"] = "Quantities and cost",
         ["batch-scenarios"] = "Productivity and deliverables", ["inverse-design"] = "Productivity and deliverables",
         ["drainage-report"] = "Productivity and deliverables", ["redesign-diff"] = "Productivity and deliverables",
