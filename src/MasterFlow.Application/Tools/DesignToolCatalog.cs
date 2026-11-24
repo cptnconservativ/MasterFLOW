@@ -16,6 +16,7 @@ public static class DesignToolCatalog
     {
         ["rational-rapid-city"] = "Hydrology", ["atlas14-idf"] = "Hydrology", ["tr55-hydrology"] = "Hydrology",
         ["hydrograph-routing"] = "Hydrology", ["flood-frequency"] = "Hydrology",
+        ["snowmelt"] = "Hydrology",
         ["gutter-inlets"] = "Streets and inlets", ["street-capacity"] = "Streets and inlets", ["inlet-network"] = "Streets and inlets",
         ["sag-ponding"] = "Streets and inlets",
         ["network-plan-review"] = "Storm sewer design", ["network-optimizer"] = "Storm sewer design", ["plan-profile-dxf"] = "Storm sewer design",
