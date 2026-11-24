@@ -232,7 +232,7 @@ public sealed class OutletProtectionTool : IDesignTool
         var summary = new List<string>();
         if (outlets.Count > 0) summary.Add($"{outlets.Count} outlet(s): apron class and size by HEC-14 Table 10.1, riprap basin by HEC-14 §10.2, laid out to IDCM §4.9.5.");
         if (pools.Count > 0) summary.Add($"{pools.Count} plunge pool(s) by IDCM Eq. 4-9-1.");
-        summary.Add("The USBR Type VI and CSU impact basins need IDCM Table 4-15 and Figure 4-17 and are not sized here.");
+        summary.Add("The USBR Type VI impact basin and the CSU roughness-element basin are sized in the Hydraulic jump and stilling basins tool.");
         return new ToolResult(title, summary, tables, msgs) { Figures = figures };
     }
 
