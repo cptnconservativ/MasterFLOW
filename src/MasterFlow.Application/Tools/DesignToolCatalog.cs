@@ -18,6 +18,7 @@ public static class DesignToolCatalog
         ["hydrograph-routing"] = "Hydrology", ["flood-frequency"] = "Hydrology",
         ["gutter-inlets"] = "Streets and inlets", ["street-capacity"] = "Streets and inlets", ["inlet-network"] = "Streets and inlets",
         ["sag-ponding"] = "Streets and inlets",
+        ["deck-drainage"] = "Streets and inlets",
         ["network-plan-review"] = "Storm sewer design", ["network-optimizer"] = "Storm sewer design", ["plan-profile-dxf"] = "Storm sewer design",
         ["swmm-exchange"] = "Storm sewer design", ["dynamic-wave"] = "Storm sewer design",
         ["detention-routing"] = "Detention and water quality", ["pond-storage"] = "Detention and water quality",
