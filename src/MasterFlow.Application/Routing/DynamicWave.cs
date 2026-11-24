@@ -96,7 +96,7 @@ public sealed class DynamicWave
             l.T[TableN] = 0;
             l.Afull = l.A[TableN]; l.Rfull = l.R[TableN];
             l.S0 = (p.UpstreamInvert - p.DownstreamInvert) / p.Length;
-            var up = net.Structures.FirstOrDefault(s => s.Name == p.From);
+            var up = net.Structures.FirstOrDefault(s => string.Equals(s.Name, p.From, StringComparison.OrdinalIgnoreCase));
             l.K = options.JunctionLosses ? up?.JunctionK ?? net.DefaultJunctionK : 0;
             _links.Add(l);
             var a = _nodes[l.Up]; var b = _nodes[l.Dn];
