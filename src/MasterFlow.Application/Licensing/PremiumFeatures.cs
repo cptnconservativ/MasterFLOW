@@ -45,6 +45,7 @@ public static class PremiumFeatures
         new("review-comments", "Review comment tracker and response letter", ["review-comments"]),
         new("river-profile", "Natural channel water surface profiles (HEC-RAS method, surveyed cross-sections)", ["river-profile"]),
         new("swmm-exchange", "EPA SWMM 5 exchange: export .inp, import .inp, compare SWMM results with the HGL", ["swmm-exchange"]),
+        new("dynamic-wave", "Dynamic-wave storm sewer routing (unsteady HGL, surcharge and flooding)", ["dynamic-wave"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
