@@ -1,0 +1,35 @@
+# Regional regression peak flows, gage weighting and transfer (HDS-2)
+
+This tool computes peak discharges at an ungaged site from the USGS regional regression equations for its region, the
+method HDS-2 recommends for most highway drainage on natural streams. It also weights the result with a nearby gage on
+the same stream when one exists. The tool is free.
+
+The equations are not built in, because they differ by state and region and are updated. Copy them from the USGS
+report or a StreamStats report into the `[Equations]` table. The sample's coefficients are made up.
+
+## Input
+
+| Key | Meaning |
+|---|---|
+| `[Variables]` | Name, site value, and the minimum and maximum of each basin characteristic in the report's data. Values must be above zero. When a report uses X + 1 (for example storage + 1), enter that value. |
+| `[Equations]` | T (yr), C, then one exponent column per variable (the header names the variable), and optionally `SEP (%)` or `Slog` (standard error of prediction in log10 units) and `EYR` (equivalent years of record). |
+| `area variable` | The variable that is the drainage area, for the gage transfer. |
+| `gage area`, `gage years`, `[Gage]` | A gage on the same stream: drainage area, years of record N, and the at-site estimates (T, Q) from Bulletin 17C, for example from the flood frequency tool. |
+
+## Method
+
+1. Q = C·X1^b1·X2^b2·… at the site.
+2. The 90 % prediction interval is Q/10^(1.645·S) to Q·10^(1.645·S). S is in log10 units; when it is given as a percent, S = √(ln(1 + SEP²))/ln 10.
+3. A characteristic outside the report's range is flagged (W-RR-001).
+4. At the gage, the at-site and regression estimates are weighted by years: log Qw = (N·log Qg + E·log Qr)/(N + E).
+5. Transfer to the site (Sauer 1974, used by NSS and StreamStats): Qu = Qr,u·[R − (2ΔA/Ag)(R − 1)], with R = Qw/Qr at the gage. It applies when |Ag − Au|/Ag ≤ 0.5; beyond that the regression is used.
+
+## Decisions
+
+| ID | Decision |
+|---|---|
+| D-560 | Equations are typed in, not stored. No current South Dakota or other regional report could be downloaded from the build environment, and stored coefficients would go out of date. |
+| D-561 | Only power-form equations are supported, which covers most USGS reports. Equations with additive terms (for example 10^(a + b·X)) need a transformed variable entered by the user. |
+| D-562 | The prediction interval uses the average standard error of prediction. It does not include the site-specific leverage term (which needs the report's covariance matrix), so it is somewhat narrow for sites far from the center of the data. |
+| D-563 | Weighting uses equivalent years of record, the NSS/StreamStats method. Bulletin 17C variance weighting needs the variances of both estimates and is not done here. |
+| D-564 | Validation: hand calculations (RegionalRegressionTests) of the power equation, the log standard error, the weighting, and the Sauer transfer at its limits (ΔA = 0 gives R·Qr; ΔA = Ag/2 gives Qr). |

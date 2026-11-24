@@ -18,6 +18,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Tool | Source | Doc |
 |---|---|---|
 | Rational method | Rapid City IDCM 2012 §4.2 | [rational-method.md](rational-method.md) |
+| Regional regression peak flows, gage weighting and transfer | FHWA HDS-2 (2002) Ch. 5; USGS regional regression reports and StreamStats; Sauer (1974) | [regional-regression.md](regional-regression.md) |
 | ★ NOAA Atlas 14 rainfall (IDF lookup) | NOAA Atlas 14 via PFDS | [atlas14-idf.md](atlas14-idf.md) |
 | Gutter spread and inlets | IDCM §4.4–4.5, HEC-22 | [gutter-inlets.md](gutter-inlets.md) |
 | ★ Inlet capacity and bypass routing | HEC-22, IDCM Table 4-11, MHFD Table 7-6 | [inlet-network.md](inlet-network.md) |
