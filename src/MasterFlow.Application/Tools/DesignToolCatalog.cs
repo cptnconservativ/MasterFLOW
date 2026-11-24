@@ -32,6 +32,7 @@ public static class DesignToolCatalog
         ["drainage-report"] = "Productivity and deliverables", ["redesign-diff"] = "Productivity and deliverables",
         ["submittal-precheck"] = "Productivity and deliverables", ["review-comments"] = "Productivity and deliverables",
         ["site-feasibility"] = "Land development and construction", ["grading-solver"] = "Land development and construction",
+        ["pavement-edge-drain"] = "Streets and inlets", ["bioretention-underdrain"] = "Detention and water quality",
         ["utility-conflicts"] = "Land development and construction", ["permit-tracker"] = "Land development and construction",
         ["field-to-model"] = "Land development and construction", ["construction-companion"] = "Land development and construction",
         ["climate-stress"] = "Land development and construction", ["memory-search"] = "Land development and construction",

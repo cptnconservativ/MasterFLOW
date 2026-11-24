@@ -20,6 +20,8 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Rational method | Rapid City IDCM 2012 §4.2 | [rational-method.md](rational-method.md) |
 | ★ NOAA Atlas 14 rainfall (IDF lookup) | NOAA Atlas 14 via PFDS | [atlas14-idf.md](atlas14-idf.md) |
 | Gutter spread and inlets | IDCM §4.4–4.5, HEC-22 | [gutter-inlets.md](gutter-inlets.md) |
+| Pavement edge drains and permeable base | FHWA-NHI-99-028 (Cedergren infiltration, resultant flow path, time to drain); AASHTO 1993 quality of drainage | [underdrains.md](underdrains.md) |
+| Bioretention underdrain: media flow, pipe capacity, drain times | Darcy, Manning, orifice equation; 48 h surface and 72 h subsurface drain by default | [underdrains.md](underdrains.md) |
 | ★ Inlet capacity and bypass routing | HEC-22, IDCM Table 4-11, MHFD Table 7-6 | [inlet-network.md](inlet-network.md) |
 | Street capacity and gutter spread (10-yr and 100-yr) | IDCM §4.4.9–4.4.11, HEC-22 | [street-capacity.md](street-capacity.md) |
 | Sag inlet ponding and clogging | IDCM §4.5.3–4.5.4, Tables 4-11 and 4-12; HEC-22 | [sag-ponding.md](sag-ponding.md) |
