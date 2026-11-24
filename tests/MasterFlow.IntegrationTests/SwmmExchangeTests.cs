@@ -79,8 +79,19 @@ public class SwmmExchangeTests
         double depth = sec["TIMESERIES"].Sum(t => double.Parse(t[2], System.Globalization.CultureInfo.InvariantCulture)) * 5 / 60;
         Assert.Equal(1.98, depth, 2);                   // IDCM Table 4-2, 10-yr 120-min
         var ga = sec["INFILTRATION"].Single();
-        Assert.Equal(["A1", "3.5", "0.256", "0.2"], ga);  // Table 4-4 loam
+        Assert.Equal(["A1", "3.5", "0.134", "0.2"], ga);  // Rawls et al. (1983) loam, the default soil table
+        Assert.Contains(r.Messages, m => m.Code == "I-SW-022");  // IDCM Table 4-4 lists a different loam Ks
         Assert.False(sec.ContainsKey("INFLOWS"));       // subcatchments replace the constant inflows by default
+    }
+
+    [Fact]
+    public void Export_Subcatchments_IdcmSoilTable()
+    {
+        var ctx = Ctx();
+        string outlet = ctx.Network!.Pipes[0].From;
+        var r = Tool.Run($"mode = export\nsoil table = idcm\nstorm = rapid-city\nyear = 10\nstorm duration = 120\n[Subcatchments]\nName\tOutlet\tArea (ac)\tImpervious (%)\tWidth (ft)\tSlope (%)\tSoil\nA1\t{outlet}\t4\t50\t500\t2\tloam\n", ctx);
+        Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
+        Assert.Equal(["A1", "3.5", "0.256", "0.2"], SwmmInp.Sections(Inp(r))["INFILTRATION"].Single());  // IDCM Table 4-4 loam
     }
 
     private const string Report = """

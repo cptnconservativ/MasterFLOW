@@ -26,15 +26,16 @@ public sealed class SwmmExchangeTool : IDesignTool
             # mode = export (write a .inp), import (read a .inp into the selected network) or compare (SWMM report vs MasterFlow HGL).
             mode = export
             inflows = design          # constant structure inflows: design, minor or none
-            duration = 6              # hours simulated
+            # duration = 6            # hours simulated (default: the storm plus 2 h, at least 6)
             routing step = 5          # s
             entry loss = 0            # SWMM conduit entry and exit K (standard-K structures carry their own K)
             exit loss = 0
             # For import or compare, give a file path, or paste the .inp / .rpt text below the keys:
             # file = C:\Projects\Main St\main-st.inp
 
-            # Optional subcatchments (U.S. units); they replace the constant inflows. Infiltration: CN, or an IDCM Table 4-4
-            # soil (Green–Ampt), or Suction (in) and Ks (in/h).
+            # Optional subcatchments (U.S. units); they replace the constant inflows. Infiltration: CN, or a Green–Ampt soil
+            # class (see soil table), or Suction (in) and Ks (in/h).
+            # soil table = rawls      # rawls (Rawls et al. 1983, default) or idcm (Rapid City IDCM Table 4-4)
             # storm = rapid-city      # rapid-city (IDCM Table 4-2 frequency storm) or type-ii (give P24)
             # year = 10
             # storm duration = 120    # min (rapid-city)
@@ -91,6 +92,10 @@ public sealed class SwmmExchangeTool : IDesignTool
         var subs = new List<SwmmSubcatchment>();
         var head = p.Header("Subcatchments").Select(h => h.ToLowerInvariant()).ToList();
         int Col(params string[] keys) => head.FindIndex(h => keys.Any(k => h.StartsWith(k, StringComparison.Ordinal)));
+        string table = (p.Text("soil table") ?? "rawls").Trim().ToLowerInvariant();
+        bool useIdcm = table.StartsWith("idcm") || table.Contains("rapid");
+        if (!useIdcm && !table.StartsWith("rawls")) msgs.Add(CalcMessage.Warning("W-SW-022", $"soil table = {table} is not rawls or idcm; Rawls et al. (1983) used."));
+        var soils = useIdcm ? Losses.RapidCitySoils : Losses.RawlsSoils;
         int cOut = Col("outlet"), cA = Col("area"), cI = Col("imperv"), cW = Col("width"), cS = Col("slope"), cCn = Col("cn", "curve"),
             cSoil = Col("soil"), cSu = Col("suction"), cKs = Col("ks"), cDef = Col("deficit"), cNi = Col("n-imperv", "n imperv"), cNp = Col("n-perv", "n perv");
         foreach (var r in p.Rows("Subcatchments"))
@@ -113,7 +118,12 @@ public sealed class SwmmExchangeTool : IDesignTool
             }
             else if (cSoil >= 0 && cSoil < r.Length && r[cSoil].Length > 0)
             {
-                if (!Losses.RapidCitySoils.TryGetValue(r[cSoil], out var soil)) { msgs.Add(CalcMessage.Error("E-SW-007", $"{name}: soil \"{r[cSoil]}\" is not an IDCM Table 4-4 class ({string.Join(", ", Losses.RapidCitySoils.Keys)}).")); continue; }
+                if (!soils.TryGetValue(r[cSoil], out var soil)) { msgs.Add(CalcMessage.Error("E-SW-026", $"{name}: soil \"{r[cSoil]}\" is not a Green–Ampt soil class ({string.Join(", ", soils.Keys)}).")); continue; }
+                var other = useIdcm ? Losses.RawlsSoils[r[cSoil]] : Losses.RapidCitySoils[r[cSoil]];
+                if (Math.Abs(other.Ks - soil.Ks) > 1e-9)
+                    msgs.Add(CalcMessage.Info("I-SW-022", useIdcm
+                        ? $"{name}: {r[cSoil]} Ks = {soil.Ks:G3} in/h from IDCM Table 4-4 (used); Rawls et al. (1983) gives {other.Ks:G3} in/h."
+                        : $"{name}: {r[cSoil]} Ks = {soil.Ks:G3} in/h from Rawls et al. (1983) (used); Rapid City IDCM Table 4-4 lists {other.Ks:G3} in/h. Set soil table = idcm to follow the IDCM table."));
                 sub = sub with { Suction = soil.Suction, Ks = soil.Ks };
             }
             else
@@ -178,6 +188,8 @@ public sealed class SwmmExchangeTool : IDesignTool
             Subcatchments = subs, RainIntensity = rain, RainStepMin = rainStep, RainName = rainName,
         };
         if (opt.DurationHours <= 0 || opt.RoutingStepSec <= 0) return ToolResult.Failed(title, CalcMessage.Error("E-SW-024", "duration and routing step must be above zero."));
+        if (rain.Count > 0 && opt.DurationHours < stormHours)
+            msgs.Add(CalcMessage.Warning("W-SW-023", $"duration = {opt.DurationHours:G3} h is shorter than the {stormHours:G3}-h storm; SWMM stops before the rain ends. Leave duration out to simulate the storm plus 2 h."));
         if (opt.Inflows is not ("design" or "minor" or "none")) return ToolResult.Failed(title, CalcMessage.Error("E-SW-025", "inflows must be design, minor or none."));
         if (subs.Count > 0 && opt.Inflows != "none") msgs.Add(CalcMessage.Warning("W-SW-004", "Both subcatchments and constant structure inflows are written; SWMM adds them, which double counts if the inflows came from the same areas."));
 

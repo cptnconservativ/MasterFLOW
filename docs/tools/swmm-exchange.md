@@ -20,7 +20,7 @@ be loaded and checked against the IDCM in MasterFlow.
 | `[CONDUITS]`, `[XSECTIONS]` | Length, n, offsets (pipe invert − node invert); CIRCULAR, or HORIZ_/VERT_ELLIPSE with rise and span |
 | `[LOSSES]` | `entry loss` and `exit loss` K for every conduit; a standard-K structure's K becomes the entry loss of the pipe leaving it. IDCM Figure 4-6/4-7 losses cannot be expressed in SWMM (D-331) |
 | `[INFLOWS]` | `inflows = design` (default), `minor` or `none`: constant baselines. When the network's flows are typed on pipes, each node gets the flow of its outgoing pipe less its incoming pipes, so SWMM carries the same flows (D-330) |
-| `[SUBCATCHMENTS]` etc. | Optional `[Subcatchments]` (Name, Outlet, Area (ac), Impervious (%), Width (ft), Slope (%), then CN, or Soil (IDCM Table 4-4 class → Green–Ampt ψ and Ks), or Suction and Ks; Deficit default 0.20 per IDCM §4.3.6). N-imperv 0.015, N-perv 0.24, depression storage 0.05 / 0.35 in., 25 % zero-storage impervious |
+| `[SUBCATCHMENTS]` etc. | Optional `[Subcatchments]` (Name, Outlet, Area (ac), Impervious (%), Width (ft), Slope (%), then CN, or Soil (a Green–Ampt class → ψ and Ks from Rawls et al. 1983 by default, or IDCM Table 4-4 with `soil table = idcm`), or Suction and Ks; Deficit default 0.20 per IDCM §4.3.6). N-imperv 0.015, N-perv 0.24, depression storage 0.05 / 0.35 in., 25 % zero-storage impervious |
 | `[RAINGAGES]`, `[TIMESERIES]` | `storm = rapid-city` (IDCM Table 4-2 frequency storm, `year` 2/10/100, `storm duration` 60–1440 min, 5-min blocks peaking at the first quartile, the same storm the hydrograph routing tool uses) or `type-ii` (`P24`), as 5-min intensities |
 | `[COORDINATES]` | Northing/easting; structures without them are placed on a line (schematic map) |
 
@@ -47,6 +47,9 @@ peak includes storage and timing and has no IDCM structure losses.
   attempted, because hj = V2²/2g − c·V1²/2g depends on two pipes and SWMM's losses on one.
 - **D-332** Import keeps the selected network's criteria, name and structure loss defaults, so a SWMM model is checked
   against the Rapid City criteria straight away.
+- **D-333** Green–Ampt soil classes use Rawls et al. (1983) by default, with `soil table = idcm` for IDCM Table 4-4,
+  the same choice as the hydrograph routing tool (Kyle, 2026-11-23: not every user follows Rapid City criteria). Where
+  the two tables differ (loam and silt loam Ks) both values are reported.
 
 ## Validation
 
