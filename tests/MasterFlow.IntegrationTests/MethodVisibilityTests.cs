@@ -7,8 +7,8 @@ using MasterFlow.Reporting;
 namespace MasterFlow.IntegrationTests;
 
 /// <summary>
-/// Flow Calc comparison: the ellipse result differed 3% (ASTM C507 vs true ellipse) and the creek 3%
-/// (conveyance method). Those choices are now printed with the results and in reports.
+/// Method choices can move results by a few percent: an ASTM C507 ellipse vs a true ellipse (about 3 %),
+/// and the composite-n method on a creek with overbanks (about 3 %). Those choices are now printed with the results and in reports.
 /// </summary>
 public class MethodVisibilityTests
 {
@@ -41,7 +41,7 @@ public class MethodVisibilityTests
     [Theory]
     [InlineData(CompositeRoughnessMethod.Conveyance, "HEC-RAS")]
     [InlineData(CompositeRoughnessMethod.EqualVelocity, "Horton–Einstein")]
-    [InlineData(CompositeRoughnessMethod.PerSegment, "Per-segment conveyance (Flow Calc)")]
+    [InlineData(CompositeRoughnessMethod.PerSegment, "Per-segment conveyance")]
     public void IrregularMethod_IsAlwaysStated(CompositeRoughnessMethod m, string expected)
     {
         // Single n: the method line is still shown (it matters for the per-segment method).

@@ -10,7 +10,7 @@ have a baseline.
 | Stack | C# 13 / .NET 10, Avalonia 11.3.23, CommunityToolkit.Mvvm 8.4.2, xUnit 2.9 |
 | Projects | Domain, Hydraulics, Application, Persistence, Reporting, Desktop + 4 test projects |
 | Capabilities | Rect/trap/tri; solve Q, yn, S, n; critical flow; Froude/regime; warnings; rating tables (CSV/clipboard); `.mfproj` save/load (schema 1); HTML report → PDF; batch report; undo/redo; light/dark theme |
-| Partially implemented | Report logo (supported in engine, no UI to pick a logo); Flow Calc parity items listed as planned in the matrix |
+| Partially implemented | Report logo (supported in engine, no UI to pick a logo); remaining items listed as planned in the feature matrix |
 | Known defects | None open. Not yet run on Windows hardware. |
 | Build | `dotnet build` succeeds with warnings-as-errors |
 | Tests | 72 passed, 0 failed |

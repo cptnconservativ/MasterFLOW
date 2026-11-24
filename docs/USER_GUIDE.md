@@ -220,8 +220,7 @@ cannot be read is listed with its line number. Up to 5000 points are accepted.
 - *Conveyance subdivision* (default, the HEC-RAS approach): the area is split at each change in n, the conveyance of each
   part is summed, and the report shows the flow, area and velocity of each part.
 - *Equal velocity* (Horton–Einstein): one composite n for the wetted perimeter.
-- *Per-segment conveyance (Flow Calc)*: every segment is its own part. Use it to reproduce Flow Calc's "Flow Conveyance"
-  results; it gives more conveyance in wide, shallow overbanks.
+- *Per-segment conveyance*: every segment is its own part, whether or not n changes. It gives more conveyance in wide, shallow overbanks.
 
 Awkward sections are handled and reported, not hidden:
 

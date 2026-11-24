@@ -6,7 +6,7 @@ do not skip a line silently. If a line cannot be done, write down why.
 ## 1. Before the build
 
 - [ ] All roadmap items for the release are ✅ in [ROADMAP.md](../ROADMAP.md) and the
-      [feature parity matrix](FEATURE_PARITY_MATRIX.md).
+      [feature matrix](FEATURE_MATRIX.md).
 - [ ] New decisions are recorded in [DECISIONS.md](DECISIONS.md); new or changed equations in
       [HYDRAULIC_METHODS.md](HYDRAULIC_METHODS.md).
 - [ ] The [user guide](USER_GUIDE.md) describes every new or changed behaviour.

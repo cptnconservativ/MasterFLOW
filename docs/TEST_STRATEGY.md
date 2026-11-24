@@ -8,7 +8,7 @@
 | Integration | MasterFlow.IntegrationTests | Save/load round trip, schema refusal, damaged files, report content, sample report artifact | every change |
 | View model | MasterFlow.Desktop.Tests | Recalc on edit, invalid text, undo/redo, solve-for UI state, save/load through VM | every change |
 | Manual UI | — | Launch app, screenshot review (Linux/Xvfb now; Windows each release) | each milestone |
-| Comparison | docs/FLOWCALC_TEST_CASES.md, future HEC-RAS set | Cross-tool checks with explained differences | per phase |
+| Reference | docs/REFERENCE_TEST_CASES.md, future HEC-RAS set | Independent reference checks with explained differences | per phase |
 
 Rules: references are produced independently of the engine (`validation/hand_calcs.py`); tolerances
 set before comparison (VALIDATION_PLAN.md); a failing reference is investigated, never loosened to

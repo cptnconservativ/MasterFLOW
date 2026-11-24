@@ -1,4 +1,4 @@
---- I1 Flow Calc Example #1 trapezoid as points
+--- I1 trapezoid b=10 z=2 as points
 y = 1.5: A = 19.50000000, P = 16.70820393, T = 16.00006000, Q = 247.08514222
 --- I2 compound, conveyance subdivision
 y = 6.0: A = 128.33333332, P = 70.88369712, T = 66.66760001, Q = 311.83231363

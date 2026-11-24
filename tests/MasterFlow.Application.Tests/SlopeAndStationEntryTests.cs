@@ -33,7 +33,7 @@ public class SlopeAndStationEntryTests
     public void BadStations_AreRejected(string text) => Assert.False(StationPointText.TryStation(text, Inv, out _));
 
     [Fact]
-    public void FlowCalcStyleEntry_ParsesInPointText()
+    public void PlusStationingEntry_ParsesInPointText()
     {
         var r = StationPointText.Parse("0+00\t5\n0+10\t0\n0+30\t0\n0+40\t5", Inv);
         Assert.Empty(r.Errors);
@@ -43,7 +43,7 @@ public class SlopeAndStationEntryTests
     [Fact]
     public void PercentFlat_WarnsItMayBeFtPerFt()
     {
-        // Flow Calc comparison: "0.02" typed is 0.02 % in MasterFlow and 2 % in Flow Calc.
+        // "0.02" typed in the percent field is 0.02 %, but the user may have meant 0.02 ft/ft (2 %).
         var m = SlopeEntry.Check(0.02, SlopeUnit.Percent, "ft")!;
         Assert.Equal(SlopeEntry.Code, m.Code);
         Assert.Contains("0.02 % is 0.0002 ft/ft", m.Text);

@@ -65,8 +65,8 @@ and must be re-issued.
 - D-067: the gate is at the point a tool runs for the user (the window, and later the report builder and batch manager),
   not inside each tool; tests and validation call tools directly.
 
-- D-098: the Free/Premium split (2026-11-20, Kyle): Free covers single-element calculations and everything Flow Calc,
-  HY-8 or HEC-RAS already offer (uniform flow, rating tables, reports, rational method, one inlet, street capacity,
+- D-098: the Free/Premium split (2026-11-20, Kyle): Free covers single-element calculations and everything HY-8 or
+  HEC-RAS already offer (uniform flow, rating tables, reports, rational method, one inlet, street capacity,
   culverts, backwater, one detention pond, storm network HGL/EGL solve and reports, LandXML import, quantity takeoff).
   Premium covers system-wide automation, agency submittal checks and Civil 3D production steps: inlet bypass routing,
   plan review, pipe sizing, LandXML export and HGL write-back, plus the premium tools above. Features outside the
