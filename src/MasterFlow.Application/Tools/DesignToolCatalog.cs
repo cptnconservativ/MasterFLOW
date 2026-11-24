@@ -20,6 +20,7 @@ public static class DesignToolCatalog
         ["sag-ponding"] = "Streets and inlets",
         ["network-plan-review"] = "Storm sewer design", ["network-optimizer"] = "Storm sewer design", ["plan-profile-dxf"] = "Storm sewer design",
         ["swmm-exchange"] = "Storm sewer design", ["dynamic-wave"] = "Storm sewer design",
+        ["sediment-transport"] = "Open channels and structures",
         ["detention-routing"] = "Detention and water quality", ["pond-storage"] = "Detention and water quality",
         ["outlet-designer"] = "Detention and water quality", ["water-quality"] = "Detention and water quality",
         ["erosion-sediment"] = "Detention and water quality",

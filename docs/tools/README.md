@@ -29,6 +29,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Pond stage–storage from a TIN surface | Civil 3D LandXML surface; exact TIN volumes | [pond-storage.md](pond-storage.md) |
 | ★ Multi-stage outlet designer | IDCM §4.10, SWQM 2009 §2.3.2 | [outlet-designer.md](outlet-designer.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
+| Sediment transport capacity and reach budget | FHWA HDS-6 (2001): Meyer-Peter and Müller, Engelund–Hansen, Yang (1973); sediment continuity | [sediment-transport.md](sediment-transport.md) |
 | Channel water surface profile and lining checks | IDCM §4.8, Table 4-14; HEC-15; Chow (1959) | [channel-profile.md](channel-profile.md) |
 | ★ Natural channel water surface profiles and bridges (surveyed cross-sections, several flows) | HEC-RAS Hydraulic Reference Manual Ch. 2 and 5 (energy method, conveyance subdivision, mixed regime; bridge energy, Yarnell, pressure and weir flow) | [river-profile.md](river-profile.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
