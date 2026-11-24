@@ -342,15 +342,16 @@ public class StillingBasinTests
     }
 
     [Fact]
-    public void Eq93_AsPrinted()
+    public void Eq93_SlopeTermOnOutletSide()
     {
-        // 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/2g.
+        // yA + 0.25(Q/(WA·yA))²/2g = 2Wo·So + yo + 0.25·Vo²/2g (D-328: HEC-14 prints 2Wo·So on the left).
         double q = 180, wo = 4, so = 0.12, yo = 1.5, vo = 30, fr = vo / Math.Sqrt(G * yo), wa = wo * (4 / (3 * fr) + 1);
         double ya = StillingBasinTool.Eq93(q, wo, wa, so, yo, vo, G);
-        double lhs = 2 * wo * so + ya + 0.25 * Math.Pow(q / (wa * ya), 2) / (2 * G), rhs = yo + 0.25 * vo * vo / (2 * G);
+        double lhs = ya + 0.25 * Math.Pow(q / (wa * ya), 2) / (2 * G), rhs = 2 * wo * so + yo + 0.25 * vo * vo / (2 * G);
         Assert.Equal(rhs, lhs, 6);
         Assert.True(ya < Math.Cbrt(2 * 0.25 * q * q / (wa * wa * 2 * G)));   // smaller root
-        Assert.True(double.IsNaN(StillingBasinTool.Eq93(q, wo, wa, 2.0, yo, vo, G)));
+        // A steeper drop to section A gives a shallower, faster flow there.
+        Assert.True(StillingBasinTool.Eq93(q, wo, wa, 0.25, yo, vo, G) < ya);
     }
 
     [Fact]

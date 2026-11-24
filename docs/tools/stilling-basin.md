@@ -79,16 +79,20 @@ sewer outfall, by **FHWA HEC-14, 3rd edition (2006)**, the reference the Rapid C
   warning for Type VI. They reproduce the Ch. 8 and Ch. 9 example readings except one: the §8.3 Type III example reads
   LB/y2 = 2.7 at Fr1 6.9, where the printed Type III curve gives 2.54 (LB 24.6 ft against the example's 26.0). The
   tool follows the figure. Figure 4.4 (circular) differs from the IDCM Eq. 4-9-7 line, which is no longer used.
-- **D-328** Eq. 9.3 is implemented as printed on HEC-14 p. 9-4: 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/2g,
-  with WA = Wo(4/(3Fr) + 1) and the smaller (supercritical) root. As printed, the slope term lowers the energy
-  available at section A, the opposite of a drop between the outlet and section A; whether to move it to the right
-  side is open with Kyle. Where the equation has no root the layouts that need it are skipped (W-SB-016).
+- **D-328** Eq. 9.3 (HEC-14 p. 9-4) prints 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/2g. Written that way the
+  bed rises 2Wo·So from the outlet to section A, so a steeper outlet would leave less energy at the first row of
+  elements. The tool puts the term on the outlet side: yA + 0.25(Q/(WA·yA))²/2g = 2Wo·So + yo + 0.25·Vo²/2g, with
+  WA = Wo(4/(3Fr) + 1) and the smaller (supercritical) root. This matches how HEC-14 writes its other energy
+  equations, with the elevation term on the higher, upstream side (Eq. 8.2; 1983 edition §4-A, zo + yo + Vo²/2g =
+  z2 + y2 + V2²/2g). The steep-slope equation is not in the 1983 HEC-14 (CSU basin limited to mild slopes), the
+  Simons, Stevens and Watts (1970) report, the IDCM (limited to slopes under 10 %), or the TDOT and INDOT manuals, which
+  defer to HEC-14; no other printing was found (2026-11-24). Pending Kyle's confirmation.
 
 ## Validation
 
 `StillingBasinTests` reproduces the HEC-14 worked examples: §6.2.1 rectangular jump, §6.2.2 circular jump, the
 §8.2 free-jump basin, §8.3 Type III, §8.4 Type IV and §8.5 SAF (y1, Fr1, y2, LB, LS, z3, blocks, baffles and sills
 within the examples' rounding), Eq. 8.8 radii, §9.4 Type VI in SI and CU (WB 5.0 m and 16 ft, VB 6.9 m/s and
-22.7 ft/s), and §9.1 CSU in SI (required CB·AF·N 4.63, 4 rows short, 5 rows pass, LB 17.75 m). Also the digitized figures against the example readings, Eq. 9.3 as printed, Bélanger's closed
+22.7 ft/s), and §9.1 CSU in SI (required CB·AF·N 4.63, 4 rows short, 5 rows pass, LB 17.75 m). Also the digitized figures against the example readings, Eq. 9.3, Bélanger's closed
 form, the trapezoid and circle momentum balance, Table 6.1's K, the Table 9.1 column order, SI scaling and input
 errors.

@@ -116,12 +116,13 @@ public sealed class StillingBasinTool : IDesignTool
     public static double Fig915(double fr) => Curve(Fig915Curve, fr);
 
     /// <summary>
-    /// HEC-14 Eq. 9.3 as printed: 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/(2g). Returns the smaller root, or
+    /// HEC-14 Eq. 9.3 with the slope term on the outlet side (D-328): yA + 0.25(Q/(WA·yA))²/2g = 2Wo·So + yo + 0.25·Vo²/(2g).
+    /// HEC-14 prints 2Wo·So on the yA side, which would make the bed rise toward section A. Returns the smaller root, or
     /// NaN when there is none.
     /// </summary>
     public static double Eq93(double q, double wo, double wa, double so, double yo, double vo, double g)
     {
-        double h = yo + 0.25 * vo * vo / (2 * g) - 2 * wo * so;
+        double h = 2 * wo * so + yo + 0.25 * vo * vo / (2 * g);
         double k = 0.25 * q * q / (wa * wa * 2 * g);
         double f(double y) => y + k / (y * y);
         double yMin = Math.Cbrt(2 * k);
@@ -868,10 +869,10 @@ public sealed class StillingBasinTool : IDesignTool
             double vaEq = vaRatio * vo;
             if (vaEq <= 0) { msgs.Add(CalcMessage.Error("E-SB-013", $"VA/Vo = {vaRatio:F3} is not positive (Eq. {(box ? "4.1" : "4.2")}); the outlet is beyond the tests.")); return; }
             double wa = wo * (4 / (3 * fr) + 1);   // HEC-14 Eq. 9.3 note, from Eqs. 4.3–4.4 at L = 2Wo
-            // HEC-14 Eq. 9.3 as printed (D-328): 2Wo·So + yA + 0.25(Q/(WA·yA))²/2g = yo + 0.25·Vo²/2g; the supercritical (smaller) root.
+            // HEC-14 Eq. 9.3 (D-328): yA + 0.25(Q/(WA·yA))²/2g = 2Wo·So + yo + 0.25·Vo²/2g; the supercritical (smaller) root.
             double yaEq93 = Eq93(q, wo, wa, so, yo, vo, g);
             if (double.IsNaN(yaEq93) && yaIn is null && (so > 0.10 || ratioText is "auto" or "2" or "3" or "4" or "2-4"))
-                msgs.Add(CalcMessage.Warning("W-SB-016", "HEC-14 Eq. 9.3 as printed has no root for this outlet (the 2Wo·So term exceeds the outlet energy available); the layouts that need it are skipped. Give csu yA to override."));
+                msgs.Add(CalcMessage.Warning("W-SB-016", "HEC-14 Eq. 9.3 has no root for this outlet; the layouts that need it are skipped. Give csu yA to override."));
             var ratios = ratioText == "auto" ? new[] { "2-4", "5", "6", "7", "8" } : [ratioText is "2" or "3" or "4" or "2-4" ? "2-4" : ratioText];
             if (ratios.Any(r => r is not ("2-4" or "5" or "6" or "7" or "8"))) { msgs.Add(CalcMessage.Error("E-SB-014", "expansion ratio must be 2-4, 5, 6, 7, 8 or auto (HEC-14 Table 9.1).")); return; }
             var rows = new List<IReadOnlyList<object?>>();
