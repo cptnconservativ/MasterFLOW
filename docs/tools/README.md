@@ -59,5 +59,6 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Grading solver: finished grades from ADA, driveway and drainage constraints | 2010 ADA Standards §403, §405; IBC 1804.4; balanced earthwork | [grading-solver.md](grading-solver.md) |
 | ★ Field-to-model: as-built survey, photos and HGL certification | IDCM §4.6; NAD83 State Plane (SD South/North) | [field-to-model.md](field-to-model.md) |
 | ★ Inverse design: largest or smallest input that still meets the criteria | Any tool or storm network; your constraints | [inverse-design.md](inverse-design.md) |
+| ★ EPA SWMM 5 exchange: export .inp, import .inp, compare SWMM results with the HGL | EPA SWMM 5.2 input and report formats; IDCM Table 4-2, 4-4 | [swmm-exchange.md](swmm-exchange.md) |
 
 Tools marked **★** need a MasterFlow Premium license key (so do **Size pipes**, **LandXML…** export and **Civil 3D results…** in the Storm networks window) (see [../premium/licensing.md](../premium/licensing.md)).
