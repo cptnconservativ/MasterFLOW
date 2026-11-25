@@ -23,6 +23,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Inlet capacity and bypass routing | HEC-22, IDCM Table 4-11, MHFD Table 7-6 | [inlet-network.md](inlet-network.md) |
 | Street capacity and gutter spread (10-yr and 100-yr) | IDCM §4.4.9–4.4.11, HEC-22 | [street-capacity.md](street-capacity.md) |
 | Sag inlet ponding and clogging | IDCM §4.5.3–4.5.4, Tables 4-11 and 4-12; HEC-22 | [sag-ponding.md](sag-ponding.md) |
+| Bridge deck drainage: deck drain spacing | FHWA HEC-21 (1993), HEC-22 grate equations | [deck-drainage.md](deck-drainage.md) |
 | TR-55 hydrology: curve number, Tc, peak discharge, unit hydrograph | NRCS TR-55 (1986), NEH 630 Ch. 16 | [tr55-hydrology.md](tr55-hydrology.md) |
 | Flood frequency from annual peaks (log-Pearson III, EMA, low outliers, historical data) | USGS Bulletin 17C (2019) | [flood-frequency.md](flood-frequency.md) |
 | Detention pond routing | IDCM §4.10; modified rational or entered hydrographs | [detention-routing.md](detention-routing.md) |
