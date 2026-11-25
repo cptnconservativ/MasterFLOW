@@ -25,7 +25,7 @@ public enum CompositeRoughnessMethod
     EqualVelocity,
 
     /// <summary>
-    /// Per-segment conveyance (as Flow Calc does): every segment between two consecutive points is its own
+    /// Per-segment conveyance: every segment between two consecutive points is its own
     /// subarea, bounded by vertical lines at the points, whether or not n changes; the subarea conveyances
     /// are summed. Gives more conveyance than <see cref="Conveyance"/> in wide, shallow overbanks, so lower depths.
     /// </summary>

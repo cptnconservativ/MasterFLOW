@@ -3,7 +3,7 @@ using MasterFlow.Hydraulics;
 
 namespace MasterFlow.Application.Tests;
 
-/// <summary>Flow Calc shows full-flow Q, maximum Q and percent full with the main pipe results; so does MasterFlow now.</summary>
+/// <summary>Full-flow Q, maximum Q and percent full are shown with the main pipe results.</summary>
 public class PipeCapacityTests
 {
     private static UniformFlowResult Rcp36() => UniformFlowCalculator.Solve(new UniformFlowInput

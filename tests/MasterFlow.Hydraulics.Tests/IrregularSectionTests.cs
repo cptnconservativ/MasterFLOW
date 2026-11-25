@@ -27,7 +27,7 @@ public class IrregularSectionTests
     private static UniformFlowResult Solve(ChannelSection s, SolveFor f, double n = 0.035, double S = 0.001, double q = 0, double y = 0) =>
         UniformFlowCalculator.Solve(new UniformFlowInput { Section = s, SolveFor = f, ManningN = n, Slope = S, Discharge = q, Depth = y });
 
-    private static readonly IrregularSection FlowCalcExample1 = Section((0, 5), (10, 0), (20, 0), (30, 5));
+    private static readonly IrregularSection TrapezoidPoints = Section((0, 5), (10, 0), (20, 0), (30, 5));
 
     // Compound channel: overbanks n = 0.06, main channel n = 0.035, banks at 5 ft.
     private static IrregularSection Compound(CompositeRoughnessMethod m = CompositeRoughnessMethod.Conveyance) => Section(m,
@@ -37,9 +37,9 @@ public class IrregularSectionTests
         (0, 8), (40, 5), (50, 5), (55, 0), (65, 0), (70, 5), (80, 5), (120, 8));
 
     [Fact] // I1: the points describe the trapezoid b = 10, z = 2; must equal the parametric section exactly
-    public void TrapezoidAsPoints_MatchesParametricTrapezoid_AndFlowCalcExample()
+    public void TrapezoidAsPoints_MatchesParametricTrapezoid_AndHandCalc()
     {
-        var pts = Solve(FlowCalcExample1, SolveFor.Discharge, n: 0.013, S: 0.01, y: 1.5);
+        var pts = Solve(TrapezoidPoints, SolveFor.Discharge, n: 0.013, S: 0.01, y: 1.5);
         var trap = Solve(new TrapezoidalSection(10, 2, 2), SolveFor.Discharge, n: 0.013, S: 0.01, y: 1.5);
         Assert.True(pts.Succeeded);
         Near(trap.Discharge, pts.Discharge, 1e-12, "Q");
@@ -205,7 +205,7 @@ public class IrregularSectionTests
     [Fact] // duplicate consecutive points are harmless
     public void DuplicatePoints_AreIgnored()
     {
-        var a = Solve(FlowCalcExample1, SolveFor.Discharge, n: 0.013, S: 0.01, y: 1.5);
+        var a = Solve(TrapezoidPoints, SolveFor.Discharge, n: 0.013, S: 0.01, y: 1.5);
         var b = Solve(Section((0, 5), (10, 0), (10, 0), (20, 0), (30, 5), (30, 5)), SolveFor.Discharge, n: 0.013, S: 0.01, y: 1.5);
         Assert.Equal(a.Discharge, b.Discharge, 12);
     }

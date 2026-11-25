@@ -6,7 +6,7 @@ using MasterFlow.Persistence;
 namespace MasterFlow.IntegrationTests;
 
 /// <summary>
-/// Flow Calc comparison (2026-11-20): opening MasterFlow a second time offered the first window's
+/// Found in review (2026-11-20): opening MasterFlow a second time offered the first window's
 /// autosave as "unsaved work from an unexpected exit", and Cancel deleted it. These tests pin the fix.
 /// </summary>
 public class SingleInstanceTests

@@ -4,7 +4,7 @@ using MasterFlow.Hydraulics;
 namespace MasterFlow.Hydraulics.Tests;
 
 /// <summary>
-/// Flow Calc comparison, sample 6 (creek with overbanks): the Horton-Einstein result put the water at
+/// Sample 6 (creek with overbanks): the Horton-Einstein result put the water at
 /// elevation 108.018 above both 108.0 end points and the caution was easy to miss. Irregular sections now
 /// warn with the overtop amount and the extended walls, and warn when water leaves labelled banks.
 /// </summary>

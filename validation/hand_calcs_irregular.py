@@ -115,7 +115,7 @@ def case(name, pts, S, method="conveyance", y=None, Q=None, search=12.0):
 
 N1 = 0.013
 fc1 = [(0, 5, N1), (10, 0, N1), (20, 0, N1), (30, 5, N1)]
-case("I1 Flow Calc Example #1 trapezoid as points", fc1, 0.01, y=1.5)
+case("I1 trapezoid b=10 z=2 as points", fc1, 0.01, y=1.5)
 
 cmp = [(0, 8, .06), (40, 5, .06), (50, 5, .035), (55, 0, .035), (65, 0, .035), (70, 5, .035), (80, 5, .06), (120, 8, .06)]
 case("I2 compound, conveyance subdivision", cmp, 0.001, y=6.0)
