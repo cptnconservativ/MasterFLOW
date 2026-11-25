@@ -16,6 +16,29 @@ and swales stay in the free **Channel water surface profile** tool.
 - `regime` = subcritical (default), supercritical or mixed. `downstream` = normal (`downstream slope`), critical or known
   (`downstream ws` = one elevation per profile, comma-separated). `upstream` = critical or known (`upstream ws`).
 
+## Importing HEC-RAS geometry
+
+Instead of typing [Sections] and [Points], point the tool at a HEC-RAS geometry file:
+
+```
+hec-ras geometry = C:\Projects\Rapid Creek\RapidCreek.g01
+hec-ras reach = Rapid Creek, Upper     # optional; the first reach when left out
+```
+
+The flows, boundary conditions, bridges and floodway keys are entered as usual. The import reads, for each cross-section of
+the chosen reach: river station, reach lengths (LOB, channel, ROB), station–elevation points, Manning's n by station
+(horizontal variation), bank stations, contraction and expansion coefficients, and normal ineffective flow areas that start
+at the section ends. Using both `hec-ras geometry` and [Sections]/[Points] is an error (E-RAS-001).
+
+| ID | Decision |
+|---|---|
+| D-500 | The geometry file is plain text with the station–elevation, Manning and ineffective tables in 8-character fixed-width fields, which is how HEC-RAS 4 to 6 writes them. Interpolated sections (RS ending in `*`) are imported as ordinary sections. |
+| D-501 | A Manning's n break between two survey points is inserted as a point on the ground line (linear interpolation), so n changes at the same station as in HEC-RAS. |
+| D-502 | Bridges, culverts, inline and lateral structures, levees, blocked obstructions and ineffective areas inside the section are listed as warnings (W-RAS-003) and not imported. Bridges can be entered under [Bridges]; blocked ineffective areas are treated as normal ones. |
+| D-503 | One reach is modeled. A file with several reaches imports the first one (W-RAS-001) unless `hec-ras reach` names another; junctions are not modeled. |
+| D-504 | The geometry file does not record its units (the .prj does), so the units chosen in MasterFlow must match the file (I-RAS-001 says so). |
+| D-505 | Validation: an imported reach gives the same water surfaces, digit for digit, as the same sections typed as tables (HecRasImportTests). No HEC-RAS example project was available in the build environment, so the parser is checked against files written in the HEC-RAS layout, not against files exported from HEC-RAS; please run one of your own models and compare. |
+
 ## Method
 
 | Item | Method |
