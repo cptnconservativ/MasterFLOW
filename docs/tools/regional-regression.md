@@ -43,7 +43,8 @@ report or a StreamStats report into the `[Equations]` table. The sample's coeffi
   errors of prediction, equivalent years of record and the Figure 7.9-D ranges. Site values are `CA` (mi²), `PII` (in.,
   Subregions A and B, Figure 7.9-B) and `S` (ft/mi, Subregion F). The §7.9.2.2 cautions (Subregion D above 15 mi², karst
   losses in the Black Hills Subregions F and G) and the §7.9.2.5 check for large errors are shown as messages. This
-  supersedes D-560 for South Dakota; other regions still type their equations in.
+  supersedes D-560 for South Dakota; other regions still type their equations in. Rapid City projects are generally
+  in Subregion F (Kyle, 2026-11-25), so the sample's South Dakota comment suggests `sd-F` with `S` in ft/mi.
 - D-566 (2026-11-25): `BDF = 0…12` adds the USGS nationwide three-parameter urban equations, UQ = RC·A^b1·(13 −
   BDF)^b2·RQ^b3 (SDDOT Figure 7.11-A, the form HDS-2 recommends), applied to the rural estimate, for 0.2–100 mi².
   SDDOT Examples 7.10 (Q25 3,501, Q100 8,206 cfs) and 7.12 (UQ25 4,515, UQ100 8,714 cfs) are reproduced in

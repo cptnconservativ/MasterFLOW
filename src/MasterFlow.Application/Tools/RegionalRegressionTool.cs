@@ -20,8 +20,9 @@ public sealed class RegionalRegressionTool : IDesignTool
         # Regional regression (HDS-2 / USGS). The coefficients below are made up for the example:
         # copy the equations for your region from the USGS report (or StreamStats) before using the results.
         # In South Dakota, replace [Variables] and [Equations] with the SDDOT rural equations for the subregion, e.g.
-        #   equations = sd-C      (sd-A … sd-G, SDDOT Drainage Manual Figure 7.9-A/C)
-        #   CA = 12.5             (contributing area, mi²; PII = … for A and B, S = … ft/mi for F)
+        #   equations = sd-F      (Rapid City / Black Hills is generally Subregion F; sd-A … sd-G, SDDOT Figure 7.9-A/C)
+        #   CA = 12.5             (contributing area, mi²)
+        #   S = 80                (main-channel slope, ft/mi, Subregion F; PII = … in. for A and B)
         #   BDF = 12              (optional urban adjustment, 0 to 12)
         area variable = A
         # Optional gage on the same stream: its area, years of record and the at-site (Bulletin 17C) estimates under [Gage].

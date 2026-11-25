@@ -256,6 +256,9 @@ public class ManualWorkedExampleTests
         var blank = Ok(tool, head + "MH\tround\t6\t\t\t\t0\t0.67\t2\t95\t108\t106\n", Us);
         var given = Ok(tool, head + "MH\tround\t6\t\t" + (7 / 12.0).ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "\t1\t0\t0.67\t2\t95\t108\t106\n", Us);
         Assert.Contains(blank.Messages, m => m.Code == "I-BY-002");
+        // Sizes Rinker does not dimension (84–144 in.) are labelled as estimates with a warning.
+        var est = Ok(tool, head + "MH\tround\t8\t\t\t\t0\t0.67\t2\t95\t108\t106\n", Us);
+        Assert.Contains(est.Messages, m => m.Code == "W-BY-003" && m.Text.Contains("ESTIMATES"));
         Assert.Equal(given.Tables[0].Rows[0], blank.Tables[0].Rows[0]);
     }
 

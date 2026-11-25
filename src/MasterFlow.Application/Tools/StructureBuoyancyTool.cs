@@ -102,7 +102,8 @@ public sealed class StructureBuoyancyTool : IDesignTool
             {
                 double k = si ? 0.0254 : 1.0 / 12;
                 v[2] ??= rk.WallIn * k; v[3] ??= rk.BaseIn * k;
-                msgs.Add(CalcMessage.Info("I-BY-002", $"{n}: wall {rk.WallIn:G3} in. and base {rk.BaseIn:G3} in. from the Rinker {rk.IdIn:G3} in. manhole{(rk.Printed ? " (Rinker drawings 016/017)" : " (not printed by Rinker; ID/12 + 1 in. wall and 12 in. base assumed — confirm with Rinker)")}."));
+                msgs.Add(rk.Printed ? CalcMessage.Info("I-BY-002", $"{n}: wall {rk.WallIn:G3} in. and base {rk.BaseIn:G3} in. from the Rinker {rk.IdIn:G3} in. manhole (Rinker drawings 016/017).")
+                    : CalcMessage.Warning("W-BY-003", $"{n}: wall {rk.WallIn:G3} in. and base {rk.BaseIn:G3} in. are ESTIMATES for the Rinker {rk.IdIn:G3} in. manhole: Rinker publishes no dimensions for this size, so ID/12 + 1 in. wall and a 12 in. base are assumed. Enter the actual wall and base if known."));
             }
             if (!round && shape is not ("box" or "rectangular" or "vault")) { msgs.Add(CalcMessage.Error("E-BY-003", $"{n}: shape \"{shape}\" is not round or box.")); continue; }
             if (v[0] is not > 0 || (!round && v[1] is not > 0) || v[2] is not > 0 || v[3] is not > 0 || v[7] is null || v[8] is null || v[9] is null)

@@ -244,7 +244,7 @@ public sealed class ManholeSizingTool : IDesignTool
             new("Opening pairs at the chosen size", ["Structure", "Pipes", "Plan angle (deg)", "Needed (deg)", $"Wall left ({U})", "Check"], prows),
         };
         msgs.Add(CalcMessage.Info("I-MH-002", "Check the result against the precaster's maximum hole size table and the structure's base and cone/top slab openings; this tool checks the barrel wall only."));
-        if (!si) msgs.Add(CalcMessage.Info("I-MH-003", "Default sizes are Rinker's round manholes (48 to 144 in.); Rinker walls: 48 in. 5 in., 54 in. 5½ in., 60 in. 6 in., 72 in. 7 in. (drawings 016/017; the 48 in. 5 in. wall and 6 in. floor are confirmed by Rinker Rapid City shop drawings, 862.5 lb/ft barrel; extended base 8 in. thick, 6 in. projection). Use them in the buoyancy tool by leaving Wall and Base blank."));
+        if (!si) msgs.Add(CalcMessage.Info("I-MH-003", "Default sizes are Rinker's round manholes (48 to 144 in.); Rinker walls: 48 in. 5 in., 54 in. 5½ in., 60 in. 6 in., 72 in. 7 in. (drawings 016/017); 84–144 in. walls (ID/12 + 1 in.) and 12 in. bases are MasterFlow estimates, since Rinker prints no dimensions for those sizes (the 48 in. 5 in. wall and 6 in. floor are confirmed by Rinker Rapid City shop drawings, 862.5 lb/ft barrel; extended base 8 in. thick, 6 in. projection). Use them in the buoyancy tool by leaving Wall and Base blank."));
         return new ToolResult(title, summary, tables, msgs);
     }
 
