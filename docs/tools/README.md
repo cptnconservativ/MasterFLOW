@@ -53,6 +53,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ What changed? Redesign diff | Re-runs every network, channel and tool for two versions | [redesign-diff.md](redesign-diff.md) |
 | ★ Site feasibility: lot yield, drainage concept, cost range, go/no-go | FEMA NFHL, NRCS SSURGO, USGS 3DEP, NOAA Atlas 14, RCMC Title 17, TR-55, SWQM | [site-feasibility.md](site-feasibility.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
+| Preliminary detention storage estimate | NRCS TR-55 (1986) Ch. 6 Fig. 6-1; modified rational critical duration (IDCM Table 4-2); Abt and Grigg (1978), Baker (1979) ratios | [storage-estimate.md](storage-estimate.md) |
 | ★ Dynamic-wave storm sewer routing: unsteady HGL, surcharge, flooding | EPA SWMM 5 dynamic wave (link-node), IDCM §4.6.7 | [dynamic-wave.md](dynamic-wave.md) |
 | ★ Climate stress test | Reruns the storm network for future rainfall projections, finds the rainfall increase at which each structure and pipe first fails, and writes a client resilience memo. [climate-stress.md](climate-stress.md) |
 | ★ Construction-phase companion | Checks submittals (pipe, castings, riprap) and RFIs against the design, re-solves the network for each change, and drafts the response letter. [construction-companion.md](construction-companion.md) |
