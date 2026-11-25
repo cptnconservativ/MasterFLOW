@@ -31,6 +31,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | TR-55 hydrology: curve number, Tc, peak discharge, unit hydrograph | NRCS TR-55 (1986), NEH 630 Ch. 16 | [tr55-hydrology.md](tr55-hydrology.md) |
 | Snowmelt and rain-on-snow (degree-day) | USACE EM 1110-2-1406 (1998) rain-on-snow equations; temperature-index melt | [snowmelt.md](snowmelt.md) |
 | Flood frequency from annual peaks (log-Pearson III, EMA, low outliers, historical data) | USGS Bulletin 17C (2019) | [flood-frequency.md](flood-frequency.md) |
+| Slope-area indirect peak discharge from high-water marks | USGS TWRI 3-A2 (Dalrymple and Benson 1967): conveyance, velocity-head recovery, reach criteria | [slope-area.md](slope-area.md) |
 | Detention pond routing | IDCM §4.10; modified rational or entered hydrographs | [detention-routing.md](detention-routing.md) |
 | Pond sediment accumulation and clean-out interval | Brune (1953) / Dendy (1974) trap efficiency; Lara and Pemberton (1963), Miller (1953) deposit density; simple method annual runoff (Schueler 1987) | [pond-sediment.md](pond-sediment.md) |
 | Pond stage–storage from a TIN surface | Civil 3D LandXML surface; exact TIN volumes | [pond-storage.md](pond-storage.md) |
