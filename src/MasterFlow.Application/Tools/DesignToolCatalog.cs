@@ -37,6 +37,7 @@ public static class DesignToolCatalog
         ["scour-countermeasures"] = "Open channels and structures",
         ["quantity-takeoff"] = "Quantities and cost", ["cost-estimate"] = "Quantities and cost",
         ["batch-scenarios"] = "Productivity and deliverables", ["inverse-design"] = "Productivity and deliverables",
+        ["pond-sediment"] = "Detention and water quality",
         ["drainage-report"] = "Productivity and deliverables", ["redesign-diff"] = "Productivity and deliverables",
         ["submittal-precheck"] = "Productivity and deliverables", ["review-comments"] = "Productivity and deliverables",
         ["site-feasibility"] = "Land development and construction", ["grading-solver"] = "Land development and construction",
