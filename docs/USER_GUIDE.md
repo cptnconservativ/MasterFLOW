@@ -30,8 +30,8 @@ frequency and dynamic-wave tools (PRs #60–#65, #70) and the Design tools windo
 
 Edition 3 adds seventeen tools built from the FHWA hydraulic manuals and other standard methods. It also covers three
 additions to existing tools: Clark, Snyder and CUHP unit hydrographs in hydrograph routing, and FEMA floodway
-encroachment and HEC-RAS geometry import in natural channel profiles. All of them are merged (#71–#89); each section gives its pull request. Their screenshots will be added in the next
-manual rebuild.
+encroachment and HEC-RAS geometry import in natural channel profiles. All of them are merged (#71–#89); each section gives its pull request and a
+screenshot of its sample run.
 
 ## Screenshots
 
@@ -698,6 +698,10 @@ Peak discharges at an ungaged site from the USGS regional regression equations f
 equations are typed in from the USGS report or a StreamStats report: `[Variables]` (name, site value, and the range of
 the report's data) and `[Equations]` (T, C, one exponent column per variable, SEP % or Slog, EYR).
 
+![Regional regression: the Design tools window with the sample run.](images/manual/tool-regional-regression.png)
+
+![Report output: regression peak flow by return period.](images/manual/chart-regional-regression.png)
+
 **Output.** Q for each return period with 90 % prediction intervals, and a warning for any basin characteristic outside
 the report's range. With a gage on the same stream (`gage area`, `gage years`, `[Gage]` from Bulletin 17C), the estimate
 is weighted by equivalent years of record and transferred to the site by Sauer's area-ratio method, within 50 % of the
@@ -712,6 +716,10 @@ temperature (34 °F). On dry days, melt is Cm·(Ta − 32). On rain days it foll
 equations (open or partly forested, with wind, or heavily forested above 60 % canopy). The pack holds liquid water up
 to a fraction of its water equivalent. The output is snow water equivalent, melt and water available for runoff each
 day, with the peak day to use as rainfall in a runoff model.
+
+![Snowmelt: the Design tools window with the sample run.](images/manual/tool-snowmelt.png)
+
+![Report output: snow water equivalent and melt by day.](images/manual/chart-snowmelt.png)
 
 # Streets and inlets
 
@@ -811,6 +819,8 @@ allowable spread, L1 = 43,560·(Qallow − Qapproach)/(C·i·W), and the grate o
 equations with clogging. From those it finds the spacing of later drains, the number of drains and the flow leaving
 the end of the deck. A scupper is treated as a D × D opening with a low splash-over velocity (D-430).
 
+![Bridge deck drainage: the Design tools window with the sample run.](images/manual/tool-deck-drainage.png)
+
 ## Pavement edge drains and permeable base
 
 Free · `pavement-edge-drain` · U.S. units · Merged (PR #83)
@@ -820,6 +830,8 @@ and the resultant slope and flow path length. It checks the permeable base's ste
 to drain 50 % comes from the sloping-layer Boussinesq equation solved numerically, and is rated by the AASHTO quality of
 drainage (excellent 2 h, good 1 day, fair 1 week, poor 1 month). Edge drain capacity by Manning gives the maximum
 outlet spacing.
+
+![Pavement edge drains: the Design tools window with the sample run.](images/manual/tool-pavement-edge-drain.png)
 
 # Storm sewer design
 
@@ -940,6 +952,10 @@ a check (I-DW-002).
 Free · `pump-station` · U.S. units · Merged (PR #86)
 
 Checks an underpass or depressed-roadway pump station by FHWA HEC-24. Input:
+
+![Pump station: the Design tools window with the sample run.](images/manual/tool-pump-station.png)
+
+![Report output: inflow and pumped outflow.](images/manual/chart-pump-station.png)
 
 - the pump curve and the pumps' start and stop levels
 - the wet-well and storage stage–volume table
@@ -1076,6 +1092,10 @@ Free · `pond-sediment` · U.S. units · Merged (PR #81)
 
 How fast sediment fills a forebay and a main pool, and how often each needs cleaning. The steps are:
 
+![Pond sediment: the Design tools window with the sample run.](images/manual/tool-pond-sediment.png)
+
+![Report output: sediment storage filled over time.](images/manual/chart-pond-sediment.png)
+
 1. **Annual load**, from either a TSS event mean concentration on the simple-method runoff Rv·P·A, or yields by land use, plus a construction-phase load.
 2. **Trap efficiency**, from the Brune curve (Dendy fit) on C/I, or given.
 3. **Deposit density**, by Lara and Pemberton from the sand, silt and clay fractions and the pond's operation, with Miller's consolidation.
@@ -1087,6 +1107,10 @@ Free · `groundwater-mounding` · Merged (PR #78)
 
 The rise of the water table under a rectangular infiltration basin, by the Hantush (1967) solution as programmed in USGS
 SIR 2010-5102. It reports:
+
+![Groundwater mounding: the Design tools window with the sample run.](images/manual/tool-groundwater-mounding.png)
+
+![Report output: mound rise along the length and width of the basin.](images/manual/chart-groundwater-mounding.png)
 
 - the peak mound at the center
 - profiles along both axes
@@ -1102,6 +1126,8 @@ Free · `bioretention-underdrain` · U.S. units · Merged (PR #83)
 Media flow by Darcy, Q = k·A·(h + d)/d, against the perforated underdrain's Manning capacity, with an optional
 restricting orifice. It gives two drain times:
 
+![Bioretention underdrain: the Design tools window with the sample run.](images/manual/tool-bioretention-underdrain.png)
+
 - the ponded water, by falling head through the media
 - the drainable water in the media and gravel
 
@@ -1112,6 +1138,10 @@ These are checked against 48 h for the surface and 72 h below it by default.
 Free · `spillway-breach` · U.S. units · Merged (PR #76)
 
 For detention and stock-pond embankments under dam safety rules. It covers:
+
+![Emergency spillway and breach: the Design tools window with the sample run.](images/manual/tool-spillway-breach.png)
+
+![Report output: spillway rating with the crest and top of dam.](images/manual/chart-spillway-breach.png)
 
 - **Design rainfall:** NRCS TR-60 auxiliary-spillway and freeboard rainfall by hazard class.
 - **Spillway rating:** a weir, or critical flow in a trapezoidal earth spillway.
@@ -1310,11 +1340,15 @@ the bank-angle factor K1, and the specific gravity and stability factor correcti
 the layer thickness (1.5 times for underwater placement), and a Terzaghi filter check at each interface down to the bank
 soil.
 
+![Riprap revetment: the Design tools window with the sample run.](images/manual/tool-riprap-revetment.png)
+
 ## Channel and swale linings (HEC-15)
 
 Free · `channel-lining` · U.S. units · Merged (PR #80)
 
 Flexible linings for roadside channels by FHWA HEC-15, at normal depth with the lining's depth-dependent n:
+
+![Channel and swale linings: the Design tools window with the sample run.](images/manual/tool-channel-lining.png)
 
 - **Riprap:** Blodgett n, the Shields parameter and safety factor by particle Reynolds number, side-slope and bend shear.
 - **Grass:** n = 0.213·Cn·τo^−0.4, with the effective shear on the soil.
@@ -1325,6 +1359,8 @@ Flexible linings for roadside channels by FHWA HEC-15, at normal depth with the 
 Free · `aop-culvert` · Merged (PR #74)
 
 Checks an embedded culvert by HEC-26 stream simulation:
+
+![AOP culvert design: the Design tools window with the sample run.](images/manual/tool-aop-culvert.png)
 
 - **Geometry:** bed width against bankfull width, embedment depth and barrel slope against the reach.
 - **Bed stability:** D84 at the stability flow, with Limerinos bed n, a composite n with the walls and Einstein's bed partition.
@@ -1338,6 +1374,8 @@ Headwater is still checked with the HDS-5 culvert tool.
 Free · `scour-countermeasures` · Merged (PR #73)
 
 Riprap at piers and abutments by HEC-23 Design Guidelines 11 and 14, with the class, thickness and extent of each:
+
+![Scour countermeasures: the Design tools window with the sample run.](images/manual/tool-scour-countermeasures.png)
 
 - **Piers:** D50 = 0.692·(K·V)²/((Ss − 1)·2g).
 - **Abutments:** the Froude-number forms of D50/y, using the set-back ratio to choose the characteristic velocity.
@@ -1353,11 +1391,15 @@ Free · `bridge-debris-forces` · Merged (PR #89)
 - **Stream pressure** on the pier and raft by AASHTO LRFD 3.7.3.
 - **Deck forces** when the water reaches the low chord: drag, lift and buoyancy, with HDS-7 coefficients entered by the engineer.
 
+![Bridge debris and forces: the Design tools window with the sample run.](images/manual/tool-bridge-debris-forces.png)
+
 ## Stream stability (HEC-20)
 
 Free · `stream-stability` · Merged (PR #84)
 
 The HEC-20 Level 2 checks for a reach near a crossing:
+
+![Stream stability: the Design tools window with the sample run.](images/manual/tool-stream-stability.png)
 
 - wide-channel hydraulics and the Shields critical size
 - the equilibrium slope, and the degradation it implies above a downstream control
@@ -1374,6 +1416,8 @@ Transport capacity by Yang (1973), Engelund–Hansen and Meyer-Peter and Müller
 budget through a chain of reaches (for example the approach, the bridge opening and the reach downstream) shows where
 the bed aggrades or degrades during a flood of given duration.
 
+![Sediment transport: the Design tools window with the sample run.](images/manual/tool-sediment-transport.png)
+
 ## Flood risk and least total expected cost (HEC-17)
 
 Free · `floodplain-risk` · Merged (PR #77)
@@ -1381,6 +1425,10 @@ Free · `floodplain-risk` · Merged (PR #77)
 Risk of exceedance over a service life, R = 1 − (1 − 1/T)^n. For each alternative, expected annual damage comes from
 the damage–probability curve, and its present worth plus capital and O&M gives the total expected cost. The alternative
 with the least total expected cost is marked.
+
+![Flood risk and LTEC: the Design tools window with the sample run.](images/manual/tool-floodplain-risk.png)
+
+![Report output: flood damage against annual exceedance probability for each alternative.](images/manual/chart-floodplain-risk.png)
 
 # Quantities and cost
 
