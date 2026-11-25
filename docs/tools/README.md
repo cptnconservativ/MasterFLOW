@@ -35,6 +35,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Multi-stage outlet designer | IDCM §4.10, SWQM 2009 §2.3.2 | [outlet-designer.md](outlet-designer.md) |
 | Emergency spillways and dam breach | NRCS TR-60 (2005); Froehlich (1995, 2008), MacDonald–Langridge-Monopolis, USBR | [spillway-breach.md](spillway-breach.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
+| Sediment transport capacity and reach budget | FHWA HDS-6 (2001): Meyer-Peter and Müller, Engelund–Hansen, Yang (1973); sediment continuity | [sediment-transport.md](sediment-transport.md) |
 | Channel water surface profile and lining checks | IDCM §4.8, Table 4-14; HEC-15; Chow (1959) | [channel-profile.md](channel-profile.md) |
 | Channel and swale linings: riprap, grass, RECP/TRM | FHWA HEC-15 (2005) | [channel-lining.md](channel-lining.md) |
 | ★ Natural channel water surface profiles, bridges and floodway encroachment (surveyed cross-sections, several flows) | HEC-RAS Hydraulic Reference Manual Ch. 2 and 5 (energy method, conveyance subdivision, mixed regime; bridge energy, Yarnell, pressure and weir flow; encroachment Methods 1 and 4); FEMA 1 ft surcharge | [river-profile.md](river-profile.md) |
