@@ -135,6 +135,33 @@ public sealed class RiverSection
         };
     }
 
+    /// <summary>
+    /// The section with floodway encroachments (HEC-RAS encroachment stations): ground left of <paramref name="left"/> and
+    /// right of <paramref name="right"/> is removed, so water there is held by vertical walls at the encroachment stations.
+    /// Banks are kept inside the encroachments; roughness, reach lengths, coefficients and ineffective areas are carried over.
+    /// </summary>
+    public RiverSection Encroach(double left, double right)
+    {
+        left = Math.Max(left, _x[0]); right = Math.Min(right, _x[^1]);
+        double NAt(double x)
+        {
+            for (int i = 0; i < _n.Length; i++) if (x <= _x[i + 1] + 1e-9) return _n[i];
+            return _n[^1];
+        }
+        var pts = new List<(double X, double Z, double? N)> { (left, Interp(left), NAt(left + 1e-9)) };
+        for (int i = 0; i < _x.Length; i++)
+            if (_x[i] > left + 1e-9 && _x[i] < right - 1e-9) pts.Add((_x[i], _z[i], i < _n.Length ? _n[i] : null));
+        pts.Add((right, Interp(right), null));
+        double lb = Math.Clamp(LeftBank, left, right), rb = Math.Clamp(RightBank, left, right);
+        return new RiverSection(Name, RiverStation, pts, lb, rb, _n[0], _n[0], _n[0], _k, IneffectiveLeft, IneffectiveRight)
+        {
+            LengthLob = LengthLob, LengthCh = LengthCh, LengthRob = LengthRob, Contraction = Contraction, Expansion = Expansion, Lid = Lid,
+        };
+    }
+
+    /// <summary>First and last station of the section.</summary>
+    public (double Left, double Right) Extent => (_x[0], _x[^1]);
+
     public double Interp(double x)
     {
         if (x <= _x[0]) return _z[0];
