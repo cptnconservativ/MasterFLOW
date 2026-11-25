@@ -23,23 +23,29 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Inlet capacity and bypass routing | HEC-22, IDCM Table 4-11, MHFD Table 7-6 | [inlet-network.md](inlet-network.md) |
 | Street capacity and gutter spread (10-yr and 100-yr) | IDCM §4.4.9–4.4.11, HEC-22 | [street-capacity.md](street-capacity.md) |
 | Sag inlet ponding and clogging | IDCM §4.5.3–4.5.4, Tables 4-11 and 4-12; HEC-22 | [sag-ponding.md](sag-ponding.md) |
+| Bridge deck drainage: deck drain spacing | FHWA HEC-21 (1993), HEC-22 grate equations | [deck-drainage.md](deck-drainage.md) |
 | TR-55 hydrology: curve number, Tc, peak discharge, unit hydrograph | NRCS TR-55 (1986), NEH 630 Ch. 16 | [tr55-hydrology.md](tr55-hydrology.md) |
 | Flood frequency from annual peaks (log-Pearson III, EMA, low outliers, historical data) | USGS Bulletin 17C (2019) | [flood-frequency.md](flood-frequency.md) |
 | Detention pond routing | IDCM §4.10; modified rational or entered hydrographs | [detention-routing.md](detention-routing.md) |
 | Pond stage–storage from a TIN surface | Civil 3D LandXML surface; exact TIN volumes | [pond-storage.md](pond-storage.md) |
 | ★ Multi-stage outlet designer | IDCM §4.10, SWQM 2009 §2.3.2 | [outlet-designer.md](outlet-designer.md) |
+| Emergency spillways and dam breach | NRCS TR-60 (2005); Froehlich (1995, 2008), MacDonald–Langridge-Monopolis, USBR | [spillway-breach.md](spillway-breach.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
 | Channel water surface profile and lining checks | IDCM §4.8, Table 4-14; HEC-15; Chow (1959) | [channel-profile.md](channel-profile.md) |
 | Channel and swale linings: riprap, grass, RECP/TRM | FHWA HEC-15 (2005) | [channel-lining.md](channel-lining.md) |
-| ★ Natural channel water surface profiles and bridges (surveyed cross-sections, several flows) | HEC-RAS Hydraulic Reference Manual Ch. 2 and 5 (energy method, conveyance subdivision, mixed regime; bridge energy, Yarnell, pressure and weir flow) | [river-profile.md](river-profile.md) |
+| ★ Natural channel water surface profiles, bridges and floodway encroachment (surveyed cross-sections, several flows) | HEC-RAS Hydraulic Reference Manual Ch. 2 and 5 (energy method, conveyance subdivision, mixed regime; bridge energy, Yarnell, pressure and weir flow; encroachment Methods 1 and 4); FEMA 1 ft surcharge | [river-profile.md](river-profile.md) |
+| Flood risk and least total expected cost | FHWA HEC-17 (2016) | [floodplain-risk.md](floodplain-risk.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | ★ Review comment tracker and response letter | Agency review rounds; network results; IDCM §4.6 plan review | [review-comments.md](review-comments.md) |
 | ★ Plan and profile sheets (DXF) with HGL and EGL | Network solution; IDCM §4.6.7 clearance | [plan-profile-dxf.md](plan-profile-dxf.md) |
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
 | Culvert analysis | FHWA HDS-5 (2012), IDCM §4.7 | [culverts.md](culverts.md) |
+| Culverts for aquatic organism passage (stream simulation) | FHWA HEC-26 (2010) | [aop-culvert.md](aop-culvert.md) |
 | Outlet protection: riprap apron, riprap basin, plunge pool | FHWA HEC-14 (2006) §10, IDCM §4.9 | [outlet-protection.md](outlet-protection.md) |
+| Riprap bank and channel revetment, filter check | FHWA HEC-11 (1989); HEC-23 DG 4 classes | [riprap-revetment.md](riprap-revetment.md) |
 | Hydraulic jump and stilling basins: free jump, USBR Type III and IV, SAF, USBR Type VI impact, CSU rigid boundary | FHWA HEC-14 (2006) Ch. 6, 8, 9; IDCM §4.9.2, §4.9.6 as a check | [stilling-basin.md](stilling-basin.md) |
 | Bridge scour: contraction, pier, abutment | FHWA HEC-18 (2012) | [bridge-scour.md](bridge-scour.md) |
+| Bridge scour countermeasures: pier and abutment riprap | FHWA HEC-23 (2009) DG 11, DG 14 | [scour-countermeasures.md](scour-countermeasures.md) |
 | ★ Batch scenarios | Any tool or the network HGL, side by side | [batch-scenarios.md](batch-scenarios.md) |
 | ★ Cost estimate and bid tabulation | Network takeoff, your prices and bids | [cost-estimate.md](cost-estimate.md) |
 | ★ Water quality and LID sizing | Rapid City Storm Water Quality Manual (2009) via IDCM §4.1.7; MHFD USDCM Vol. 3 option | [water-quality.md](water-quality.md) |

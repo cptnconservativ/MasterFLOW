@@ -638,7 +638,7 @@ public class AccessibilityTests
     }
 }
 
-public class FlowCalcGapTests
+public class WorkflowGapTests
 {
     private static LandXmlReadResult TwoSections(UnitSystem? units) => new(
         [

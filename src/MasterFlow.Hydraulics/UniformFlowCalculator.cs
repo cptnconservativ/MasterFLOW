@@ -163,7 +163,7 @@ public static class UniformFlowCalculator
         bool multi = g.HasMultipleRoughness(n);
         trace.Add(F($"Section: irregular, {section.Points.Count} points, stations {g.LeftStation:G8} to {g.RightStation:G8} {c.Length}; lowest elevation {g.Datum:G8} {c.Length}; relief {g.Relief:G8} {c.Length}. Depth is measured from the lowest point."));
         trace.Add(g.Method == CompositeRoughnessMethod.PerSegment
-            ? "Per-segment conveyance (Flow Calc method): every segment between consecutive points is its own subarea, split by vertical lines at the points; K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3)."
+            ? "Per-segment conveyance: every segment between consecutive points is its own subarea, split by vertical lines at the points; K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3)."
             : multi
             ? (g.Method == CompositeRoughnessMethod.Conveyance
                 ? "Roughness varies: conveyance subdivision. Subareas split by vertical lines where n changes; K = Σ (k/nᵢ) Aᵢ Rᵢ^(2/3)."

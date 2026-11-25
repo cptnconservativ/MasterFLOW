@@ -4,9 +4,9 @@ using MasterFlow.Hydraulics;
 namespace MasterFlow.Hydraulics.Tests;
 
 /// <summary>
-/// "Flow Calc per-segment" conveyance. Reference: Flow Calc 2026, Flow Conveyance n method, on MasterFlow
-/// sample 6 (creek with overbanks), recorded in the 2026-11-20 comparison: yn = 6.69 ft (6.694 by hand,
-/// each segment its own subarea), A = 181.05 ft², effective n = 0.0272.
+/// Per-segment conveyance. Reference: independent hand calculation
+/// (validation/hand_calcs_per_segment.py) on sample 6 (creek with overbanks), each segment its own
+/// subarea: yn = 6.6943 ft, A = 181.048 ft², effective n = 0.02723, 7 subareas.
 /// </summary>
 public class PerSegmentConveyanceTests
 {
@@ -20,13 +20,13 @@ public class PerSegmentConveyanceTests
     { Section = Creek(m), SolveFor = SolveFor.NormalDepth, ManningN = 0.06, Slope = 0.001, Discharge = 500, Depth = 6 });
 
     [Fact]
-    public void Sample6_ReproducesFlowCalc()
+    public void Sample6_MatchesHandCalc()
     {
         var r = Solve(CompositeRoughnessMethod.PerSegment);
         Assert.True(r.Succeeded, string.Join("; ", r.Messages));
-        Assert.Equal(6.694, r.Normal.Depth, 3);
-        Assert.Equal(181.05, r.Normal.Area, 1);
-        Assert.Equal(0.0272, r.Irregular!.CompositeN, 4);
+        Assert.Equal(6.6943116789, r.Normal.Depth, 6);
+        Assert.Equal(181.0483613582, r.Normal.Area, 4);
+        Assert.Equal(0.0272260133, r.Irregular!.CompositeN, 7);
         Assert.Equal(7, r.Irregular.Subareas.Count); // every wet segment is a subarea
     }
 

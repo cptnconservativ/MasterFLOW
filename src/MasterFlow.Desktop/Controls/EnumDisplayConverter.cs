@@ -30,7 +30,7 @@ public sealed class EnumDisplayConverter : IValueConverter
         CompositeRoughnessMethod.EqualVelocity => "Equal velocity (Horton–Einstein)",
         SlopeUnit.Percent => "%",
         SlopeUnit.RiseOverRun => "ft/ft (m/m)",
-        CompositeRoughnessMethod.PerSegment => "Per-segment conveyance (Flow Calc)",
+        CompositeRoughnessMethod.PerSegment => "Per-segment conveyance",
         TailwaterRule.FreeOutfall => "Free outfall (critical depth)",
         TailwaterRule.Elevation => "Known tailwater elevation",
         TailwaterRule.HalfCriticalPlusDiameter => "(yc + D)/2 above outlet invert",

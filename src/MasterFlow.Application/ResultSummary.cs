@@ -55,7 +55,7 @@ public static class ResultSummary
         {
             if (double.IsFinite(p.AlternateNormalDepth))
                 lines.Insert(2, new(G, "Alt. normal depth", "yn₂", p.AlternateNormalDepth, c.Length, 3));
-            // Shown right after the governing values (as Flow Calc does), so capacity is visible without scrolling.
+            // Shown right after the governing values so capacity is visible without scrolling.
             lines.InsertRange(lines.FindLastIndex(l => l.Group == G) + 1,
             [
                 r.Input.Section is CircularSection
@@ -134,7 +134,7 @@ public static class ResultSummary
     public static string MethodName(CompositeRoughnessMethod m) => m switch
     {
         CompositeRoughnessMethod.EqualVelocity => "Equal velocity (Horton–Einstein)",
-        CompositeRoughnessMethod.PerSegment => "Per-segment conveyance (Flow Calc)",
+        CompositeRoughnessMethod.PerSegment => "Per-segment conveyance",
         _ => "Conveyance subdivision where n changes (HEC-RAS)",
     };
 

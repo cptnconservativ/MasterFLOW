@@ -1,0 +1,1 @@
+PS1 per-segment creek: yn=6.6943116789 A=181.0483613582 P=89.4506755738 n_eff=0.0272260133 subareas=7
