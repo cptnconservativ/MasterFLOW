@@ -46,6 +46,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Cost estimate and bid tabulation | Network takeoff, your prices and bids | [cost-estimate.md](cost-estimate.md) |
 | ★ Water quality and LID sizing | Rapid City Storm Water Quality Manual (2009) via IDCM §4.1.7; MHFD USDCM Vol. 3 option | [water-quality.md](water-quality.md) |
 | Erosion and sediment control (RUSLE, silt fence, sediment basin) | Rapid City SWQM 2009 Ch. 1; USDA AH 703 (RUSLE) | [erosion-sediment.md](erosion-sediment.md) |
+| Water quality flow splitter: orifice to the BMP, bypass weir, flow split at the design storm | Orifice and weir equations; Rapid City SWQM 2009 water quality flow; off-line BMP practice | [flow-splitter.md](flow-splitter.md) |
 | ★ Network optimizer: least-cost sizes and inverts | IDCM §4.6; dynamic programming | [network-optimizer.md](network-optimizer.md) |
 | ★ Drainage report builder | IDCM §1.15, §4.1.8; PDF, Word, HTML; live values and changes since issue | [drainage-report.md](drainage-report.md) |
 | ★ Drainage report builder | IDCM §1.15, §4.1.8; PDF, Word, HTML | [drainage-report.md](drainage-report.md) |
