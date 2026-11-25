@@ -106,15 +106,17 @@ public sealed class RegionalRegressionTool : IDesignTool
             double q = Q(e.C, e.B, nm => vars[nm].V);
             est.Add((e.T, q));
             double? lo = e.SeLog is { } s ? q / Math.Pow(10, 1.645 * s) : null, hi = e.SeLog is { } s2 ? q * Math.Pow(10, 1.645 * s2) : null;
-            rows.Add([e.T, R(100 / e.T, 2), R(q, 0), lo is null ? null : R(lo.Value, 0), hi is null ? null : R(hi.Value, 0)]);
+            double? lo1 = e.SeLog is { } s3 ? q / Math.Pow(10, s3) : null, hi1 = e.SeLog is { } s4 ? q * Math.Pow(10, s4) : null;
+            rows.Add([e.T, R(100 / e.T, 2), R(q, 0), lo is null ? null : R(lo.Value, 0), hi is null ? null : R(hi.Value, 0), lo1 is null ? null : R(lo1.Value, 0), hi1 is null ? null : R(hi1.Value, 0)]);
         }
         var summary = new List<string> { $"Regression estimate: {string.Join(", ", est.Select(e => $"Q{e.T:G4} = {e.Q:N0}"))}." };
         var tables = new List<ToolTable>
         {
-            new("Regression estimates at the site", ["T (yr)", "AEP (%)", "Q", "90 % lower", "90 % upper"], rows,
+            new("Regression estimates at the site", ["T (yr)", "AEP (%)", "Q", "90 % lower", "90 % upper", "−1 SE", "+1 SE"], rows,
             [
                 $"Q = C·{string.Join("·", names.Select(n => $"{n}^b"))} with the site values {string.Join(", ", vars.Select(v => $"{v.Key} = {v.Value.V:G4}"))}.",
                 "90 % prediction interval Q/10^(1.645·S) to Q·10^(1.645·S), S in log10 units (from SEP % by S = √(ln(1 + SEP²))/ln 10); the model-error term of the site's leverage is not included.",
+                "±1 standard error (HDS-2 Eq. 6.5 to 6.7): Q·10^−S to Q·10^S, about 68 % of the data; HDS-2 Example 6.2 reports this range.",
             ]),
         };
         if (gage.Count > 0)
