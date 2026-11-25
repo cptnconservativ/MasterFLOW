@@ -12,14 +12,19 @@ namespace MasterFlow.Persistence;
 /// </summary>
 public sealed record LandXmlPipe(
     string Network, string Name, string StartStructure, string EndStructure, NetworkPipeShape Shape,
-    double Rise, double Span, double? Length, double? StartInvert, double? EndInvert, string Material, string Description)
+    double Rise, double Span, double? Length, double? StartInvert, double? EndInvert, string Material, string Description,
+    bool Reversed = false)
 {
     /// <summary>(start invert − end invert) / length; null when any of them is missing or the length is not positive.</summary>
     public double? Slope => StartInvert is { } a && EndInvert is { } b && Length is { } l && l > 0 ? (a - b) / l : null;
 }
 
 public sealed record LandXmlNetworkReadResult(
-    IReadOnlyList<LandXmlPipe> Pipes, IReadOnlyList<DrainageStructure> Structures, UnitSystem? Units, string? LinearUnit, IReadOnlyList<string> Problems);
+    IReadOnlyList<LandXmlPipe> Pipes, IReadOnlyList<DrainageStructure> Structures, UnitSystem? Units, string? LinearUnit, IReadOnlyList<string> Problems)
+{
+    /// <summary>One line per pipe whose flow direction was taken from its inverts instead of the drawn direction.</summary>
+    public IReadOnlyList<string> FlowNotes { get; init; } = [];
+}
 
 /// <summary>
 /// Reads LandXML 1.x pipe networks (PipeNetworks / PipeNetwork / Structs / Struct and Pipes / Pipe), the
@@ -28,6 +33,9 @@ public sealed record LandXmlNetworkReadResult(
 /// elliptical (ElliPipe, the LandXML 1.2 schema name; the misspelt EllipPipe is also accepted) pipes are imported; other shapes are listed as problems. Values are kept in the
 /// file's units: pipe sizes are taken in the file's linear unit as the LandXML schema states, and a
 /// size that looks like inches in a feet file is reported, not converted.
+/// Flow direction comes from the inverts, not from how the pipe was drawn (refStart/refEnd): each pipe runs
+/// from its higher invert to its lower one, and at a structure with several outlet pipes the lowest invert is
+/// the outlet (<see cref="PipeFlowDirection"/>). Turned pipes are listed in <see cref="LandXmlNetworkReadResult.FlowNotes"/>.
 /// </summary>
 public static class LandXmlPipeNetworks
 {
@@ -47,6 +55,7 @@ public static class LandXmlPipeNetworks
             _ => 1.0,
         };
         var problems = new List<string>();
+        var flowNotes = new List<string>();
         if (units is null) problems.Add(UnitProblem(linear));
 
         var pipes = new List<LandXmlPipe>();
@@ -54,6 +63,7 @@ public static class LandXmlPipeNetworks
         foreach (var net in root.Descendants().Where(e => e.Name.LocalName == "PipeNetwork"))
         {
             string netName = (string?)net.Attribute("name") ?? "";
+            var netPipes = new List<LandXmlPipe>();
             var invertsByPipe = new Dictionary<(string Struct, string Pipe), double>();
 
             foreach (var s in net.Descendants().Where(e => e.Name.LocalName == "Struct"))
@@ -114,16 +124,32 @@ public static class LandXmlPipeNetworks
 
                 double? up = invertsByPipe.TryGetValue((from, name), out var a) ? a : null;
                 double? down = invertsByPipe.TryGetValue((to, name), out var b) ? b : null;
-                var pipe = new LandXmlPipe(netName, name, from, to, shape, rise, span, Num(p, "length"), up, down, material, (string?)p.Attribute("desc") ?? "");
+                netPipes.Add(new LandXmlPipe(netName, name, from, to, shape, rise, span, Num(p, "length"), up, down, material, (string?)p.Attribute("desc") ?? ""));
+            }
+
+            var o = PipeFlowDirection.Orient(netPipes.Select(x => new PipeFlowDirection.Link(x.Name, x.StartStructure, x.EndStructure, x.StartInvert ?? double.NaN, x.EndInvert ?? double.NaN)).ToList(), allPipes: true);
+            flowNotes.AddRange(o.Notes.Select(n => (netName.Length > 0 ? netName + ": " : "") + n));
+            foreach (var x in netPipes)
+            {
+                var pipe = o.Reversed.Contains(x.Name)
+                    ? x with { StartStructure = x.EndStructure, EndStructure = x.StartStructure, StartInvert = x.EndInvert, EndInvert = x.StartInvert, Reversed = true }
+                    : x;
+                string where = $"{netName} pipe \"{pipe.Name}\"";
                 if (pipe.Slope is null)
                     problems.Add($"{where}: slope cannot be computed (needs both inverts and the length); set it yourself.");
                 else if (pipe.Slope <= 0)
-                    problems.Add($"{where}: inverts give a slope of {(100 * pipe.Slope.Value).ToString("F3", CultureInfo.InvariantCulture)} % (flat or adverse); check flow direction.");
+                    problems.Add($"{where}: inverts give a slope of {(100 * pipe.Slope.Value).ToString("F3", CultureInfo.InvariantCulture)} % (flat); flow direction taken as drawn ({pipe.StartStructure} → {pipe.EndStructure}) unless a structure's inverts settle it.");
                 pipes.Add(pipe);
+            }
+            foreach (var st in o.Unresolved)
+            {
+                var outs = pipes.Where(x => x.Network == netName && x.StartStructure == st)
+                    .Select(x => new PipeFlowDirection.Link(x.Name, x.StartStructure, x.EndStructure, x.StartInvert ?? double.NaN, x.EndInvert ?? double.NaN));
+                problems.Add($"{netName} structure \"{st}\": the inverts do not settle which pipe is the outlet: {PipeFlowDirection.DescribeOutlets(outs)}. Check the inverts in the design model.");
             }
         }
         if (pipes.Count == 0 && structs.Count == 0 && !problems.Any(p => p.Contains("skipped")))
             problems.Add("The file contains no pipe networks (PipeNetwork elements). Export the pipe network to LandXML from the design program.");
-        return new(pipes, structs, units, linear, problems);
+        return new(pipes, structs, units, linear, problems) { FlowNotes = flowNotes };
     }
 }

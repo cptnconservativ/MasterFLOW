@@ -332,4 +332,60 @@ public class StormNetworkTests
         var infinite = StormNetworkSolver.Solve(NetB() with { Pipes = NetB().Pipes.Select(p => p.Name == "P1" ? p with { MinorDischarge = double.PositiveInfinity } : p).ToList() });
         Assert.False(infinite.Succeeded);
     }
+
+    // ---- flow direction from the inverts (D-703)
+
+    [Fact]
+    public void InflowPipesDrawnOutOfTheManhole_SolveAsIfDrawnWithTheFlow()
+    {
+        // P2 and P3 drawn from MH-2 up to the inlets (adverse as drawn): MH-2 looked like a three-way split
+        var drawn = NetA() with
+        {
+            Pipes = [Pipe("P1", "MH-2", "OUT", 2.0, 200, 100.80, 100.00, 20), Pipe("P2", "MH-2", "CB-3", 1.5, 150, 101.10, 102.00, 12), Pipe("P3", "MH-2", "CB-4", 1.25, 60, 101.30, 101.80, 8)],
+        };
+        var r = StormNetworkSolver.Solve(drawn);
+        var a = StormNetworkSolver.Solve(NetA());
+        Assert.True(r.Succeeded, string.Join("; ", r.Messages.Select(m => m.Text)));
+        Assert.DoesNotContain(r.Messages, m => m.Code == "E-NW-009");
+        Assert.Equal(2, r.Messages.Count(m => m.Code == "I-NW-005"));
+        Assert.Contains(r.Messages, m => m.Code == "I-NW-005" && m.Text.Contains("\"P2\"") && m.Text.Contains("CB-3 → MH-2"));
+        foreach (var n in new[] { "P1", "P2", "P3" })
+        {
+            Assert.Equal(a.Pipe(n)!.HglUp, r.Pipe(n)!.HglUp, 9);
+            Assert.Equal(a.Pipe(n)!.EglDown, r.Pipe(n)!.EglDown, 9);
+        }
+        // V1 at MH-2 is still the largest-flow inflow (P2), so the structure loss is unchanged
+        Assert.Equal(a.Structure("MH-2")!.Loss, r.Structure("MH-2")!.Loss, 9);
+        Assert.Equal(0.450680, r.Structure("MH-2")!.Loss, Tol);
+    }
+
+    [Fact]
+    public void FlatPipe_AtAStructureWithALowerOutlet_IsAnInflow()
+    {
+        var drawn = NetA() with
+        {
+            Pipes = [Pipe("P1", "MH-2", "OUT", 2.0, 200, 100.80, 100.00, 20), Pipe("P2", "CB-3", "MH-2", 1.5, 150, 102.00, 101.10, 12), Pipe("P3", "MH-2", "CB-4", 1.25, 60, 101.30, 101.30, 8)],
+        };
+        var r = StormNetworkSolver.Solve(drawn);
+        Assert.True(r.Succeeded, string.Join("; ", r.Messages.Select(m => m.Text)));
+        Assert.Equal(("CB-4", "MH-2"), (r.Pipe("P3")!.Pipe.From, r.Pipe("P3")!.Pipe.To));
+        Assert.Contains("lower outlet invert", Assert.Single(r.Messages, m => m.Code == "I-NW-005").Text);
+    }
+
+    [Fact]
+    public void GenuineSplit_StillAnError_NamingEachPipesInverts()
+    {
+        // both pipes slope away from MH-2: a real split, never turned
+        var split = new StormNetwork
+        {
+            Structures = [.. Structs, new NetworkStructure { Name = "OUT2", Kind = "Outlet", RimElevation = 104 }],
+            Pipes = [Pipe("P1", "MH-2", "OUT", 2.0, 200, 100.80, 100.00, 20), Pipe("P9", "MH-2", "OUT2", 1.5, 100, 100.90, 100.20, 5), Pipe("P2", "CB-3", "MH-2", 1.5, 150, 102.00, 101.10, 12)],
+        };
+        var r = StormNetworkSolver.Solve(split);
+        Assert.False(r.Succeeded);
+        var e = Assert.Single(r.Messages, m => m.Code == "E-NW-009");
+        Assert.Contains("P1 (invert 100.8 here, 100 at OUT)", e.Text);
+        Assert.Contains("P9 (invert 100.9 here, 100.2 at OUT2)", e.Text);
+        Assert.DoesNotContain(r.Messages, m => m.Code == "I-NW-005");
+    }
 }
