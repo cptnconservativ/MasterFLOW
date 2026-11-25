@@ -43,6 +43,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Flood risk and least total expected cost | FHWA HEC-17 (2016) | [floodplain-risk.md](floodplain-risk.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | ★ Review comment tracker and response letter | Agency review rounds; network results; IDCM §4.6 plan review | [review-comments.md](review-comments.md) |
+| Manhole and structure size from pipe sizes, angles and inverts | Opening and wall-leg geometry; ASTM C76 wall B; your precaster's sizes | [manhole-sizing.md](manhole-sizing.md) |
 | ★ Plan and profile sheets (DXF) with HGL and EGL | Network solution; IDCM §4.6.7 clearance | [plan-profile-dxf.md](plan-profile-dxf.md) |
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
 | Bridge debris, pier scour with debris and hydraulic forces | FHWA HEC-9 (2005), NCHRP 653, HEC-18 (2012) debris width; HDS-7 (2012) Ch. 7; AASHTO LRFD 3.7.3 | [bridge-debris-forces.md](bridge-debris-forces.md) |

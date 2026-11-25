@@ -39,6 +39,11 @@ public static class DesignToolCatalog
         ["riprap-revetment"] = "Open channels and structures",
         ["bridge-scour"] = "Open channels and structures",
         ["scour-countermeasures"] = "Open channels and structures",
+        // Ten structure, measurement and storage tools added together; every PR of that set carries this same block.
+        ["manhole-sizing"] = "Storm sewer design", ["pipe-structural"] = "Storm sewer design", ["structure-buoyancy"] = "Storm sewer design",
+        ["roof-drainage"] = "Streets and inlets", ["slope-area"] = "Hydrology", ["flow-measurement"] = "Open channels and structures",
+        ["trash-rack"] = "Detention and water quality", ["flow-splitter"] = "Detention and water quality",
+        ["storage-estimate"] = "Detention and water quality", ["underground-detention"] = "Detention and water quality",
         ["quantity-takeoff"] = "Quantities and cost", ["cost-estimate"] = "Quantities and cost",
         ["batch-scenarios"] = "Productivity and deliverables", ["inverse-design"] = "Productivity and deliverables",
         ["pond-sediment"] = "Detention and water quality",
