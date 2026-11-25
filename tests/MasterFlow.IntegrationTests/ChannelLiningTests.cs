@@ -45,7 +45,7 @@ public class ChannelLiningTests
 
     [Fact]
     public void Blodgett_ByHand() =>
-        Assert.Equal(0.319 * Math.Pow(2, 1.0 / 6) / (2.25 + 5.23 * Math.Log10(2 / 0.5)), ChannelLiningTool.RiprapN(2, 0.5), 9);
+        Assert.Equal(0.262 * Math.Pow(2, 1.0 / 6) / (2.25 + 5.23 * Math.Log10(2 / 0.5)), ChannelLiningTool.RiprapN(2, 0.5), 9);
 
     [Fact]
     public void Recp_NormalDepthAndShear()

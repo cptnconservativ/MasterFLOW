@@ -64,6 +64,7 @@ public sealed class StructureBuoyancyTool : IDesignTool
         # Structure buoyancy (empty structure, design high groundwater). U.S.: ft and pcf; elevations in ft.
         # Top = rim/ground elevation (soil is assumed up to it). Ext = base slab projection beyond the outside wall.
         # Opening = top slab opening (diameter for round, side of a square for box). Bottom = bottom of the base slab.
+        # Round with Wall and Base blank: Rinker precast manhole of that diameter (48 in. 5 in. wall / 6 in. base, 60 in. 6/12, 72 in. 7/12).
         concrete = 150         # pcf
         water = 62.4
         soil moist = 120       # above the water table
@@ -72,7 +73,7 @@ public sealed class StructureBuoyancyTool : IDesignTool
         # other weight = 0     # castings, riser rings, cone: added to every structure, lb
         [Structures]
         Name	Shape	Inside L or D	Inside W	Wall	Base	Ext	Top slab	Opening	Bottom	Top	GW
-        MH-4	round	5		0.5	0.67	0	0.67	2	95.0	108.0	106.5
+        MH-4	round	5				0	0.67	2	95.0	108.0	106.5
         Outlet box	box	6	4	0.67	1.0	0.5	0.67	2	96.0	104.0	103.5
         """;
 
@@ -96,6 +97,13 @@ public sealed class StructureBuoyancyTool : IDesignTool
             string shape = (r.Length > 1 ? r[1] : "").Trim().ToLowerInvariant();
             double?[] v = Enumerable.Range(2, 10).Select(i => p.Cell(r, i, i switch { 2 => "inside L or D", 3 => "inside W", 4 => "wall", 5 => "base", 6 => "ext", 7 => "top slab", 8 => "opening", 9 => "bottom", 10 => "top", _ => "GW" }, n)).ToArray();
             bool round = shape is "round" or "circular" or "manhole";
+            // Round structure with Wall or Base blank: Rinker precast manhole of that inside diameter.
+            if (round && v[0] is > 0 && (v[2] is null || v[3] is null) && ManholeSizingTool.RinkerManhole(si ? v[0]!.Value / 0.0254 : v[0]!.Value * 12) is { } rk)
+            {
+                double k = si ? 0.0254 : 1.0 / 12;
+                v[2] ??= rk.WallIn * k; v[3] ??= rk.BaseIn * k;
+                msgs.Add(CalcMessage.Info("I-BY-002", $"{n}: wall {rk.WallIn:G3} in. and base {rk.BaseIn:G3} in. from the Rinker {rk.IdIn:G3} in. manhole{(rk.Printed ? " (Rinker drawings 016/017)" : " (not printed by Rinker; ID/12 + 1 in. wall and 12 in. base assumed — confirm with Rinker)")}."));
+            }
             if (!round && shape is not ("box" or "rectangular" or "vault")) { msgs.Add(CalcMessage.Error("E-BY-003", $"{n}: shape \"{shape}\" is not round or box.")); continue; }
             if (v[0] is not > 0 || (!round && v[1] is not > 0) || v[2] is not > 0 || v[3] is not > 0 || v[7] is null || v[8] is null || v[9] is null)
             { msgs.Add(CalcMessage.Error("E-BY-004", $"{n}: give inside size, wall and base thickness (above zero), and the bottom, top and groundwater elevations.")); continue; }

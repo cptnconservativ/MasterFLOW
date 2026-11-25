@@ -15,6 +15,27 @@ public sealed class ManholeSizingTool : IDesignTool
     public string Description => "Smallest round structure for its pipes: opening = pipe OD + 2·clearance (OD from ASTM C76 wall B when the wall is blank), opening angle θ = 2·asin(w/D) on the inside face, and for every two openings that overlap in elevation the plan angle between them must be at least (θ1 + θ2)/2 + 2·asin(leg/D). Solves the least D and rounds up to your standard sizes. Pipe sizes, inverts and plan angles are read from the selected storm network where they are left blank.";
     public bool UsesNetwork => true;
 
+    /// <summary>
+    /// Rinker Materials round precast manholes (ASTM C478): inside diameter, barrel wall and base (floor) slab thickness, in.
+    /// Walls for 48–72 in. and the 12 in. cast floor of the 60 and 72 in. are printed on Rinker drawings 016 and 017; the
+    /// 6 in. for the 48 and 54 in. base is the only slab dimension on drawing 016. Rinker's 84–144 in. sheet (016, 03/2023)
+    /// prints no dimensions, so those walls follow the same ID/12 + 1 in. rule the smaller sizes fit and the bases use 12 in.;
+    /// confirm both with Rinker.
+    /// </summary>
+    public sealed record PrecastManhole(double IdIn, double WallIn, double BaseIn, bool Printed);
+
+    public static readonly PrecastManhole[] Rinker =
+    [
+        new(48, 5, 6, true), new(54, 5.5, 6, true), new(60, 6, 12, true), new(72, 7, 12, true),
+        new(84, 8, 12, false), new(96, 9, 12, false), new(120, 11, 12, false), new(144, 13, 12, false),
+    ];
+
+    /// <summary>The Rinker manhole with this inside diameter (in.), within half an inch, or null.</summary>
+    public static PrecastManhole? RinkerManhole(double idIn) => Rinker.FirstOrDefault(m => Math.Abs(m.IdIn - idIn) < 0.5);
+
+    /// <summary>Concrete weight of a Rinker barrel per vertical foot (lb/ft) at 150 pcf.</summary>
+    public static double RinkerWeightPerFoot(PrecastManhole m) => 150 * Math.PI / 4 * (Math.Pow((m.IdIn + 2 * m.WallIn) / 12, 2) - Math.Pow(m.IdIn / 12, 2));
+
     /// <summary>ASTM C76 wall B thickness: ID/12 + 1 in. (U.S., inches) or ID/12 + 25 mm (SI, millimetres).</summary>
     public static double WallB(double id, bool si) => id / 12 + (si ? 25 : 1);
 
@@ -74,7 +95,7 @@ public sealed class ManholeSizingTool : IDesignTool
             # Blank cells are read from the selected storm network (ID, invert; the angle too when the structures have coordinates).
             # Wall blank = ASTM C76 wall B (ID/12 + 1 in.). Use the precaster's hole size table where it governs.
             min diameter = 48         # smallest structure the agency allows (in.)
-            sizes = 48, 60, 72, 84, 96, 120, 144
+            sizes = 48, 54, 60, 72, 84, 96, 120, 144   # Rinker round manholes (drawings 016/017)
             clearance = 2             # each side of the pipe OD (cored hole or boot), in.
             leg = 8                   # least wall left between openings on the inside face, in.
             """;
@@ -123,7 +144,7 @@ public sealed class ManholeSizingTool : IDesignTool
         double clear = p.Number("clearance", si ? 50 : 2, "clearance");
         double leg = p.Number("leg", si ? 200 : 8, "leg");
         var sizes = new List<double>();
-        foreach (var t in (p.Text("sizes") ?? (si ? "1200,1500,1800,2100,2400,3000,3600" : "48,60,72,84,96,120,144")).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var t in (p.Text("sizes") ?? (si ? "1200,1500,1800,2100,2400,3000,3600" : "48,54,60,72,84,96,120,144")).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             if (ToolInput.TryNumber(t, out double v) && v > 0) sizes.Add(v);
             else msgs.Add(CalcMessage.Error("E-MH-001", $"Structure size \"{t}\" is not a positive number."));
         sizes.Sort();
@@ -215,6 +236,7 @@ public sealed class ManholeSizingTool : IDesignTool
             new("Opening pairs at the chosen size", ["Structure", "Pipes", "Plan angle (deg)", "Needed (deg)", $"Wall left ({U})", "Check"], prows),
         };
         msgs.Add(CalcMessage.Info("I-MH-002", "Check the result against the precaster's maximum hole size table and the structure's base and cone/top slab openings; this tool checks the barrel wall only."));
+        if (!si) msgs.Add(CalcMessage.Info("I-MH-003", "Default sizes are Rinker's round manholes (48 to 144 in.); Rinker walls: 48 in. 5 in., 54 in. 5½ in., 60 in. 6 in., 72 in. 7 in. (drawings 016/017). Use them in the buoyancy tool by leaving Wall and Base blank."));
         return new ToolResult(title, summary, tables, msgs);
     }
 

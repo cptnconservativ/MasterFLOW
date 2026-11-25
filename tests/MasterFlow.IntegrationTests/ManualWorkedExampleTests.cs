@@ -22,6 +22,14 @@ public class ManualWorkedExampleTests
     private static object? Cell(ToolResult r, string table, string row, int col = 1) =>
         r.Tables.Single(t => t.Title.StartsWith(table, StringComparison.Ordinal)).Rows.First(x => ((string)x[0]!).StartsWith(row, StringComparison.Ordinal))[col];
 
+    private static double Num(string text, string after)
+    {
+        int i = text.IndexOf(after, StringComparison.Ordinal) + after.Length;
+        int j = i;
+        while (j < text.Length && (char.IsDigit(text[j]) || text[j] is '.' or '-')) j++;
+        return double.Parse(text[i..j], System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     private static void Near(double expected, double actual, double relTol) =>
         Assert.True(Math.Abs(actual - expected) <= relTol * Math.Abs(expected), $"expected {expected} ± {relTol:P1}, got {actual}");
 
@@ -200,5 +208,53 @@ public class ManualWorkedExampleTests
         Assert.Contains(low.Messages, m => m.Code == "W-UD-002");                    // 12 in. < 16 in. minimum
         var deep = Ok(new UndergroundDetentionTool(), "chamber = MC-4500\nrows = 2\nper row = 5\ncover = 8\n", Us);
         Assert.Contains(deep.Messages, m => m.Code == "W-UD-003");                   // 8 ft > 7 ft maximum
+    }
+
+    // ---------------- HEC-15 (3rd ed., 2005) ----------------
+    [Fact]
+    public void Hec15_RiprapChannelMildSlope_CU()
+    {
+        // §6.3.1: Q 40 cfs, B 2 ft, Z 3, S 0.02, Class 1 D50 5 in. Manual: d 1.72 ft, n 0.062, stable D50 ≥ 0.45 ft → Class 1 fails.
+        var r = Ok(new ChannelLiningTool(), "[Reaches]\nName\tQ (cfs)\tS (ft/ft)\tB (ft)\tZ\tRc (ft)\tLining\tD50 (in)\nA\t40\t0.02\t2\t3\t\triprap\t5\n", Us);
+        var row = r.Tables[0].Rows[0];
+        Near(1.72, (double)row[3]!, 0.01);
+        Near(0.062, (double)row[6]!, 0.02);
+        Near(0.45 * 12, Num((string)row[13]!, "bottom "), 0.03);                    // 5.3 in. against the manual's rounded 0.45 ft
+        Assert.Equal("FAILS", row[14]);
+    }
+
+    [Fact]
+    public void Hec15_GrassLining_CU()
+    {
+        // §4.3: sod Cn 0.142, Cf 0.90, clayey sand τp,soil 0.068 lb/ft², Q 17.5 cfs, B 3 ft, Z 3, S 0.03.
+        // Manual: d 0.70 ft, n 0.032, τd 1.31 lb/ft², τp on the vegetation 2.7 lb/ft² → acceptable.
+        var r = Ok(new ChannelLiningTool(), "[Reaches]\nName\tQ (cfs)\tS (ft/ft)\tB (ft)\tZ\tRc (ft)\tLining\tD50 (in)\tCn\tCf\tD75 (in)\ttau soil\nA\t17.5\t0.03\t3\t3\t\tgrass\t\t0.142\t0.90\t\t0.068\n", Us);
+        var row = r.Tables[0].Rows[0];
+        Near(0.70, (double)row[3]!, 0.02);
+        Near(0.032, (double)row[6]!, 0.03);
+        Near(1.31, (double)row[7]!, 0.02);
+        Near(2.7, Num((string)row[13]!, "τp "), 0.02);
+        Assert.Equal("OK", row[14]);
+    }
+
+    // ---------------- Rinker precast manholes (drawings 016 and 017) ----------------
+    [Fact]
+    public void Rinker_ManholeWallsAndBuoyancyDefaults()
+    {
+        Assert.Equal(5, ManholeSizingTool.RinkerManhole(48)!.WallIn);
+        Assert.Equal(5.5, ManholeSizingTool.RinkerManhole(54)!.WallIn);
+        Assert.Equal(6, ManholeSizingTool.RinkerManhole(60)!.WallIn);
+        Assert.Equal(7, ManholeSizingTool.RinkerManhole(72)!.WallIn);
+        Assert.Equal(12, ManholeSizingTool.RinkerManhole(72)!.BaseIn);
+        Assert.All(ManholeSizingTool.Rinker, m => Assert.Equal(ManholeSizingTool.WallB(m.IdIn, false), m.WallIn, 9));   // the C76 wall B rule fits every size
+        // 48 in. barrel: π/4·(58² − 48²)/144 × 150 = 867 lb/ft.
+        Assert.Equal(867.0, ManholeSizingTool.RinkerWeightPerFoot(ManholeSizingTool.RinkerManhole(48)!), 0);
+        // Buoyancy with Wall and Base blank takes the Rinker 72 in. section (7 in. wall, 12 in. base).
+        var tool = new StructureBuoyancyTool();
+        string head = "[Structures]\nName\tShape\tInside L or D\tInside W\tWall\tBase\tExt\tTop slab\tOpening\tBottom\tTop\tGW\n";
+        var blank = Ok(tool, head + "MH\tround\t6\t\t\t\t0\t0.67\t2\t95\t108\t106\n", Us);
+        var given = Ok(tool, head + "MH\tround\t6\t\t" + (7 / 12.0).ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "\t1\t0\t0.67\t2\t95\t108\t106\n", Us);
+        Assert.Contains(blank.Messages, m => m.Code == "I-BY-002");
+        Assert.Equal(given.Tables[0].Rows[0], blank.Tables[0].Rows[0]);
     }
 }
