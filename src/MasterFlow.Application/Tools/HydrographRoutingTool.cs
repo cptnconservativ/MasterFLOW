@@ -219,7 +219,8 @@ public sealed partial class HydrographRoutingTool : IDesignTool
                 var uh = s.Uh switch
                 {
                     "clark" => UnitHydrographs.Clark(s.AreaAc, s.TcMin / 60, s.ClarkRMin / 60, dtH),
-                    "snyder" or "cuhp" => UnitHydrographs.Snyder(s.AreaAc, s.SnyderTpH, s.Cp, dtH).U,
+                    "snyder" => UnitHydrographs.Snyder(s.AreaAc, s.SnyderTpH, s.Cp, dtH).U,
+                    "cuhp" => UnitHydrographs.Cuhp(s.AreaAc, s.SnyderTpH, s.Cp, dtH).U,
                     _ => ScsUnitHydrograph.Ordinates(s.AreaAc, s.LagMin / 60, dtH),
                 };
                 var q = ScsUnitHydrograph.Convolve(excess, uh, nSteps + 1);
@@ -281,7 +282,7 @@ public sealed partial class HydrographRoutingTool : IDesignTool
             new("Design storms", ["Storm", "Depth (in)", "Peak intensity (in/h)", "Basis"], stormRows),
             new("Subbasin runoff", ["Storm", "Subbasin", "Node", "Area (ac)", "Losses", "Tc (min)", "Lag (min)", "Rain (in)", "Runoff (in)", "Volume (ac-ft)", "Peak (cfs)", "Time of peak (min)", "Unit hydrograph"], subRows,
                 ["NRCS dimensionless unit hydrograph (NEH 630 Ch. 16, PRF 484), Tp = Δt/2 + lag, lag = 0.6 tc; unit hydrograph scaled to exactly 1 in of runoff.",
-                 "Clark: HEC-HMS time–area curve over tc routed through a linear reservoir R (O = CA·I + CB·O₋₁, CA = Δt/(R + Δt/2)). Snyder: tp = Ct·(L·Lca)^0.3, qp = 640·Cp·A/tpR with tpR = tp + (Δt − tp/5.5)/4, gamma-shaped through that peak with 1 in of volume. CUHP: tp = Ct·(L·Lca/√S)^0.48 with the same peak form. All scaled to 1 in.",
+                 "Clark: HEC-HMS time–area curve over tc routed through a linear reservoir R (O = CA·I + CB·O₋₁, CA = Δt/(R + Δt/2)). Snyder: tp = Ct·(L·Lca)^0.3, qp = 640·Cp·A/tpR with tpR = tp + (Δt − tp/5.5)/4, gamma-shaped through that peak with 1 in of volume. CUHP (2016 User Manual App. B): tp = CT·(L·Lca/√S)^0.48, CT and Cp from imperviousness unless entered, qp = 640·Cp·A/tp at Tp = tp + Δt/2, gamma-shaped. All scaled to 1 in.",
                  "CN losses: Q = (P − 0.2S)²/(P + 0.8S), S = 1000/CN − 10 (TR-55 Eq. 2-1 to 2-4, AMC II). Green–Ampt: pervious area fills Ia, then Green–Ampt capacity; impervious area has no loss (HEC-HMS)."]),
         };
         if (tcRows.Count > 0) tables.Add(new("Time of concentration (TR-55 Chapter 3)", ["Subbasin", "Segment", "Length (ft)", "Slope (ft/ft)", "Parameters", "Velocity (ft/s)", "Travel time (min)"], tcRows,
@@ -454,7 +455,7 @@ public sealed partial class HydrographRoutingTool : IDesignTool
                 tcRows.Add([name, "Tc", null, null, null, null, sum]);
                 tcMin = sum; lagMin = 0.6 * sum; src = "TR-55";
             }
-            else if ((Str(r, cUh) ?? "").ToLowerInvariant() is "snyder" or "cuhp" && Num(p, r, cCt, "Ct", where) is > 0) { tcMin = double.NaN; lagMin = double.NaN; src = "from Ct"; }
+            else if ((Str(r, cUh) ?? "").ToLowerInvariant() is var uh0 && (uh0 == "cuhp" || uh0 == "snyder" && Num(p, r, cCt, "Ct", where) is > 0)) { tcMin = double.NaN; lagMin = double.NaN; src = "from Ct"; }
             else { msgs.Add(CalcMessage.Error("E-HR-019", $"{where}: give Tc (min), Lag (min) or rows under [Tc flow paths].")); continue; }
             if (tcMin < 6) msgs.Add(CalcMessage.Warning("W-HR-005", $"{where}: tc {tcMin:G3} min is below the 0.1 h (6 min) minimum TR-55 uses."));
             // Unit hydrograph choice.
@@ -475,8 +476,15 @@ public sealed partial class HydrographRoutingTool : IDesignTool
                     else { tpH = lagMin / 60; note = $"Snyder, Cp {cp:G3}, tp = lag {tpH:F2} h"; }
                     break;
                 case "cuhp":
-                    if (ct is not > 0 || cp is not > 0 || lMi is not > 0 || lca is not > 0 || sl is not > 0) { msgs.Add(CalcMessage.Error("E-HR-042", $"{where}: CUHP needs Ct, Cp, L (mi), Lca (mi) and slope (ft/ft) from MHFD USDCM Vol. 1 Ch. 6.")); continue; }
-                    tpH = UnitHydrographs.CuhpLag(ct.Value, lMi.Value, lca.Value, sl.Value); note = $"CUHP, Ct {ct:G3}, Cp {cp:G3}, tp {tpH:F2} h"; break;
+                {
+                    if (lMi is not > 0 || lca is not > 0 || sl is not > 0) { msgs.Add(CalcMessage.Error("E-HR-042", $"{where}: CUHP needs L (mi), Lca (mi) and slope (ft/ft); Ct and Cp default from imperviousness (CUHP 2016 Figures B-7, B-8 and Eq. B-28).")); continue; }
+                    bool ctGiven = ct is > 0, cpGiven = cp is > 0;
+                    double ctV = ctGiven ? ct!.Value : UnitHydrographs.CuhpCt(impPct);
+                    double cpV = cpGiven ? cp!.Value : UnitHydrographs.CuhpCp(UnitHydrographs.CuhpP(impPct), ctV, area.Value / 640);
+                    cp = cpV;
+                    if (!ctGiven || !cpGiven) msgs.Add(CalcMessage.Info("I-HR-020", $"{where}: CUHP {(ctGiven ? "" : $"CT = {ctV:F4} (Fig. B-7)")}{(!ctGiven && !cpGiven ? ", " : "")}{(cpGiven ? "" : $"P = {UnitHydrographs.CuhpP(impPct):F3} (Fig. B-8), Cp = {cpV:F4} (Eq. B-28)")} from {impPct:G3} % imperviousness (CUHP 2.0 User Manual, MHFD 2016)."));
+                    tpH = UnitHydrographs.CuhpLag(ctV, lMi.Value, lca.Value, sl.Value); note = $"CUHP, CT {ctV:F3}, Cp {cpV:F3}, tp {tpH:F2} h"; break;
+                }
                 default:
                     msgs.Add(CalcMessage.Error("E-HR-043", $"{where}: UH \"{uhm}\" must be scs, clark, snyder or cuhp.")); continue;
             }

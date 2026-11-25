@@ -15,6 +15,58 @@ public sealed class UndergroundDetentionTool : IDesignTool
     public string Description => "Stone bed with rows of arch chambers (semi-ellipse section, or your manufacturer's stage–storage curve) or round pipes: bed size from rows, units per row, spacing and edge stone; storage at each depth = unit void + porosity × (bed volume − unit volume). Gives the stage–storage table, the total, and the units per row for a required volume, with a cover check.";
     public bool UsesNetwork => false;
 
+    /// <summary>
+    /// ADS StormTech chamber data (StormTech Product Catalog 10818; MC-4500 and MC-3500/MC-7200 Design Manuals), U.S. units:
+    /// base width, height and installed length (in), bare chamber storage (ft³), minimum installed storage with stone (ft³)
+    /// at the catalog's stone base, stone above, row spacing and 40 % porosity, minimum cover to the bottom of flexible
+    /// pavement and maximum cover (in), and the bare chamber's cumulative storage by inch of depth from its bottom where
+    /// the catalog prints it (SC-160LP, SC-310, DC-780, SC-800); the SC-740 (2017 sell sheet) and MC chambers use a semi-ellipse scaled to the bare storage.
+    /// </summary>
+    public sealed record StormTechChamber(string Model, double WidthIn, double HeightIn, double LengthIn, double BareFt3, double InstalledFt3,
+        double StoneBelowIn, double StoneAboveIn, double SpacingIn, double MinCoverIn, double MaxCoverIn, double? WeightLb, double[]? CurveFt3,
+        double? EndCapBareFt3 = null, double? EndCapInstalledFt3 = null);
+
+    public static readonly StormTechChamber[] StormTech =
+    [
+        new("SC-160LP", 25, 12, 85.4, 6.85, 15.0, 4, 6, 0, 14, 120, 24.0,
+            [0, 0.89, 1.76, 2.58, 3.36, 4.10, 4.78, 5.40, 5.94, 6.38, 6.67, 6.80, 6.85]),
+        new("SC-310", 34, 16, 85.4, 14.7, 29.3, 6, 6, 3, 16, 96, 37.0,
+            [0, 1.43, 2.83, 4.19, 5.51, 6.78, 7.99, 9.15, 10.23, 11.25, 12.17, 12.99, 13.68, 14.22, 14.49, 14.64, 14.70]),
+        new("SC-740", 51, 30, 85.4, 45.9, 74.9, 6, 6, 6, 18, 96, 74.0, null),
+        new("DC-780", 51, 30, 85.4, 46.2, 78.4, 9, 6, 6, 18, 144, null,
+            [0, 2.24, 4.46, 6.66, 8.83, 10.98, 13.10, 15.19, 17.24, 19.26, 21.25, 23.19, 25.10, 26.96, 28.77, 30.54, 32.24, 33.90, 35.49, 37.01,
+             38.47, 39.83, 41.11, 42.29, 43.38, 44.34, 45.15, 45.76, 46.04, 46.21, 46.27]),
+        new("SC-800", 51, 33, 85.4, 50.6, 78.4, 6, 6, 3, 18, 96, 81.8,
+            [0, 2.22, 4.42, 6.60, 8.76, 10.89, 13.00, 15.09, 17.14, 19.17, 21.17, 23.13, 25.06, 26.95, 28.80, 30.61, 32.38, 34.10, 35.78, 37.40,
+             38.96, 40.47, 41.91, 43.28, 44.58, 45.79, 46.91, 47.93, 48.82, 49.56, 50.07, 50.35, 50.55, 50.62]),
+        new("MC-3500", 77, 45, 86.0, 109.9, 175.0, 9, 12, 6, 18, 96, 134, null, 14.9, 45.1),
+        new("MC-4500", 100, 60, 48.3, 106.5, 162.6, 9, 12, 9, 24, 84, 125, null, 39.5, 115.3),
+        new("MC-7200", 100, 60, 79.1, 175.9, 267.3, 9, 12, 9, 24, 84, 202, null, 39.5, 115.3),
+    ];
+
+    public static StormTechChamber? FindStormTech(string model)
+    {
+        string k = new string(model.ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        return StormTech.FirstOrDefault(c => new string(c.Model.Where(char.IsLetterOrDigit).ToArray()) == k);
+    }
+
+    /// <summary>Bare chamber storage (ft³) below depth <paramref name="yIn"/> (in) from the chamber bottom.</summary>
+    public static double StormTechVolume(StormTechChamber c, double yIn)
+    {
+        if (yIn <= 0) return 0;
+        if (yIn >= c.HeightIn) return c.BareFt3;
+        if (c.CurveFt3 is { } t)
+        {
+            int i = Math.Min((int)Math.Floor(yIn), t.Length - 2);
+            return t[i] + (t[i + 1] - t[i]) * (yIn - i);
+        }
+        return c.BareFt3 * ArchArea(yIn, c.WidthIn, c.HeightIn) / ArchArea(c.HeightIn, c.WidthIn, c.HeightIn);
+    }
+
+    /// <summary>Installed storage per chamber (ft³) in a bed of many rows: bare + n·((W + spacing)·L·(below + H + above) − bare).</summary>
+    public static double InstalledPerChamber(StormTechChamber c, double porosity = 0.40) =>
+        c.BareFt3 + porosity * ((c.WidthIn + c.SpacingIn) * c.LengthIn * (c.StoneBelowIn + c.HeightIn + c.StoneAboveIn) / 1728 - c.BareFt3);
+
     /// <summary>Area below depth <paramref name="y"/> of an upright semi-ellipse of width <paramref name="w"/> and height <paramref name="h"/> (base on the bottom).</summary>
     public static double ArchArea(double y, double w, double h)
     {
@@ -51,21 +103,18 @@ public sealed class UndergroundDetentionTool : IDesignTool
         required volume = 300
         """ : """
         # Underground detention bed. U.S.: ft and ft³.
-        # unit = arch (semi-ellipse chamber: width, height, installed length), pipe (diameter, length) or curve (your manufacturer's [Unit curve]).
-        unit = arch
-        width = 4.25           # chamber base width, ft
-        height = 2.5           # chamber height, ft
-        length = 7.0           # installed length per chamber, ft
+        # unit = stormtech (ADS StormTech chamber from the catalog: chamber = SC-160LP, SC-310, SC-740, DC-780, SC-800, MC-3500,
+        # MC-4500 or MC-7200; fills width, height, installed length, the bare chamber curve, row spacing, stone depths and
+        # cover limits, each of which you can still override), arch (semi-ellipse chamber: width, height, installed length),
+        # pipe (diameter, length) or curve (your manufacturer's [Unit curve]).
+        unit = stormtech
+        chamber = MC-3500
         rows = 6
         per row = 12
-        spacing = 0.5          # stone between rows, ft
         edge = 1.0             # stone beyond the outer rows and row ends, ft
-        stone below = 0.5      # ft
-        stone above = 0.5      # ft
         porosity = 0.40
         bottom = 100.00        # bed bottom elevation
-        cover = 2.0            # fill over the top of stone, ft
-        min cover = 1.5        # manufacturer's minimum cover, ft
+        cover = 2.0            # fill over the top of stone to the bottom of flexible pavement, ft
         required volume = 10000   # ft³ (optional: finds the units per row)
         # For unit = curve, give the manufacturer's bare-unit table (depth from the unit bottom, cumulative volume per unit):
         # [Unit curve]
@@ -81,14 +130,24 @@ public sealed class UndergroundDetentionTool : IDesignTool
         string L = si ? "m" : "ft", V = si ? "m³" : "ft³";
         var p = ToolInput.Parse(input);
         var msgs = new List<CalcMessage>();
-        string unit = (p.Text("unit") ?? "arch").Trim().ToLowerInvariant();
-        double w = p.Number("width", double.NaN, "width"), h = p.Number("height", double.NaN, "height"), d = p.Number("diameter", double.NaN, "diameter");
-        double len = p.Number("length", double.NaN, "length");
+        string unit = (p.Text("unit") ?? (p.Has("chamber") ? "stormtech" : "arch")).Trim().ToLowerInvariant();
+        StormTechChamber? st = null;
+        if (unit is "stormtech" or "ads")
+        {
+            unit = "stormtech";
+            string model = p.Text("chamber") ?? "";
+            st = FindStormTech(model);
+            if (st is null) msgs.Add(CalcMessage.Error("E-UD-011", $"chamber \"{model}\" is not in the StormTech list: {string.Join(", ", StormTech.Select(c => c.Model))}."));
+        }
+        double ft = si ? 0.3048 : 1, inch = ft / 12;                      // catalog inches and feet in the working units
+        double w = p.Number("width", st is null ? double.NaN : st.WidthIn * inch, "width"), h = p.Number("height", st is null ? double.NaN : st.HeightIn * inch, "height"), d = p.Number("diameter", double.NaN, "diameter");
+        double len = p.Number("length", st is null ? double.NaN : st.LengthIn * inch, "length");
         int rows = (int)p.Number("rows", 1, "rows"), per = (int)p.Number("per row", double.NaN, "per row");
-        double sp = p.Number("spacing", si ? 0.15 : 0.5, "spacing"), edge = p.Number("edge", si ? 0.3 : 1.0, "edge");
-        double sb = p.Number("stone below", si ? 0.15 : 0.5, "stone below"), sa = p.Number("stone above", si ? 0.15 : 0.5, "stone above");
+        double sp = p.Number("spacing", st is null ? (si ? 0.15 : 0.5) : st.SpacingIn * inch, "spacing"), edge = p.Number("edge", si ? 0.3 : 1.0, "edge");
+        double sb = p.Number("stone below", st is null ? (si ? 0.15 : 0.5) : st.StoneBelowIn * inch, "stone below"), sa = p.Number("stone above", st is null ? (si ? 0.15 : 0.5) : st.StoneAboveIn * inch, "stone above");
         double n = p.Number("porosity", 0.40, "porosity"), bottom = p.Number("bottom", 0, "bottom");
-        double? cover = p.OptionalNumber("cover"), minCover = p.OptionalNumber("min cover", "min cover"), req = p.OptionalNumber("required volume", "required volume");
+        double? cover = p.OptionalNumber("cover"), minCover = p.OptionalNumber("min cover", "min cover") ?? st?.MinCoverIn * inch, maxCover = p.OptionalNumber("max cover", "max cover") ?? st?.MaxCoverIn * inch;
+        double? req = p.OptionalNumber("required volume", "required volume");
         var curve = new List<(double Y, double V)>();
         foreach (var r in p.Rows("Unit curve"))
         {
@@ -104,6 +163,13 @@ public sealed class UndergroundDetentionTool : IDesignTool
                 if (!(w > 0) || !(h > 0) || !(len > 0)) msgs.Add(CalcMessage.Error("E-UD-002", "An arch chamber needs width, height and length above zero."));
                 uw = w; uh = h; unitVol = y => len * ArchArea(y, w, h);
                 break;
+            case "stormtech" when st is not null:
+                double hs = h, scale = Math.Pow(ft, 3) * (len / (st.LengthIn * inch));
+                uw = w; uh = h; unitVol = y => scale * StormTechVolume(st, y / hs * st.HeightIn);
+                break;
+            case "stormtech":
+                uw = uh = double.NaN; unitVol = _ => double.NaN;
+                break;
             case "pipe":
                 if (!(d > 0) || !(len > 0)) msgs.Add(CalcMessage.Error("E-UD-003", "A pipe needs diameter and length above zero."));
                 uw = d; uh = d; unitVol = y => len * PipeArea(y, d);
@@ -116,7 +182,7 @@ public sealed class UndergroundDetentionTool : IDesignTool
                 unitVol = y => Interp(curve, y);
                 break;
             default:
-                msgs.Add(CalcMessage.Error("E-UD-006", $"unit \"{unit}\" is not arch, pipe or curve."));
+                msgs.Add(CalcMessage.Error("E-UD-006", $"unit \"{unit}\" is not stormtech, arch, pipe or curve."));
                 uw = uh = double.NaN; unitVol = _ => double.NaN;
                 break;
         }
@@ -149,7 +215,10 @@ public sealed class UndergroundDetentionTool : IDesignTool
             summary.Add(need >= 10000 ? $"Required {rq:F0} {V}: not reached; add rows." : $"Required {rq:F0} {V}: {need} per row ({rows * need} units, bed {need * len + 2 * edge:F1} {L} long) gives {Storage(need, depth):F0} {V}.");
             if (total < rq) msgs.Add(CalcMessage.Warning("W-UD-001", $"The bed as laid out stores {total:F0} {V}, less than the {rq:F0} {V} required; use {need} per row or add rows."));
         }
-        if (cover is { } cv && minCover is { } mc && cv < mc) msgs.Add(CalcMessage.Warning("W-UD-002", $"Cover {cv:G3} {L} is under the {mc:G3} {L} minimum; lower the bed or use a lower-profile unit."));
+        if (cover is { } cv && minCover is { } mc && cv < mc) msgs.Add(CalcMessage.Warning("W-UD-002", $"Cover {cv:G3} {L} is under the {mc:G3} {L} minimum{(st is null ? "" : $" for the {st.Model} (to the bottom of flexible pavement)")}; lower the bed or use a lower-profile unit."));
+        if (cover is { } cv2 && maxCover is { } mx && cv2 > mx) msgs.Add(CalcMessage.Warning("W-UD-003", $"Cover {cv2:G3} {L} is over the {mx:G3} {L} maximum{(st is null ? "" : $" for the {st.Model}")}; raise the bed or use a deeper-rated unit."));
+        if (st is not null && (Math.Abs(sb - st.StoneBelowIn * inch) > 1e-9 || Math.Abs(sa - st.StoneAboveIn * inch) > 1e-9 || sp < st.SpacingIn * inch - 1e-9))
+            msgs.Add(CalcMessage.Info("I-UD-003", $"Stone or spacing differs from the StormTech {st.Model} catalog layout ({st.StoneBelowIn:G3} in. below, {st.StoneAboveIn:G3} in. above, {st.SpacingIn:G3} in. between rows); check the manufacturer's minimums."));
         if (cover is null) msgs.Add(CalcMessage.Info("I-UD-001", "No cover given: check the manufacturer's minimum and maximum cover for the traffic load."));
         var rowsT = new List<IReadOnlyList<object?>>();
         var pts = new List<(double X, double Y)>();
@@ -172,7 +241,7 @@ public sealed class UndergroundDetentionTool : IDesignTool
                 ["Total storage", R(si ? total : total / 43560, si ? 0 : 3), si ? V : "ac-ft"],
             ],
             [$"Bed length = per row × unit length + 2 × edge; width = rows × unit width + (rows − 1) × spacing + 2 × edge.",
-             unit switch { "arch" => "Arch chamber section taken as a semi-ellipse (base width × height); use unit = curve with the manufacturer's table for the exact shape.", "pipe" => "Round pipe: exact circular segment areas; perforations and end caps not deducted.", _ => "Unit volume from your curve, interpolated linearly." }]),
+             unit switch { "stormtech" => $"ADS StormTech {st!.Model}: {st.WidthIn:G4} × {st.HeightIn:G4} in., installed length {st.LengthIn:G4} in., bare storage {st.BareFt3:G4} ft³, catalog installed storage {st.InstalledFt3:G4} ft³ per chamber ({st.StoneBelowIn:G3} in. stone below, {st.StoneAboveIn:G3} in. above, {st.SpacingIn:G3} in. row spacing, 40 % porosity), cover {st.MinCoverIn:G3} in. to {st.MaxCoverIn / 12:G3} ft (StormTech Product Catalog){(st.CurveFt3 is null ? "; chamber stage–storage as a semi-ellipse scaled to the bare storage" : "; chamber stage–storage from the catalog's incremental table")}{(st.EndCapBareFt3 is { } ec ? $"; end caps (about {ec:G3} ft³ bare each) are not included" : "")}.", "arch" => "Arch chamber section taken as a semi-ellipse (base width × height); use unit = curve with the manufacturer's table for the exact shape.", "pipe" => "Round pipe: exact circular segment areas; perforations and end caps not deducted.", _ => "Unit volume from your curve, interpolated linearly." }]),
             new("Stage–storage", [$"Elevation ({L})", $"Depth ({L})", $"In units ({V})", $"In stone ({V})", $"Total ({V})"], rowsT,
                 [$"Storage = units' void + {n:G3} × (bed volume − units' volume) at each depth; unit walls taken as thin. Paste Elevation and Total into the detention routing tool."]),
         };

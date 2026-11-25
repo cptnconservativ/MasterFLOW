@@ -60,7 +60,7 @@ Add a `UH` column to `[Subbasins]` (blank or `scs` keeps the NRCS curve) with th
 |---|---|---|
 | `clark` | `Clark R (min)`, plus Tc as usual | HEC-HMS synthetic time–area curve, A/At = 1.414·(t/tc)^1.5 to t/tc = 0.5 and 1 − 1.414·(1 − t/tc)^1.5 after, routed through a linear reservoir: O = CA·I + CB·O₋₁, CA = Δt/(R + Δt/2); the instantaneous UH is averaged over the step. |
 | `snyder` | `Cp`, and `Ct`, `L (mi)`, `Lca (mi)` (or a Tc/lag: then tp = lag) | tp = Ct·(L·Lca)^0.3; tr = tp/5.5; tpR = tp + (Δt − tr)/4; qp = 640·Cp·A/tpR (A in mi²); peak at tpR + Δt/2. The shape is a gamma curve through that peak with exactly 1 in of volume. |
-| `cuhp` | `Ct`, `Cp`, `L (mi)`, `Lca (mi)`, `Slope` (ft/ft) | Colorado Urban Hydrograph Procedure form, tp = Ct·(L·Lca/√S)^0.48, with the Snyder peak and shape above. |
+| `cuhp` | `L (mi)`, `Lca (mi)`, `Slope` (ft/ft), `Imp (%)`; optional `Ct`, `Cp` | CUHP 2.0 (MHFD 2016): tp = CT·(L·Lca/√S)^0.48 with CT and Cp from imperviousness (Figures B-7, B-8, Eq. B-28) unless entered; qp = 640·Cp·A/tp at tp + Δt/2, gamma shape. |
 
 Every unit hydrograph is scaled to exactly 1 in of runoff, so methods differ only in timing and peak. The method and
 its parameters are listed in the subbasin table's last column.
@@ -70,9 +70,12 @@ Decisions:
 - **D-480** Snyder (and CUHP) give a peak and time to peak, not a full shape. HEC-HMS fits a Clark UH to them; here a
   gamma curve through the Snyder peak with the right volume is used, which keeps the peak and its timing exactly and is
   simple to check. The Corps W50/W75 widths are available from `UnitHydrographs.SnyderWidths` for comparison.
-- **D-481** CUHP's Ct and Cp come from regressions on imperviousness in MHFD USDCM Vol. 1 Ch. 6 (the CUHP 2005
-  spreadsheet). They are inputs here rather than computed, because the regression coefficients were not available as
-  text in the build environment. Losses stay with the CN or Green–Ampt choice (CUHP's own Horton losses are not used).
+- **D-481** (revised 2026-11-25) CUHP's CT and Cp default from imperviousness by the CUHP 2.0 User Manual (MHFD,
+  2016): CT from Figure B-7 (three quadratics in I), the peaking parameter P from Figure B-8 (2016 re-calibration) and
+  Cp = 1.3·P·CT·A^0.45 (A ≤ 120 ac) or P·CT·A^0.30 (Eq. B-28). Entered Ct and Cp still override. The `Imp` column is
+  used as the imperviousness (CUHP uses its effective, volume-weighted value). The peak is qp = 640·Cp·A/tp at
+  Tp = tp + Δt/2 (Eqs. B-30, B-32, B-33), without the Snyder standard-duration adjustment; the shape stays the gamma
+  curve of D-480 (CUHP draws its curve through W50 and W75). Table B-4 is reproduced in `ManualWorkedExampleTests`. Losses stay with the CN or Green–Ampt choice (CUHP's own Horton losses are not used).
 - **D-482** The Clark tc comes from the subbasin's Tc (entered or TR-55 flow paths); R must be given.
 
 Tests (`UnitHydrographTests`): the time–area curve; Clark volume, attenuation with R and the linear-reservoir

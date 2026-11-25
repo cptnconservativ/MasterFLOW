@@ -43,6 +43,11 @@ The tests reproduce every step by hand.
 - **D-432** Clogging shortens the effective drain length, the same way the gutter inlet tool applies IDCM clogging.
 - **D-433** HEC-21's worked examples were not available as text in this environment; the tests check each equation.
 
+- D-435 (2026-11-25): HEC-21 Examples 1 and 3 are reproduced in `ManualWorkedExampleTests`. HEC-21 takes the drain
+  efficiency as the frontal ratio Eo alone (0.245 in Example 3); MasterFlow adds the HEC-22 side-flow term, so its
+  efficiency is 0.265 and the spacing 212 ft against the manual's 196 ft. Gutter capacity and the distance to the first
+  drain match.
+
 ## Messages
 
 | Code | Meaning |

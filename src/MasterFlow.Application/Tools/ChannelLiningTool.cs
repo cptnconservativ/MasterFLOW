@@ -36,8 +36,8 @@ public sealed class ChannelLiningTool : IDesignTool
     /// <summary>HEC-15 bend shear factor Kb from Rc/T: 2.0 (≤ 2), 2.38 − 0.206·r + 0.0073·r² (2–10), 1.05 (≥ 10).</summary>
     public static double Kb(double rcOverT) => rcOverT <= 2 ? 2.0 : rcOverT < 10 ? 2.38 - 0.206 * rcOverT + 0.0073 * rcOverT * rcOverT : 1.05;
 
-    /// <summary>Blodgett riprap n (HEC-15 Eq. 6.1): n = 0.319·da^(1/6)/(2.25 + 5.23·log10(da/D50)), da and D50 in ft.</summary>
-    public static double RiprapN(double da, double d50) => 0.319 * Math.Pow(da, 1.0 / 6) / (2.25 + 5.23 * Math.Log10(da / d50));
+    /// <summary>Blodgett riprap n (HEC-15 Eq. 6.1): n = 0.262·da^(1/6)/(2.25 + 5.23·log10(da/D50)), da and D50 in ft (0.319 in SI; 0.262 = 0.319 × 0.3048^(1/6)).</summary>
+    public static double RiprapN(double da, double d50) => 0.262 * Math.Pow(da, 1.0 / 6) / (2.25 + 5.23 * Math.Log10(da / d50));
 
     /// <summary>Shields parameter and safety factor by particle Reynolds number (HEC-15 Table 6.1): 0.047 / 1.0 up to 4·10⁴, 0.15 / 1.5 from 2·10⁵, linear between.</summary>
     public static (double FStar, double Sf) ShieldsAndSafety(double reStar)
@@ -196,7 +196,7 @@ public sealed class ChannelLiningTool : IDesignTool
             new("Linings (HEC-15)", ["Reach", "Lining", "Q (cfs)", "Depth (ft)", "V (ft/s)", "Fr", "n", "τd = γdS (lb/ft²)", "Side K1·τd (lb/ft²)", "Kb", "Bend Kb·τd (lb/ft²)", "Bend protection Lp (ft)", "Lining used", "Requirement", "Result"], rows,
             [
                 "Normal depth with the lining's n at that depth. τd is the maximum shear at the deepest point; side shear K1·τd (K1 = 0.77, 0.066Z + 0.67 or 1.0); bend shear Kb·τd with Kb from Rc/T, applied over Lp = 0.604·R^(7/6)/n downstream of the bend.",
-                "Riprap: D50 = SF·τ/(F*·(γs − γ)), γs = 165 lb/ft³, F* and SF from Re* = V*·D50/ν (0.047/1.0 to 0.15/1.5); side D50 = (K1/K2)·D50; n by Blodgett, 0.319·da^(1/6)/(2.25 + 5.23·log(da/D50)). Slopes ≤ 10 %.",
+                "Riprap: D50 = SF·τ/(F*·(γs − γ)), γs = 165 lb/ft³, F* and SF from Re* = V*·D50/ν (0.047/1.0 to 0.15/1.5); side D50 = (K1/K2)·D50; n by Blodgett, 0.262·da^(1/6)/(2.25 + 5.23·log(da/D50)). Slopes ≤ 10 %.",
                 "Grass: n = 0.213·Cn·τo^−0.4; τe = τd·(1 − Cf)·(ns/n)² against the soil's permissible shear (0.4·D75 for non-cohesive D75 > 0.05 in.). RECP/TRM: τd against the product's tested τp.",
             ]),
         };

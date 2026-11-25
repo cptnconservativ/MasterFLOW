@@ -49,6 +49,7 @@ public sealed class StreamStabilityTool : IDesignTool
         slope = 0.004             # ft/ft, bed slope S0
         n = 0.035
         D50 = 25                  # mm
+        # D90 = 90                # mm (optional): also gives Seq for the coarse fraction, as HEC-20 Example 2 does
         sinuosity = 1.3           # channel length / valley length
         control distance = 2000   # ft to a downstream grade control (bed rock, culvert apron, drop)
         Shields = 0.047
@@ -128,6 +129,7 @@ public sealed class StreamStabilityTool : IDesignTool
             ["Unit discharge q = Q/W", R(qUnit, 3), si ? "m²/s" : "ft²/s"], ["Normal depth (wide channel)", R(y, 3), L], ["Velocity", R(v, 3), si ? "m/s" : "ft/s"],
             ["Froude number", R(fr, 3), ""], ["Bed shear τ = γ·y·S0", R(tau, 3), Tu], [$"Critical shear of D50 ({d50:G3} mm)", R(tauC50, 3), Tu],
             ["Critical size Dc = τ/(F*·(Ss − 1)·γ)", R(dcMm, 1), "mm"], ["Equilibrium slope Seq for D50", R(seq, 6), $"{L}/{L}"],
+            .. (p.OptionalNumber("D90") is > 0 and var d90 ? new List<IReadOnlyList<object?>> { new object?[] { $"Equilibrium slope Seq for D90 ({d90:G3} mm, HEC-20 Eq. 6.17 as in Example 2)", R(EquilibriumSlope(qUnit, n, k, d90 * mmToLen, shields, ss), 6), $"{L}/{L}" } } : []),
             ["Specific stream power γ·Q·S/W", R(power, 2), Pu], ["Width–depth ratio", R(wd, 1), ""],
             [$"Leopold–Wolman braiding slope at bankfull {qBank:G4} {Qu}", R(braid, 5), $"{L}/{L}"],
         ];
