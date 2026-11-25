@@ -1143,7 +1143,7 @@ public sealed partial class MainViewModel : ObservableObject
                 Folder = (p.Network.Length > 0 ? p.Network + "/" : "") + "Pipes",
                 ItemNumber = p.Name,
                 Description = $"Pipe imported from {fileName}, network \"{p.Network}\": {p.StartStructure} → {p.EndStructure}, length {L(p.Length)}, inverts {L(p.StartInvert)} → {L(p.EndInvert)}" +
-                              (p.Material.Length > 0 ? $", {p.Material}" : "") + ". Slope from the inverts; n = 0.013 assumed (check for the material). Depth is set to the full rise, so Solve for Q gives the full-flow capacity; enter the design Q and solve for normal depth to check it.",
+                              (p.Material.Length > 0 ? $", {p.Material}" : "") + (p.Reversed ? " (drawn the other way in the file; flow direction taken from the inverts)" : "") + ". Slope from the inverts; n = 0.013 assumed (check for the material). Depth is set to the full rise, so Solve for Q gives the full-flow capacity; enter the design Q and solve for normal depth to check it.",
                 Input = new UniformFlowInput
                 {
                     Units = units, Section = section, SolveFor = SolveFor.Discharge, ManningN = 0.013,
@@ -1171,7 +1171,8 @@ public sealed partial class MainViewModel : ObservableObject
         var other = read.Problems.Where(p => !p.StartsWith("The file does not state") && !p.StartsWith("Linear unit")).ToList();
         string probNote = other.Count > 0 ? $" {other.Count} problem(s), first: {other[0]}" : "";
         string netNote = nets > 0 ? $" {nets} storm network(s) set up for HGL/EGL (Storm networks window; enter the inflow at each inlet, or a Q for each pipe)." : "";
-        return $"Imported {read.Pipes.Count} pipe(s) and {read.Structures.Count} structure(s) ({inlets} inlet(s)) from {fileName}.{netNote}{unitNote}{probNote}";
+        string flowNote = read.FlowNotes.Count > 0 ? $" Flow direction taken from the inverts for {read.FlowNotes.Count} pipe(s) drawn the other way: {string.Join(" ", read.FlowNotes)}" : "";
+        return $"Imported {read.Pipes.Count} pipe(s) and {read.Structures.Count} structure(s) ({inlets} inlet(s)) from {fileName}.{netNote}{unitNote}{flowNote}{probNote}";
     }
 
     /// <summary>Adds one calculation per cross-section; returns the status text. Public for tests.</summary>

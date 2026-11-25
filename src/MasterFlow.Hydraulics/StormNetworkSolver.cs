@@ -140,10 +140,15 @@ public static class StormNetworkSolver
         }
         if (messages.Any(m => m.Severity == MessageSeverity.Error)) return Fail();
 
+        // A structure with several outlet pipes usually has pipes drawn against the flow: its outlet is the
+        // lowest invert, and the flat or adverse ones are inflows (PipeFlowDirection, D-703).
+        (net, var orientation) = PipeFlowDirection.Orient(net, allPipes: false);
+        foreach (var note in orientation.Notes) messages.Add(CalcMessage.Info("I-NW-005", note));
         var outlet = new Dictionary<string, NetworkPipe>();
         foreach (var g in net.Pipes.GroupBy(p => p.From))
         {
-            if (g.Count() > 1) messages.Add(CalcMessage.Error("E-NW-009", $"Structure \"{g.Key}\" has {g.Count()} outlet pipes ({string.Join(", ", g.Select(p => p.Name))}); split flows are not supported."));
+            if (g.Count() > 1) messages.Add(CalcMessage.Error("E-NW-009", $"Structure \"{g.Key}\" has {g.Count()} outlet pipes that slope away from it or share its lowest invert: " +
+                $"{PipeFlowDirection.DescribeOutlets(g.Select(p => new PipeFlowDirection.Link(p.Name, p.From, p.To, p.UpstreamInvert, p.DownstreamInvert)))}. Split flows are not supported; check the inverts."));
             else outlet[g.Key] = g.First();
         }
         var inflows = net.Pipes.GroupBy(p => p.To).ToDictionary(g => g.Key, g => g.ToList());
