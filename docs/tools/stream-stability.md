@@ -39,3 +39,7 @@ The tool is free and works in both unit systems. Grain sizes are in millimetres.
 | D-542 | The armor layer thickness defaults to 2·Dc. It is an input because published guidance ranges from 1 to 3 times Dc. |
 | D-543 | The Level 1 qualitative assessment (site visit, photos, channel classification by eye) is not scored here. It needs field observation. |
 | D-544 | Validation: hand calculations (StreamStabilityTests). The equilibrium slope is checked by its defining property, y·Seq = F*(Ss − 1)·D50. HEC-20 was not reachable from the build environment. |
+- D-545 (2026-11-25): Optional `D90` (mm) also reports the equilibrium slope for that size, the form HEC-20 §6.5.2
+  Example Problem 2 uses (Seq = 0.000108, reproduced in `ManualWorkedExampleTests`). Example Problem 1 uses the
+  log-law boundary shear (Eq. 6.15), which this tool does not compute; its armoring step uses Eq. 6.16 as here.
+

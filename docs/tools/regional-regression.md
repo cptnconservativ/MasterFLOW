@@ -33,3 +33,9 @@ report or a StreamStats report into the `[Equations]` table. The sample's coeffi
 | D-562 | The prediction interval uses the average standard error of prediction. It does not include the site-specific leverage term (which needs the report's covariance matrix), so it is somewhat narrow for sites far from the center of the data. |
 | D-563 | Weighting uses equivalent years of record, the NSS/StreamStats method. Bulletin 17C variance weighting needs the variances of both estimates and is not done here. |
 | D-564 | Validation: hand calculations (RegionalRegressionTests) of the power equation, the log standard error, the weighting, and the Sauer transfer at its limits (ΔA = 0 gives R·Qr; ΔA = Ag/2 gives Qr). |
+- D-563 (2026-11-25): The results table adds the ±1 standard error range (HDS-2 Eq. 6.5 to 6.7), the form HDS-2
+  Example 6.2 reports. HDS-2 Examples 6.1 and 6.2 (Colorado Mountain Region, Capesius and Stephens 2009) are reproduced
+  in `ManualWorkedExampleTests`: Q25 = 900 cfs, 600 to 1,300 cfs within 1 SE. HDS-2 prints no national coefficients;
+  regression coefficients stay inputs from the USGS report for the region (for western South Dakota, the USGS South
+  Dakota peak-flow report).
+

@@ -34,6 +34,9 @@ U = 62.4·28.27·11.5 = 20,290 lb; concrete = (18.94 + 100.7 + 16.8) ft³ × 150
 - D-632: Pipe openings in the walls are not deducted from the concrete; on structures with many large pipes, deduct
   them by hand (lower the wall thickness or raise `FS required`).
 
+- D-634 (2026-11-25): A round structure with Wall and Base left blank takes the Rinker precast manhole of that inside
+  diameter (manhole sizing D-605); the message I-BY-002 says which values were used and whether Rinker prints them.
+
 ## Limits
 
 Anchors, tie-downs and the uplift on pipes are not modelled.

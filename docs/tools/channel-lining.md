@@ -25,7 +25,7 @@ n. Key `phi` (angle of repose for riprap, default 42°).
   for Lp = 0.604·R^(7/6)/n downstream of the bend.
 - Riprap (Ch. 6, S ≤ 10 %): D50 = SF·τ/(F*·(γs − γ)), γs = 165 lb/ft³; F* and SF from Re* = V*·D50/ν: 0.047 and 1.0
   for Re* ≤ 4·10⁴, 0.15 and 1.5 for Re* ≥ 2·10⁵, linear between. Side slope D50 = (K1/K2)·D50 with
-  K2 = √(1 − sin²θ/sin²φ). n by Blodgett: 0.319·da^(1/6)/(2.25 + 5.23·log10(da/D50)). Sized by iteration (the depth
+  K2 = √(1 − sin²θ/sin²φ). n by Blodgett: 0.262·da^(1/6)/(2.25 + 5.23·log10(da/D50)) (da, D50 in ft; 0.319 is the SI constant). Sized by iteration (the depth
   depends on D50 through n).
 - Grass (Ch. 4): n = 0.213·Cn·τo^−0.4, τo = γ·R·S; effective soil shear τe = τd·(1 − Cf)·(ns/n)² against the soil's
   permissible shear (0.4·D75 lb/ft² for non-cohesive D75 > 0.05 in., 0.02 lb/ft² for finer soil, or tau soil).
@@ -39,8 +39,9 @@ n. Key `phi` (angle of repose for riprap, default 42°).
 - **D-451** Steep-slope riprap (S > 10 %, HEC-15 §6.3) and the Bathurst n for da/D50 < 1.5 are not computed; the tool
   warns (W-CL-001, W-CL-002).
 - **D-452** In a bend the riprap is sized for Kb·τd and the side slope check uses that value too (conservative).
-- **D-453** HEC-15's worked examples were not available as text in this environment; each equation is checked by
-  hand in `ChannelLiningTests`.
+- **D-453** (revised 2026-11-25) The riprap (mild slope) and grass lining design examples of HEC-15 §6.3.1 and §4.3 (CU)
+  are reproduced in `ManualWorkedExampleTests`. Running them found the Blodgett constant set to the SI value 0.319 with
+  depths in feet, which made riprap n about 22 % high; it is now 0.262 (HEC-15 Eq. 6.1, CU).
 - **D-454** The soil grain roughness for D75 > 0.05 in. uses ns = 0.015·D75^(1/6) (D75 in inches).
 
 ## Messages

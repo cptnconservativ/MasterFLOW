@@ -1,7 +1,7 @@
 # Emergency spillways and dam breach (TR-60, Froehlich)
 
 Tool id `spillway-breach` (free, U.S. units). For detention and stock-pond embankments that fall under dam safety rules:
-NRCS TR-60 (*Earth Dams and Reservoirs*, 2005) design rainfall for the auxiliary spillway and freeboard hydrographs,
+NRCS TR-210-60 (*Earth Dams and Reservoirs*, 2019) design rainfall for the auxiliary spillway and freeboard hydrographs,
 an auxiliary spillway rating, freeboard checks, and a dam breach screen by the regression equations most states accept.
 
 ## Input
@@ -9,6 +9,8 @@ an auxiliary spillway rating, freeboard checks, and a dam breach screen by the r
 | Key | Meaning |
 |---|---|
 | `hazard` | `low`, `significant` or `high` (TR-60 class a, b, c) |
+| `storage x height` (or `storage` and `effective height`), `upstream dam`, `purpose`, `auxiliary spillway` | Figure 2–2 low hazard rows (ac-ft × ft above or below 30,000; an upstream dam whose failure could endanger this one); `purpose = municipal` or `industrial` uses the significant hazard row; `irrigation` and `earth`/`vegetated` select the Figure 2–1 principal spillway storm |
+| `embankment area`, `valley width` | ft² of embankment section at the breach and ft of valley width at the breach depth, for the TR-210-60 minimum breach peak |
 | `P100`, `PMP` | 100-yr and PMP rainfall for the same duration, in. |
 | `spillway` | `weir` (`C`, `L`) or `trapezoid` (`bottom width`, `side slope`) |
 | `crest`, `top of dam` | Auxiliary spillway crest and top of dam, ft |
@@ -17,8 +19,11 @@ an auxiliary spillway rating, freeboard checks, and a dam breach screen by the r
 
 ## Method
 
-- TR-60 rainfall: low hazard ASH = P100, FBH = P100 + 0.12·(PMP − P100); significant ASH = P100 + 0.12·(PMP − P100),
-  FBH = P100 + 0.40·(PMP − P100); high ASH = P100 + 0.26·(PMP − P100), FBH = PMP.
+- TR-210-60 Figure 2–2: low hazard (< 30,000, no upstream dam) ASH = P100, FBH = P100 + 0.12·Δ; low (> 30,000) ASH = P100 + 0.06·Δ,
+  FBH = P100 + 0.26·Δ; low with an upstream dam and significant ASH = P100 + 0.12·Δ, FBH = P100 + 0.40·Δ; high ASH = P100 + 0.26·Δ,
+  FBH = PMP (Δ = PMP − P100). Figure 2–1 principal spillway (10-day) storm by class, size, upstream dams and spillway type.
+- TR-210-60 minimum peak breach discharge: Hw ≥ 103 ft → 65·Hw^1.85; otherwise 1100·Br^1.35 (Br = Vs·Hw/A) but not less than
+  3.2·Hw^2.5 nor more than 65·Hw^1.85; when the valley width L < T = 65·Hw^0.35/0.416, 0.416·L·Hw^1.5 replaces 65·Hw^1.85.
 - Rating: weir Q = C·L·H^1.5, or critical flow at a level control section of a trapezoidal earth spillway with specific
   energy equal to the head (Q = A·√(g·A/T)); chart with the crest and top of dam.
 - Freeboard: the FBH peak stage must not exceed the top of dam (W-SB-001).
@@ -42,3 +47,5 @@ an auxiliary spillway rating, freeboard checks, and a dam breach screen by the r
 |---|---|
 | E-SB-001 … 008 | SI project; unknown hazard, spillway or failure mode; invalid rainfall, spillway or breach values; nothing to compute |
 | W-SB-001 | FBH stage above the top of dam |
+- **D-474** (2026-11-25) Criteria updated from TR-60 (2005) to TR-210-60 (2019), the copy in the reference set: the
+  missing low hazard rows of Figure 2–2, Figure 2–1 and the ch. 1 minimum breach peak are added.

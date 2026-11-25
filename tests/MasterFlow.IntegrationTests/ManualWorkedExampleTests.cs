@@ -342,4 +342,27 @@ public class ManualWorkedExampleTests
         var r = Ok(new SpillwayBreachTool(), "breach storage = 120\nbreach depth = 22\nembankment area = 1900\nvalley width = 300\n", Us);
         Assert.Equal(Math.Round(3.2 * Math.Pow(22, 2.5)), (double)Cell(r, "Dam breach", "TR-210-60 minimum")!);
     }
+
+    // ---------------- HDS-6 (2001), §4.13.8 Problem 7, Yang's sand equation ----------------
+    [Fact]
+    public void Hds6_Problem7_YangSand()
+    {
+        // Q 7,820 cfs, W 341 ft, y 7.58 ft, V 3.02 ft/s, S 0.00022, D50 0.00105 ft, ν 1.21e-5 ft²/s; manual ω 0.141 ft/s.
+        // Manual: Ct = 91 ppm, Qs = 1,900 tons/day. MasterFlow computes ω by Rubey (0.136 ft/s), which gives 95 ppm (+4 %).
+        const double ft = 0.3048;
+        var h = new SedimentTransportTool.Hydraulics(7.58 * ft, 3.02 * ft, 0.232 * ft, double.NaN);
+        double ppm = SedimentTransportTool.YangPpm(h, 0.00022, 0.00105 * ft, 2.65, 1.21e-5 * ft * ft);
+        Near(91, ppm, 0.05);
+        Near(1900, 7820 * ppm * 62.4 * 86400 / (2000 * 1e6), 0.05);
+    }
+
+    // ---------------- HEC-17 (2nd ed., 2016), Table 6.2 ----------------
+    [Theory]
+    [InlineData(10, 10, 0.65)]
+    [InlineData(25, 25, 0.64)]
+    [InlineData(50, 75, 0.78)]
+    [InlineData(100, 50, 0.39)]
+    [InlineData(100, 100, 0.63)]
+    [InlineData(500, 25, 0.05)]
+    public void Hec17_Table62_RiskOverServiceLife(double t, double n, double table) => Assert.Equal(table, FloodplainRiskTool.Risk(t, n), 2);
 }
