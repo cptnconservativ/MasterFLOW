@@ -97,7 +97,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
         // Method
         var c = result.Constants;
         sb.Append("<h2>Method</h2>");
-        sb.Append($"<p>Steady, uniform open-channel flow by Manning's equation, <span class=\"eq\">Q = (k/n)·A·R<sup>2/3</sup>·S<sup>1/2</sup></span>, with k = {c.ManningK.ToString(Inv)} and R = A/P. ");
+        sb.Append($"<p>{E(ReportAssumptions.MethodLead(result.Input.Section))}, <span class=\"eq\">Q = (k/n)·A·R<sup>2/3</sup>·S<sup>1/2</sup></span>, with k = {c.ManningK.ToString(Inv)} and R = A/P. ");
         sb.Append($"Critical depth satisfies <span class=\"eq\">Q²T/(gA³) = 1</span> with g = {c.Gravity.ToString(Inv)} {c.Length}/s². Froude number Fr = V/√(gD), D = A/T. ");
         sb.Append("Unknown depths are solved with Brent's bracketed method (relative depth tolerance 1×10⁻¹², discharge residual ≤ 1×10⁻⁸). Gradually varied, unsteady and pressurised flow are not modelled.</p>");
 
@@ -168,9 +168,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
         sb.Append("<h2>Warnings, notes and assumptions</h2>");
         foreach (var m in result.Messages.Concat(DesignChecks.Messages(checks)))
             sb.Append($"<div class=\"msg {m.Severity}\"><strong>{m.Severity}</strong> [{E(m.Code)}] {E(m.Text)}</div>");
-        sb.Append(result.Input.Section is IrregularSection { HasPointRoughness: true }
-            ? "<div class=\"msg Info\">Assumes a prismatic channel, small slope (depth measured vertically) and hydrostatic pressure. Roughness varies across the section and is combined as stated in the input; the velocity head uses the mean velocity (α = 1). Manning's n values are the engineer's selection; results are only as reliable as n.</div>"
-            : "<div class=\"msg Info\">Assumes a prismatic channel, uniform roughness across the wetted perimeter, small slope (depth measured vertically) and hydrostatic pressure. Manning's n is the engineer's selection; results are only as reliable as n.</div>");
+        sb.Append($"<div class=\"msg Info\"><strong>Info</strong> {E(ReportAssumptions.Note(result))}</div>");
 
         if (options.RatingTable is { Rows.Count: > 0 } rt)
         {
