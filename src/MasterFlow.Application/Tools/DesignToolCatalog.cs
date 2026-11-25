@@ -15,6 +15,7 @@ public static class DesignToolCatalog
     private static readonly Dictionary<string, string> Map = new()
     {
         ["rational-rapid-city"] = "Hydrology", ["atlas14-idf"] = "Hydrology", ["tr55-hydrology"] = "Hydrology",
+        ["regional-regression"] = "Hydrology",
         ["hydrograph-routing"] = "Hydrology", ["flood-frequency"] = "Hydrology",
         ["snowmelt"] = "Hydrology",
         ["gutter-inlets"] = "Streets and inlets", ["street-capacity"] = "Streets and inlets", ["inlet-network"] = "Streets and inlets",

@@ -18,6 +18,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Tool | Source | Doc |
 |---|---|---|
 | Rational method | Rapid City IDCM 2012 §4.2 | [rational-method.md](rational-method.md) |
+| Regional regression peak flows, gage weighting and transfer | FHWA HDS-2 (2002) Ch. 5; USGS regional regression reports and StreamStats; Sauer (1974) | [regional-regression.md](regional-regression.md) |
 | ★ NOAA Atlas 14 rainfall (IDF lookup) | NOAA Atlas 14 via PFDS | [atlas14-idf.md](atlas14-idf.md) |
 | Gutter spread and inlets | IDCM §4.4–4.5, HEC-22 | [gutter-inlets.md](gutter-inlets.md) |
 | Pavement edge drains and permeable base | FHWA-NHI-99-028 (Cedergren infiltration, resultant flow path, time to drain); AASHTO 1993 quality of drainage | [underdrains.md](underdrains.md) |
