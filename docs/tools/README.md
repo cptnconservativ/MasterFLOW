@@ -25,6 +25,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Sag inlet ponding and clogging | IDCM §4.5.3–4.5.4, Tables 4-11 and 4-12; HEC-22 | [sag-ponding.md](sag-ponding.md) |
 | Bridge deck drainage: deck drain spacing | FHWA HEC-21 (1993), HEC-22 grate equations | [deck-drainage.md](deck-drainage.md) |
 | TR-55 hydrology: curve number, Tc, peak discharge, unit hydrograph | NRCS TR-55 (1986), NEH 630 Ch. 16 | [tr55-hydrology.md](tr55-hydrology.md) |
+| Snowmelt and rain-on-snow (degree-day) | USACE EM 1110-2-1406 (1998) rain-on-snow equations; temperature-index melt | [snowmelt.md](snowmelt.md) |
 | Flood frequency from annual peaks (log-Pearson III, EMA, low outliers, historical data) | USGS Bulletin 17C (2019) | [flood-frequency.md](flood-frequency.md) |
 | Detention pond routing | IDCM §4.10; modified rational or entered hydrographs | [detention-routing.md](detention-routing.md) |
 | Pond sediment accumulation and clean-out interval | Brune (1953) / Dendy (1974) trap efficiency; Lara and Pemberton (1963), Miller (1953) deposit density; simple method annual runoff (Schueler 1987) | [pond-sediment.md](pond-sediment.md) |
