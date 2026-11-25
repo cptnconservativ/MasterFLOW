@@ -308,4 +308,38 @@ public class ManualWorkedExampleTests
         Near(0.000108, (double)Cell(r, "", "Equilibrium slope Seq for D90")!, 0.01);
         Near(1.05, (double)Cell(r, "", "Normal depth")!, 0.03);                      // manual's given depth 1.05 ft
     }
+
+    // ---------------- NRCS TR-210-60 (2019) ----------------
+    [Fact]
+    public void Tr60_Figure22_AuxiliaryAndFreeboardRainfall()
+    {
+        // P100 = 5 in., PMP = 25 in. (difference 20 in.).
+        Assert.Equal((5.0, 7.4), SpillwayBreachTool.Tr60Rainfall("low", 5, 25, 20000, false));            // P100; P100 + 0.12Δ
+        Assert.Equal((6.2, 10.2), SpillwayBreachTool.Tr60Rainfall("low", 5, 25, 40000, false));           // + 0.06Δ; + 0.26Δ
+        Assert.Equal((7.4, 13.0), SpillwayBreachTool.Tr60Rainfall("low", 5, 25, 20000, true));            // upstream dam: 0.12Δ; 0.40Δ
+        Assert.Equal((7.4, 13.0), SpillwayBreachTool.Tr60Rainfall("significant", 5, 25));
+        Assert.Equal((10.2, 25.0), SpillwayBreachTool.Tr60Rainfall("high", 5, 25));
+        // Figure 2–1 principal spillway (earth / vegetated auxiliary spillway).
+        Assert.Equal("P50", SpillwayBreachTool.Tr60PrincipalSpillway("low", 20000, false, false, false));
+        Assert.Equal("P25", SpillwayBreachTool.Tr60PrincipalSpillway("low", 20000, false, false, true));
+        Assert.Equal("P75", SpillwayBreachTool.Tr60PrincipalSpillway("low", 40000, false, false, false));
+        Assert.Equal("P100", SpillwayBreachTool.Tr60PrincipalSpillway("significant", null, false, false, false));
+        Assert.Equal("¾ design life", SpillwayBreachTool.Tr60PrincipalSpillway("low", 40000, false, true, false));
+        // Municipal water on a low hazard dam takes the significant hazard row.
+        var r = Ok(new SpillwayBreachTool(), "hazard = low\npurpose = municipal\nP100 = 5\nPMP = 25\n", Us);
+        Assert.Equal(7.4, (double)Cell(r, "TR-60 design rainfall", "Auxiliary")!, 2);
+    }
+
+    [Fact]
+    public void Tr60_MinimumPeakBreachDischarge()
+    {
+        // Vs 120 ac-ft, Hw 22 ft, A 1,900 ft²: Br = 1.39 → 1100·Br^1.35 = 1,715 < 3.2·Hw^2.5 = 7,265 cfs (governs);
+        // L = 300 ft < T = 461 ft, so the cap is 0.416·L·Hw^1.5 = 12,880 cfs.
+        Assert.Equal(3.2 * Math.Pow(22, 2.5), SpillwayBreachTool.Tr60BreachMinimum(120, 22, 1900, 300), 6);
+        Assert.Equal(0.416 * 300 * Math.Pow(22, 1.5), SpillwayBreachTool.Tr60BreachMinimum(5000, 22, 1900, 300), 6);
+        Assert.Equal(65 * Math.Pow(22, 1.85), SpillwayBreachTool.Tr60BreachMinimum(5000, 22, 1900, null), 6);
+        Assert.Equal(65 * Math.Pow(110, 1.85), SpillwayBreachTool.Tr60BreachMinimum(10, 110, 1900, null), 6);   // Hw ≥ 103 ft
+        var r = Ok(new SpillwayBreachTool(), "breach storage = 120\nbreach depth = 22\nembankment area = 1900\nvalley width = 300\n", Us);
+        Assert.Equal(Math.Round(3.2 * Math.Pow(22, 2.5)), (double)Cell(r, "Dam breach", "TR-210-60 minimum")!);
+    }
 }
