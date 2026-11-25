@@ -21,6 +21,7 @@ public static class DesignToolCatalog
         ["sag-ponding"] = "Streets and inlets",
         ["deck-drainage"] = "Streets and inlets",
         ["network-plan-review"] = "Storm sewer design", ["network-optimizer"] = "Storm sewer design", ["plan-profile-dxf"] = "Storm sewer design",
+        ["pump-station"] = "Storm sewer design",
         ["swmm-exchange"] = "Storm sewer design", ["dynamic-wave"] = "Storm sewer design",
         ["sediment-transport"] = "Open channels and structures",
         ["channel-lining"] = "Open channels and structures",
