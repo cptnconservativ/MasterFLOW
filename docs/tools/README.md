@@ -32,6 +32,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Emergency spillways and dam breach | NRCS TR-60 (2005); Froehlich (1995, 2008), MacDonald–Langridge-Monopolis, USBR | [spillway-breach.md](spillway-breach.md) |
 | Backwater / drawdown profile | Standard step (Chow 1959) | [backwater-profile.md](backwater-profile.md) |
 | Channel water surface profile and lining checks | IDCM §4.8, Table 4-14; HEC-15; Chow (1959) | [channel-profile.md](channel-profile.md) |
+| Channel and swale linings: riprap, grass, RECP/TRM | FHWA HEC-15 (2005) | [channel-lining.md](channel-lining.md) |
 | ★ Natural channel water surface profiles, bridges and floodway encroachment (surveyed cross-sections, several flows) | HEC-RAS Hydraulic Reference Manual Ch. 2 and 5 (energy method, conveyance subdivision, mixed regime; bridge energy, Yarnell, pressure and weir flow; encroachment Methods 1 and 4); FEMA 1 ft surcharge | [river-profile.md](river-profile.md) |
 | Flood risk and least total expected cost | FHWA HEC-17 (2016) | [floodplain-risk.md](floodplain-risk.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
