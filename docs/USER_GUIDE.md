@@ -1,7 +1,7 @@
 ---
 title: "MasterFlow User Manual"
 subtitle: "Storm drainage, hydrology and open-channel hydraulics for Windows"
-date: "Edition 3 of 24 November 2026 · covers MasterFlow main after #60–#70, and seventeen new HEC/HDS and hydrology tools with three additions to existing tools, all merged (#71–#89)"
+date: "Edition 3 of 25 November 2026 · covers MasterFlow main after #60–#70, seventeen new HEC/HDS and hydrology tools with three additions to existing tools (#71–#89), and ten structure and storage tools (#91–#100)"
 ---
 
 # About this manual
@@ -30,8 +30,10 @@ frequency and dynamic-wave tools (PRs #60–#65, #70) and the Design tools windo
 
 Edition 3 adds seventeen tools built from the FHWA hydraulic manuals and other standard methods. It also covers three
 additions to existing tools: Clark, Snyder and CUHP unit hydrographs in hydrograph routing, and FEMA floodway
-encroachment and HEC-RAS geometry import in natural channel profiles. All of them are merged (#71–#89); each section gives its pull request. Their screenshots will be added in the next
-manual rebuild.
+encroachment and HEC-RAS geometry import in natural channel profiles. It also adds ten structure and storage tools: manhole sizing, pipe structural design, structure flotation, roof
+drainage, trash racks, weirs and Parshall flumes, the water quality flow splitter, slope-area peak discharge,
+preliminary detention storage and underground detention. All of them are merged (#71–#100); each section gives its
+pull request and a screenshot of its sample run.
 
 ## Screenshots
 
@@ -158,6 +160,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
+| Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
@@ -484,18 +487,23 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Flood frequency (Bulletin 17C) | `flood-frequency` | Free |
 | | Regional regression peak flows (HDS-2, USGS) | `regional-regression` | Free |
 | | Snowmelt and rain-on-snow | `snowmelt` | Free |
+| | Slope-area peak discharge from high-water marks | `slope-area` | Free |
 | 9 Streets and inlets | Gutter spread and inlets | `gutter-inlets` | Free |
 | | Street capacity and gutter spread | `street-capacity` | Free |
 | | Inlet capacity and bypass routing | `inlet-network` | ★ Premium |
 | | Sag inlet ponding and clogging | `sag-ponding` | Free |
 | | Bridge deck drainage (HEC-21) | `deck-drainage` | Free |
 | | Pavement edge drains and permeable base | `pavement-edge-drain` | Free |
+| | Roof drains, leaders and scuppers | `roof-drainage` | Free |
 | 10 Storm sewer design | Storm network plan review (IDCM §4.6) | `network-plan-review` | ★ Premium |
 | | Network optimizer | `network-optimizer` | ★ Premium |
 | | Plan and profile sheets (DXF) | `plan-profile-dxf` | ★ Premium |
 | | EPA SWMM 5 exchange | `swmm-exchange` | ★ Premium |
 | | Dynamic-wave storm sewer routing | `dynamic-wave` | ★ Premium |
 | | Stormwater pump stations (HEC-24) | `pump-station` | Free |
+| | Manhole and structure size from pipes | `manhole-sizing` | Free |
+| | Pipe structural design (RCP class, flexible deflection) | `pipe-structural` | Free |
+| | Structure buoyancy (flotation) | `structure-buoyancy` | Free |
 | 11 Detention and water quality | Detention pond routing | `detention-routing` | Free |
 | | Pond stage–storage from a TIN | `pond-storage` | Free |
 | | Multi-stage outlet designer | `outlet-designer` | ★ Premium |
@@ -505,6 +513,10 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Groundwater mounding (Hantush) | `groundwater-mounding` | Free |
 | | Bioretention underdrain | `bioretention-underdrain` | Free |
 | | Emergency spillways and dam breach (TR-60) | `spillway-breach` | Free |
+| | Trash rack head loss and clogging | `trash-rack` | Free |
+| | Water quality flow splitter | `flow-splitter` | Free |
+| | Preliminary detention storage estimate | `storage-estimate` | Free |
+| | Underground detention: chambers or pipe gallery | `underground-detention` | Free |
 | 12 Open channels and structures | Backwater / drawdown profile | `backwater-profile` | Free |
 | | Channel water surface profile and lining checks | `channel-profile` | Free |
 | | Natural channel profiles (HEC-RAS method) | `river-profile` | ★ Premium |
@@ -520,6 +532,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Stream stability (HEC-20) | `stream-stability` | Free |
 | | Sediment transport (HDS-6) | `sediment-transport` | Free |
 | | Flood risk and least total expected cost (HEC-17) | `floodplain-risk` | Free |
+| | Flow measurement: weirs and Parshall flumes | `flow-measurement` | Free |
 | 13 Quantities and cost | Quantity takeoff and cost opinion | `quantity-takeoff` | Free |
 | | Cost estimate and bid tabulation | `cost-estimate` | ★ Premium |
 | 14 Productivity and deliverables | Batch scenarios | `batch-scenarios` | ★ Premium |
@@ -698,6 +711,10 @@ Peak discharges at an ungaged site from the USGS regional regression equations f
 equations are typed in from the USGS report or a StreamStats report: `[Variables]` (name, site value, and the range of
 the report's data) and `[Equations]` (T, C, one exponent column per variable, SEP % or Slog, EYR).
 
+![Regional regression: the Design tools window with the sample run.](images/manual/tool-regional-regression.png)
+
+![Report output: regression peak flow by return period.](images/manual/chart-regional-regression.png)
+
 **Output.** Q for each return period with 90 % prediction intervals, and a warning for any basin characteristic outside
 the report's range. With a gage on the same stream (`gage area`, `gage years`, `[Gage]` from Bulletin 17C), the estimate
 is weighted by equivalent years of record and transferred to the site by Sauer's area-ratio method, within 50 % of the
@@ -712,6 +729,30 @@ temperature (34 °F). On dry days, melt is Cm·(Ta − 32). On rain days it foll
 equations (open or partly forested, with wind, or heavily forested above 60 % canopy). The pack holds liquid water up
 to a fraction of its water equivalent. The output is snow water equivalent, melt and water available for runoff each
 day, with the peak day to use as rainfall in a runoff model.
+
+![Snowmelt: the Design tools window with the sample run.](images/manual/tool-snowmelt.png)
+
+![Report output: snow water equivalent and melt by day.](images/manual/chart-snowmelt.png)
+
+## Slope-area peak discharge
+
+Free · `slope-area` · Merged (PR #98)
+
+Estimates the peak discharge of a flood that has already passed, from surveyed cross-sections and the high-water marks
+it left, by the slope-area method of Dalrymple and Benson (USGS TWRI Book 3 Ch. A2). Use it to check a gage, calibrate a
+model or document a damaging event.
+
+![Slope-area peak discharge: the Design tools window with the sample run.](images/manual/tool-slope-area.png)
+
+**Input.** One `[XS n]` block per cross-section, upstream to downstream (two or more, three preferred): `ws`
+(high-water elevation), `length` to the next section, `n` per subsection, `banks` (stations that split the
+subsections) and the station–elevation points.
+
+**Method.**
+- Each subsection's conveyance is K = (k/n)·A·R^(2/3), and α comes from the subsection conveyances.
+- Each reach gives Q = √(Ku·Kd)·√[(Δh + (1 − c)·Δhv)/L], where c = 0.5 for an expanding reach and 0 for a contracting one.
+- The whole-reach solution combines all sections and is the reported result.
+- The TWRI criteria are flagged: the fall, the conveyance ratio Ku/Kd between 0.8 and 1.25, expanding reaches and Froude number.
 
 # Streets and inlets
 
@@ -811,6 +852,8 @@ allowable spread, L1 = 43,560·(Qallow − Qapproach)/(C·i·W), and the grate o
 equations with clogging. From those it finds the spacing of later drains, the number of drains and the flow leaving
 the end of the deck. A scupper is treated as a D × D opening with a low splash-over velocity (D-430).
 
+![Bridge deck drainage: the Design tools window with the sample run.](images/manual/tool-deck-drainage.png)
+
 ## Pavement edge drains and permeable base
 
 Free · `pavement-edge-drain` · U.S. units · Merged (PR #83)
@@ -820,6 +863,27 @@ and the resultant slope and flow path length. It checks the permeable base's ste
 to drain 50 % comes from the sloping-layer Boussinesq equation solved numerically, and is rated by the AASHTO quality of
 drainage (excellent 2 h, good 1 day, fair 1 week, poor 1 month). Edge drain capacity by Manning gives the maximum
 outlet spacing.
+
+![Pavement edge drains: the Design tools window with the sample run.](images/manual/tool-pavement-edge-drain.png)
+
+## Roof drains, leaders and scuppers
+
+Free · `roof-drainage` · Merged (PR #94)
+
+Sizes building roof drainage for the site plan by the IPC. It covers the roof drain leaders, the horizontal building
+storm drain to the site system and the secondary scuppers. It also gives the ASCE 7 rain load the structural engineer needs.
+
+![Roof drains, leaders and scuppers: the Design tools window with the sample run.](images/manual/tool-roof-drainage.png)
+
+**Input.** `intensity` (100-year 1-hour, IPC §1106.1; IDCM Table 4-2 gives 2.95 in./h), `weir C`;
+`[Drains]` (roof and wall area, drawn leader and horizontal sizes, slope) and `[Scuppers]` (area, width, static head ds).
+
+**Method.**
+- Area is the roof plus half of any vertical wall draining onto it. Q (gpm) = 0.0104·A·i.
+- Leaders are sized from IPC Table 1106.2.
+- The horizontal drain is checked by Manning full flow with n = 0.015, which reproduces the IPC table.
+- Scupper head comes from the weir equation Q = C·b·h^1.5.
+- Rain load R = 5.2(ds + dh) psf (ASCE 7-16 Eq. 8.3-1).
 
 # Storm sewer design
 
@@ -946,9 +1010,70 @@ Checks an underpass or depressed-roadway pump station by FHWA HEC-24. Input:
 - the force main (length, diameter, Hazen-Williams C, minor losses)
 - the design inflow hydrograph
 
+![Pump station: the Design tools window with the sample run.](images/manual/tool-pump-station.png)
+
+![Report output: inflow and pumped outflow.](images/manual/chart-pump-station.png)
+
 The system curve and parallel pump operating points are solved, and the inflow is routed by mass curve as pumps start
 and stop. The tool reports peak stage, starts and shortest cycle time, and checks each pump's cycle volume against
 HEC-24's V = 15·T·Q. Identical pumps on one force main are assumed (D-460).
+
+## Manhole and structure size from pipes
+
+Free · `manhole-sizing` · Merged (PR #91)
+
+Finds the smallest round manhole or inlet structure whose barrel wall can take all of its pipes, rounded up to the
+precaster's sizes. Pipe sizes, inverts and plan angles are read from the selected storm network when the cells are left
+blank.
+
+![Manhole and structure size from pipes: the Design tools window with the sample run.](images/manual/tool-manhole-sizing.png)
+
+**Input.** `min diameter`, `sizes` (standard inside diameters), `clearance` (each side of the pipe OD), `leg`
+(least wall between openings); `[Pipes]`: structure, pipe, ID, wall (blank = ASTM C76 wall B), plan angle, invert.
+
+**Method.**
+- Each opening is w = ID + 2·wall + 2·clearance wide and subtends 2·asin(w/D) on the inside face.
+- Openings whose vertical bands overlap, or come within one leg of each other, need enough plan angle between them for both half-openings plus the leg.
+- The least D that meets every such pair is found by bisection, then rounded up to the next listed size. The governing pair is reported.
+
+## Pipe structural design: RCP class and flexible pipe deflection
+
+Free · `pipe-structural` · Merged (PR #92)
+
+Checks buried storm pipe for earth and traffic load. For reinforced concrete pipe it gives the ASTM C76 D-load class.
+For flexible pipe (HDPE, PP, PVC and metal) it gives the deflection.
+
+![Pipe structural design: RCP class and flexible pipe deflection: the Design tools window with the sample run.](images/manual/tool-pipe-structural.png)
+
+**Input.** `unit weight`, `live load` (`HL-93` or `none`), `LLDF`, `DL`; `[Rigid]`: ID, cover, Standard
+Installation type 1–4, wall, BfLL; `[Flexible]`: material, ID, OD, cover, pipe stiffness, soil, compaction, E′, deflection limit.
+
+**Method.**
+- **Rigid pipe** uses indirect design (AASHTO LRFD §12.10.4.3 and the ACPA design manual):
+  - earth load with the Standard Installation VAF;
+  - fluid load;
+  - HL-93 wheel load spread through the fill, with the impact allowance;
+  - bedding factors from the ACPA table.
+  - D0.01 = [(WE + WF)/Bfe + WL/BfLL]/Di. The class is the least C76 class at or above it.
+- **Flexible pipe** uses the Modified Iowa formula, with E′ from Howard (1977) by embedment and compaction, checked against the deflection limit (default 5 %).
+
+## Structure buoyancy (flotation)
+
+Free · `structure-buoyancy` · Merged (PR #93)
+
+Checks an empty manhole, inlet, vault or outlet structure against flotation at the design high groundwater. When it
+fails, the tool gives the ballast concrete or base extension that fixes it.
+
+![Structure buoyancy (flotation): the Design tools window with the sample run.](images/manual/tool-structure-buoyancy.png)
+
+**Input.** Unit weights of concrete, water and soil (moist and saturated), `FS required` (default 1.25), `other weight`;
+`[Structures]`: round or box, inside size, wall, base, extension, top slab and opening, bottom, top and groundwater elevations.
+
+**Method.**
+- Uplift is the water displaced by the outside volume below the water table.
+- Resisting weight is the concrete plus the soil on the base extension. The soil is moist above the water table and buoyant below it.
+- FS = resisting weight / uplift.
+- The ballast needed inside is (FS·U − W)/γc. The base extension that reaches the required FS is found by bisection.
 
 # Detention and water quality
 
@@ -1081,6 +1206,10 @@ How fast sediment fills a forebay and a main pool, and how often each needs clea
 3. **Deposit density**, by Lara and Pemberton from the sand, silt and clay fractions and the pond's operation, with Miller's consolidation.
 4. **Clean-out timing**: years until each storage reaches the clean-out trigger (half full by default), both from today and as the repeating interval once the site is developed.
 
+![Pond sediment: the Design tools window with the sample run.](images/manual/tool-pond-sediment.png)
+
+![Report output: sediment storage filled over time.](images/manual/chart-pond-sediment.png)
+
 ## Groundwater mounding (Hantush)
 
 Free · `groundwater-mounding` · Merged (PR #78)
@@ -1093,6 +1222,10 @@ SIR 2010-5102. It reports:
 - the mound over time through recovery
 - the separation from the mounded water table to the basin floor, against the required separation
 
+![Groundwater mounding: the Design tools window with the sample run.](images/manual/tool-groundwater-mounding.png)
+
+![Report output: mound rise along the length and width of the basin.](images/manual/chart-groundwater-mounding.png)
+
 A mound above half the saturated thickness, or recharge above K, is warned: use MODFLOW for a final design.
 
 ## Bioretention underdrain
@@ -1104,6 +1237,8 @@ restricting orifice. It gives two drain times:
 
 - the ponded water, by falling head through the media
 - the drainable water in the media and gravel
+
+![Bioretention underdrain: the Design tools window with the sample run.](images/manual/tool-bioretention-underdrain.png)
 
 These are checked against 48 h for the surface and 72 h below it by default.
 
@@ -1118,7 +1253,84 @@ For detention and stock-pond embankments under dam safety rules. It covers:
 - **Freeboard:** checked against the routed stages.
 - **Breach screen:** peak outflow by Froehlich (1995), MacDonald–Langridge-Monopolis and USBR, with Froehlich (2008) breach width and failure time.
 
+![Emergency spillway and breach: the Design tools window with the sample run.](images/manual/tool-spillway-breach.png)
+
+![Report output: spillway rating with the crest and top of dam.](images/manual/chart-spillway-breach.png)
+
 The hydrographs are routed with the TR-55, hydrograph routing or detention tools (D-470).
+
+## Trash rack head loss and clogging
+
+Free · `trash-rack` · Merged (PR #95)
+
+Checks a bar rack on a pond outlet, culvert inlet or storm sewer intake. It gives the open area, the velocity through
+the rack and the head loss to add to the outlet rating, both clean and partly clogged.
+
+![Trash rack head loss and clogging: the Design tools window with the sample run.](images/manual/tool-trash-rack.png)
+
+**Input.** `clogging` (default 50 %), `max velocity`; `[Racks]`: Q, width, submerged height, bar thickness and clear
+spacing, angle from horizontal, bar shape.
+
+**Method.**
+- The net open area is Ag·b/(b + t), reduced by the clogging share.
+- Clean-rack loss uses Kirschmer (1926): h = Kt·(t/b)^(4/3)·sinθ·Va²/2g, with Kt by bar shape.
+- Clean and clogged losses also use Creager and Justin (USBR): h = (1.45 − 0.45R − R²)·Vn²/2g.
+
+## Water quality flow splitter
+
+Free · `flow-splitter` · Merged (PR #97)
+
+Designs the diversion structure ahead of an off-line water quality BMP, such as a sand filter, bioretention or a
+proprietary device. A low orifice sends the water quality flow to the BMP and an overflow weir bypasses larger storms.
+
+![Water quality flow splitter: the Design tools window with the sample run.](images/manual/tool-flow-splitter.png)
+
+**Input.** `Q design`, `Q wq` (Rapid City SWQM 2009), `orifice invert`, either `orifice diameter` or `crest` (the
+other is solved), `weir length`, `weir C`, `Cd`, and optionally `max WSE` and `max treatment flow`.
+
+**Method.**
+- The orifice passes Q wq with the water at the weir crest. Given one of crest or diameter, the tool solves the other.
+- The design-storm water surface is found where orifice plus weir carry Q design. The orifice flow at that level is what still reaches the BMP, checked against `max treatment flow`.
+- With `max WSE`, the tool gives the weir length that holds the water surface to it.
+
+## Preliminary detention storage estimate
+
+Free · `storage-estimate` · Merged (PR #99)
+
+A first-cut detention volume for site layout and feasibility, before a pond is drawn. Size the pond itself by routing
+it with the detention or hydrograph routing tools.
+
+![Preliminary detention storage estimate: the Design tools window with the sample run.](images/manual/tool-storage-estimate.png)
+
+**Input.** `area`, `qi` and `qo` (inflow peak and allowable release); for TR-55, `CN` and `P` (or `Q runoff`) and
+`rainfall type`; for the modified rational method, `C`, `tc` and `frequency` (IDCM Table 4-2), or an `[IDF]` table.
+
+**Method.**
+- **TR-55 Chapter 6:** Vs/Vr from the Figure 6-1 polynomial in qo/qi, by rainfall type.
+- **Modified rational:** V = 60·[C·i·A·Td − qo·(Td + tc)/2], maximised over the storm duration Td.
+- **Comparison:** the Abt–Grigg and Baker ratio methods.
+
+## Underground detention: chambers or pipe gallery
+
+Free · `underground-detention` · Merged (PR #100)
+
+Lays out an underground detention bed of arch chambers or perforated pipes in washed stone and builds its
+stage–storage curve. It can also find how many units per row a required volume needs. The stage–storage table pastes
+into the detention routing tool.
+
+![Underground detention: chambers or pipe gallery: the Design tools window with the sample run.](images/manual/tool-underground-detention.png)
+
+**Input.** `unit` (`arch`, `pipe` or `curve` with a manufacturer's `[Unit curve]`), unit size, `rows`, `per row`,
+`spacing`, `edge`, stone depths below and above, `porosity` (default 0.40), `bottom`, `cover` and `min cover`, and
+optionally `required volume`.
+
+**Method.**
+- The bed is sized from the layout.
+- Unit void at each depth comes from the semi-ellipse (arch), the circular segment (pipe) or the table (curve).
+- Storage = unit void + porosity × the stone around them.
+- The least units per row whose full-depth storage reaches the required volume are reported. Cover is checked against the manufacturer's minimum.
+
+![Report output: stage–storage curve of the bed.](images/manual/chart-underground-detention.png)
 
 # Open channels and structures
 
@@ -1310,6 +1522,8 @@ the bank-angle factor K1, and the specific gravity and stability factor correcti
 the layer thickness (1.5 times for underwater placement), and a Terzaghi filter check at each interface down to the bank
 soil.
 
+![Riprap revetment: the Design tools window with the sample run.](images/manual/tool-riprap-revetment.png)
+
 ## Channel and swale linings (HEC-15)
 
 Free · `channel-lining` · U.S. units · Merged (PR #80)
@@ -1319,6 +1533,8 @@ Flexible linings for roadside channels by FHWA HEC-15, at normal depth with the 
 - **Riprap:** Blodgett n, the Shields parameter and safety factor by particle Reynolds number, side-slope and bend shear.
 - **Grass:** n = 0.213·Cn·τo^−0.4, with the effective shear on the soil.
 - **RECP/TRM:** the product's permissible shear, with the bend factor.
+
+![Channel and swale linings: the Design tools window with the sample run.](images/manual/tool-channel-lining.png)
 
 ## Culverts for aquatic organism passage (HEC-26)
 
@@ -1331,6 +1547,8 @@ Checks an embedded culvert by HEC-26 stream simulation:
 - **Similarity:** the shear ratio to the natural channel.
 - **Passage:** depth at the low passage flow and velocity at the high passage flow.
 
+![AOP culvert design: the Design tools window with the sample run.](images/manual/tool-aop-culvert.png)
+
 Headwater is still checked with the HDS-5 culvert tool.
 
 ## Bridge scour countermeasures (HEC-23)
@@ -1342,6 +1560,8 @@ Riprap at piers and abutments by HEC-23 Design Guidelines 11 and 14, with the cl
 - **Piers:** D50 = 0.692·(K·V)²/((Ss − 1)·2g).
 - **Abutments:** the Froude-number forms of D50/y, using the set-back ratio to choose the characteristic velocity.
 
+![Scour countermeasures: the Design tools window with the sample run.](images/manual/tool-scour-countermeasures.png)
+
 Use it with the HEC-18 bridge scour tool.
 
 ## Bridge debris and hydraulic forces (HEC-9, HDS-7)
@@ -1352,6 +1572,8 @@ Free · `bridge-debris-forces` · Merged (PR #89)
 - **Pier scour with debris:** the effective pier width a_d = [K1·T·W + (y − K1·T)·a]/y (HEC-18), with CSU pier scour shown with and without the raft.
 - **Stream pressure** on the pier and raft by AASHTO LRFD 3.7.3.
 - **Deck forces** when the water reaches the low chord: drag, lift and buoyancy, with HDS-7 coefficients entered by the engineer.
+
+![Bridge debris and forces: the Design tools window with the sample run.](images/manual/tool-bridge-debris-forces.png)
 
 ## Stream stability (HEC-20)
 
@@ -1366,6 +1588,8 @@ The HEC-20 Level 2 checks for a reach near a crossing:
 - the Leopold–Wolman braiding threshold and sinuosity
 - Lane's relation for a proposed change in Q, Qs, D50 or S
 
+![Stream stability: the Design tools window with the sample run.](images/manual/tool-stream-stability.png)
+
 ## Sediment transport (HDS-6)
 
 Free · `sediment-transport` · Merged (PR #85)
@@ -1374,6 +1598,8 @@ Transport capacity by Yang (1973), Engelund–Hansen and Meyer-Peter and Müller
 budget through a chain of reaches (for example the approach, the bridge opening and the reach downstream) shows where
 the bed aggrades or degrades during a flood of given duration.
 
+![Sediment transport: the Design tools window with the sample run.](images/manual/tool-sediment-transport.png)
+
 ## Flood risk and least total expected cost (HEC-17)
 
 Free · `floodplain-risk` · Merged (PR #77)
@@ -1381,6 +1607,29 @@ Free · `floodplain-risk` · Merged (PR #77)
 Risk of exceedance over a service life, R = 1 − (1 − 1/T)^n. For each alternative, expected annual damage comes from
 the damage–probability curve, and its present worth plus capital and O&M gives the total expected cost. The alternative
 with the least total expected cost is marked.
+
+![Flood risk and LTEC: the Design tools window with the sample run.](images/manual/tool-floodplain-risk.png)
+
+![Report output: flood damage against annual exceedance probability for each alternative.](images/manual/chart-floodplain-risk.png)
+
+## Flow measurement: weirs and Parshall flumes
+
+Free · `flow-measurement` · Merged (PR #96)
+
+Discharge from a measured head at a standard measuring weir or Parshall flume, with a rating table for each device.
+Useful for pond outfall monitoring, MS4 dry-weather screening, irrigation ditch crossings and checking a field
+measurement against a model.
+
+![Flow measurement: weirs and Parshall flumes: the Design tools window with the sample run.](images/manual/tool-flow-measurement.png)
+
+**Input.** `rating max`, `rating step`; `[Devices]`: name, type (`v-notch`, `suppressed`, `contracted`,
+`cipolletti`, `parshall`), size, crest height P, heads Ha and Hb, and optional Ce and kh.
+
+**Method.** All equations are from the USBR *Water Measurement Manual* (2001):
+- V-notch and suppressed rectangular weirs by Kindsvater–Shen and Kindsvater–Carter.
+- Contracted rectangular and Cipolletti weirs.
+- Parshall flumes by the free-flow ratings, 1 in. to 50 ft.
+- Submerged Parshall flow (Hb/Ha above the limit for that size) is reported as submerged without a discharge.
 
 # Quantities and cost
 
@@ -1699,6 +1948,7 @@ comparison program was not reachable from the build machine. Check them before r
 | Field-to-model | State Plane projection not yet checked against a surveyed control point |
 | Utility conflicts, permits | Default separation rules and permit durations are typical values, not the City's |
 | HEC/HDS tools (#71–#89) | FHWA manuals were not reachable from the build machine: tests are hand calculations of each equation, not the manuals' worked examples. Deck drag and lift (HDS-7), grass Cn and Cf (HEC-15) and the regional regression coefficients are entered from the source |
+| Structure and storage tools (#91–#100) | Tests are hand calculations; most tools' pages under docs/tools show a worked check. Precaster hole tables, submerged Parshall corrections, siphonic roof drainage and the USGS rating of slope-area measurements are not included. |
 
 ## Method review, November 2026
 
