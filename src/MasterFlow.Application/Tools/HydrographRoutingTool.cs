@@ -15,7 +15,7 @@ public sealed partial class HydrographRoutingTool : IDesignTool
 {
     public string Id => "hydrograph-routing";
     public string Name => "Hydrograph network routing (NRCS UH, TR-55)";
-    public string Description => "Runoff hydrographs for every subbasin (NRCS dimensionless unit hydrograph, lag = 0.6 tc, tc from TR-55 flow paths or entered; NRCS curve number or Green–Ampt losses with Rawls et al. (1983) soils, or IDCM Table 4-4 by choice) under the Rapid City frequency storms (IDCM §4.3.2, Table 4-2, peak at the first quartile), NRCS Type II or your own rainfall; routed through pipes and channels by Muskingum–Cunge (IDCM §4.3.8) and through ponds by storage indication (§4.3.9). With a storm network open and no [Reaches], its pipes are the reaches; Apply writes the routed peak flows into the pipes.";
+    public string Description => "Runoff hydrographs for every subbasin (NRCS dimensionless unit hydrograph, lag = 0.6 tc, or by subbasin a Clark, Snyder or CUHP unit hydrograph; tc from TR-55 flow paths or entered; NRCS curve number or Green–Ampt losses with Rawls et al. (1983) soils, or IDCM Table 4-4 by choice) under the Rapid City frequency storms (IDCM §4.3.2, Table 4-2, peak at the first quartile), NRCS Type II or your own rainfall; routed through pipes and channels by Muskingum–Cunge (IDCM §4.3.8) and through ponds by storage indication (§4.3.9). With a storm network open and no [Reaches], its pipes are the reaches; Apply writes the routed peak flows into the pipes.";
     public bool UsesNetwork => true;
 
     private const double G = 32.174;
@@ -92,7 +92,16 @@ public sealed partial class HydrographRoutingTool : IDesignTool
         network minor storm = 2   # peaks written as the pipes' minor-storm Q
         """;
 
-    private sealed record Subbasin(string Name, string Node, double AreaAc, string Loss, double Cn, double Ks, double Suction, double Deficit, double Ia, double Imp, double TcMin, double LagMin, string TcSource);
+    private sealed record Subbasin(string Name, string Node, double AreaAc, string Loss, double Cn, double Ks, double Suction, double Deficit, double Ia, double Imp, double TcMin, double LagMin, string TcSource)
+    {
+        /// <summary>Unit hydrograph: scs (default), clark, snyder or cuhp.</summary>
+        public string Uh { get; init; } = "scs";
+        public double ClarkRMin { get; init; }
+        /// <summary>Snyder or CUHP lag tp (hours) and peaking coefficient Cp.</summary>
+        public double SnyderTpH { get; init; }
+        public double Cp { get; init; }
+        public string UhNote { get; init; } = "";
+    }
     private sealed record Reach(string Name, string From, string To, double Length, ReachGeometry Geo, string Size);
     private sealed record PondAt(string Name, string Node, Pond Pond, double? Berm);
     private sealed record StormDef(string Label, int? Year, double[] CumRain, string Basis);
@@ -207,13 +216,18 @@ public sealed partial class HydrographRoutingTool : IDesignTool
             {
                 double[] excess = s.Loss == "CN" ? Losses.CurveNumber(st.CumRain, s.Cn)
                     : Losses.GreenAmpt(st.CumRain, dtH, s.Ks, s.Suction, s.Deficit, s.Ia, s.Imp / 100);
-                var uh = ScsUnitHydrograph.Ordinates(s.AreaAc, s.LagMin / 60, dtH);
+                var uh = s.Uh switch
+                {
+                    "clark" => UnitHydrographs.Clark(s.AreaAc, s.TcMin / 60, s.ClarkRMin / 60, dtH),
+                    "snyder" or "cuhp" => UnitHydrographs.Snyder(s.AreaAc, s.SnyderTpH, s.Cp, dtH).U,
+                    _ => ScsUnitHydrograph.Ordinates(s.AreaAc, s.LagMin / 60, dtH),
+                };
                 var q = ScsUnitHydrograph.Convolve(excess, uh, nSteps + 1);
                 var (qp, kp) = Peak(q);
                 var target = nodeIn[s.Node];
                 for (int k = 0; k <= nSteps; k++) target[k] += q[k];
                 double vol = Hydrograph.Volume(q, dtS) / 43560;
-                subRows.Add([st.Label, s.Name, s.Node, s.AreaAc, s.Loss == "CN" ? $"CN {s.Cn:G3}" : $"G-A Ks {s.Ks:G3}, imp {s.Imp:G3} %", s.TcMin, s.LagMin, total, excess[^1], vol, qp, kp * dtMin]);
+                subRows.Add([st.Label, s.Name, s.Node, s.AreaAc, s.Loss == "CN" ? $"CN {s.Cn:G3}" : $"G-A Ks {s.Ks:G3}, imp {s.Imp:G3} %", s.TcMin, s.LagMin, total, excess[^1], vol, qp, kp * dtMin, s.UhNote]);
                 if (excess[^1] > 0 && q[^1] > 0.01 * qp) msgs.Add(CalcMessage.Warning("W-HR-002", $"{st.Label}, subbasin {s.Name}: runoff is still {q[^1]:G3} cfs at the end of the simulation; increase simulation."));
             }
             var nodeOut = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
@@ -265,8 +279,9 @@ public sealed partial class HydrographRoutingTool : IDesignTool
         var tables = new List<ToolTable>
         {
             new("Design storms", ["Storm", "Depth (in)", "Peak intensity (in/h)", "Basis"], stormRows),
-            new("Subbasin runoff", ["Storm", "Subbasin", "Node", "Area (ac)", "Losses", "Tc (min)", "Lag (min)", "Rain (in)", "Runoff (in)", "Volume (ac-ft)", "Peak (cfs)", "Time of peak (min)"], subRows,
+            new("Subbasin runoff", ["Storm", "Subbasin", "Node", "Area (ac)", "Losses", "Tc (min)", "Lag (min)", "Rain (in)", "Runoff (in)", "Volume (ac-ft)", "Peak (cfs)", "Time of peak (min)", "Unit hydrograph"], subRows,
                 ["NRCS dimensionless unit hydrograph (NEH 630 Ch. 16, PRF 484), Tp = Δt/2 + lag, lag = 0.6 tc; unit hydrograph scaled to exactly 1 in of runoff.",
+                 "Clark: HEC-HMS time–area curve over tc routed through a linear reservoir R (O = CA·I + CB·O₋₁, CA = Δt/(R + Δt/2)). Snyder: tp = Ct·(L·Lca)^0.3, qp = 640·Cp·A/tpR with tpR = tp + (Δt − tp/5.5)/4, gamma-shaped through that peak with 1 in of volume. CUHP: tp = Ct·(L·Lca/√S)^0.48 with the same peak form. All scaled to 1 in.",
                  "CN losses: Q = (P − 0.2S)²/(P + 0.8S), S = 1000/CN − 10 (TR-55 Eq. 2-1 to 2-4, AMC II). Green–Ampt: pervious area fills Ia, then Green–Ampt capacity; impervious area has no loss (HEC-HMS)."]),
         };
         if (tcRows.Count > 0) tables.Add(new("Time of concentration (TR-55 Chapter 3)", ["Subbasin", "Segment", "Length (ft)", "Slope (ft/ft)", "Parameters", "Velocity (ft/s)", "Travel time (min)"], tcRows,
@@ -347,7 +362,8 @@ public sealed partial class HydrographRoutingTool : IDesignTool
         if (rows.Count == 0) { msgs.Add(CalcMessage.Error("E-HR-010", "[Subbasins] is empty: Name, Node, Area (ac), then CN or Green–Ampt columns and Tc (min).")); return []; }
         int cName = Col(head, "name"), cNode = Col(head, "node", "outlet"), cArea = Col(head, "area"), cCn = Col(head, "cn"), cSoil = Col(head, "soil"),
             cKs = Col(head, "ks"), cSuc = Col(head, "suction"), cDef = Col(head, "deficit"), cIa = Col(head, "ia"), cImp = Col(head, "imp"), cMia = Col(head, "mia"),
-            cTc = Col(head, "tc"), cLag = Col(head, "lag");
+            cTc = Col(head, "tc"), cLag = Col(head, "lag"), cUh = Col(head, "uh", "unit hydrograph"), cR = Col(head, "clark r", "r"), cCt = Col(head, "ct"), cCp = Col(head, "cp"),
+            cL = Col(head, "l", "length"), cLca = Col(head, "lca"), cS = Col(head, "slope", "s");
         if (cName < 0) cName = 0;
         if (cNode < 0) cNode = 1;
         if (cArea < 0) cArea = 2;
@@ -438,9 +454,38 @@ public sealed partial class HydrographRoutingTool : IDesignTool
                 tcRows.Add([name, "Tc", null, null, null, null, sum]);
                 tcMin = sum; lagMin = 0.6 * sum; src = "TR-55";
             }
+            else if ((Str(r, cUh) ?? "").ToLowerInvariant() is "snyder" or "cuhp" && Num(p, r, cCt, "Ct", where) is > 0) { tcMin = double.NaN; lagMin = double.NaN; src = "from Ct"; }
             else { msgs.Add(CalcMessage.Error("E-HR-019", $"{where}: give Tc (min), Lag (min) or rows under [Tc flow paths].")); continue; }
             if (tcMin < 6) msgs.Add(CalcMessage.Warning("W-HR-005", $"{where}: tc {tcMin:G3} min is below the 0.1 h (6 min) minimum TR-55 uses."));
-            list.Add(new(name, node, area.Value, loss, cn ?? 0, ks ?? 0, suc ?? 0, def ?? 0.2, ia ?? 0.35, impPct, tcMin, lagMin, src));
+            // Unit hydrograph choice.
+            string uhm = (Str(r, cUh) ?? "scs").ToLowerInvariant();
+            double? rClark = Num(p, r, cR, "Clark R", where), ct = Num(p, r, cCt, "Ct", where), cp = Num(p, r, cCp, "Cp", where),
+                lMi = Num(p, r, cL, "L", where), lca = Num(p, r, cLca, "Lca", where), sl = Num(p, r, cS, "slope", where);
+            double tpH = 0; string note;
+            switch (uhm)
+            {
+                case "scs" or "nrcs" or "":
+                    uhm = "scs"; note = "NRCS"; break;
+                case "clark":
+                    if (rClark is not > 0) { msgs.Add(CalcMessage.Error("E-HR-040", $"{where}: Clark needs the storage coefficient R (min) in a \"Clark R\" column.")); continue; }
+                    note = $"Clark, R {rClark:G3} min"; break;
+                case "snyder":
+                    if (cp is not (> 0 and <= 1)) { msgs.Add(CalcMessage.Error("E-HR-041", $"{where}: Snyder needs Cp (0–1).")); continue; }
+                    if (ct is > 0 && lMi is > 0 && lca is > 0) { tpH = UnitHydrographs.SnyderLag(ct.Value, lMi.Value, lca.Value); note = $"Snyder, Ct {ct:G3}, Cp {cp:G3}, tp {tpH:F2} h"; }
+                    else { tpH = lagMin / 60; note = $"Snyder, Cp {cp:G3}, tp = lag {tpH:F2} h"; }
+                    break;
+                case "cuhp":
+                    if (ct is not > 0 || cp is not > 0 || lMi is not > 0 || lca is not > 0 || sl is not > 0) { msgs.Add(CalcMessage.Error("E-HR-042", $"{where}: CUHP needs Ct, Cp, L (mi), Lca (mi) and slope (ft/ft) from MHFD USDCM Vol. 1 Ch. 6.")); continue; }
+                    tpH = UnitHydrographs.CuhpLag(ct.Value, lMi.Value, lca.Value, sl.Value); note = $"CUHP, Ct {ct:G3}, Cp {cp:G3}, tp {tpH:F2} h"; break;
+                default:
+                    msgs.Add(CalcMessage.Error("E-HR-043", $"{where}: UH \"{uhm}\" must be scs, clark, snyder or cuhp.")); continue;
+            }
+            if (uhm is "snyder" or "cuhp") { lagMin = tpH * 60; if (double.IsNaN(tcMin)) tcMin = lagMin / 0.6; }
+            if (double.IsNaN(lagMin)) { msgs.Add(CalcMessage.Error("E-HR-041", $"{where}: Snyder needs Ct, L and Lca, or a Tc/lag.")); continue; }
+            list.Add(new(name, node, area.Value, loss, cn ?? 0, ks ?? 0, suc ?? 0, def ?? 0.2, ia ?? 0.35, impPct, tcMin, lagMin, src)
+            {
+                Uh = uhm, ClarkRMin = rClark ?? 0, SnyderTpH = tpH, Cp = cp ?? 0, UhNote = note,
+            });
         }
         foreach (var d in list.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
             msgs.Add(CalcMessage.Error("E-HR-011", $"Subbasin {d.Key} is listed more than once."));
