@@ -50,6 +50,7 @@ public static class DesignToolCatalog
         ["field-to-model"] = "Land development and construction", ["construction-companion"] = "Land development and construction",
         ["stream-stability"] = "Open channels and structures",
         ["climate-stress"] = "Land development and construction", ["memory-search"] = "Land development and construction",
+        ["bridge-debris-forces"] = "Open channels and structures",
     };
 
     public static string Category(IDesignTool tool) => Map.TryGetValue(tool.Id, out var c) ? c : "Other";
