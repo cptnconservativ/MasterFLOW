@@ -116,7 +116,7 @@ public static class PdfReport
         if (!string.IsNullOrWhiteSpace(calc.Description)) pager.Paragraph(calc.Description);
 
         pager.Heading("Method");
-        pager.Paragraph($"Steady, uniform open-channel flow by Manning's equation, Q = (k/n)·A·R^(2/3)·S^(1/2), with k = {c.ManningK.ToString(Inv)} and R = A/P. " +
+        pager.Paragraph($"{ReportAssumptions.MethodLead(result.Input.Section)}, Q = (k/n)·A·R^(2/3)·S^(1/2), with k = {c.ManningK.ToString(Inv)} and R = A/P. " +
             $"Critical depth satisfies Q²T/(gA³) = 1 with g = {c.Gravity.ToString(Inv)} {c.Length}/s². Froude number Fr = V/√(gD), D = A/T. " +
             "Unknown depths are solved with Brent's bracketed method (relative depth tolerance 1×10⁻¹², discharge residual ≤ 1×10⁻⁸). Gradually varied, unsteady and pressurised flow are not modelled.");
 
@@ -193,9 +193,7 @@ public static class PdfReport
             };
             pager.Add(new MessageBlock(fonts, $"{m.Severity} [{m.Code}]", m.Text, bar, fill));
         }
-        pager.Add(new MessageBlock(fonts, "Info", result.Input.Section is IrregularSection { HasPointRoughness: true }
-            ? "Assumes a prismatic channel, small slope (depth measured vertically) and hydrostatic pressure. Roughness varies across the section and is combined as stated in the input; the velocity head uses the mean velocity (α = 1). Manning's n values are the engineer's selection; results are only as reliable as n."
-            : "Assumes a prismatic channel, uniform roughness across the wetted perimeter, small slope (depth measured vertically) and hydrostatic pressure. Manning's n is the engineer's selection; results are only as reliable as n.",
+        pager.Add(new MessageBlock(fonts, "Info", ReportAssumptions.Note(result),
             PdfStyle.Accent, SKColor.Parse("#eef5fb")));
 
         if (o.RatingTable is { Rows.Count: > 0 } rt)

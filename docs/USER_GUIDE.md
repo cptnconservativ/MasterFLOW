@@ -337,7 +337,10 @@ user, available in every project.
 
 Q = (k/n)·A·R^(2/3)·S^(1/2), R = A/P. Critical depth satisfies Q²T/(gA³) = 1; Fr = V/√(gD), D = A/T. Unknown depths are
 found with Brent's bracketed method, with a relative depth tolerance of 1×10⁻¹² and a discharge residual of at most
-1×10⁻⁸. Assumptions: prismatic channel, small slope, hydrostatic pressure, α = 1 for regular shapes. Validation against
+1×10⁻⁸. Assumptions for open channels: prismatic channel, small slope, hydrostatic pressure, α = 1 for regular shapes.
+Assumptions for circular and elliptical pipes: steady, uniform gravity flow, partly full with a free water surface, n
+uniform around the perimeter and constant with depth; surcharge, HGL and structure losses belong in a storm network.
+Each report prints the note for its element type. Validation against
 hand calculations and published examples is in `docs/HYDRAULIC_METHODS.md` and `docs/VALIDATION_RESULTS.md`.
 
 # Civil 3D and LandXML
