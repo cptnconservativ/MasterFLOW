@@ -40,3 +40,5 @@ U = 62.4·28.27·11.5 = 20,290 lb; concrete = (18.94 + 100.7 + 16.8) ft³ × 150
 ## Limits
 
 Anchors, tie-downs and the uplift on pipes are not modelled.
+- D-635 (2026-11-25): For 84–144 in. Rinker sizes, which Rinker does not dimension (Kyle confirmed no shop drawings
+  exist), the assumed wall (ID/12 + 1 in.) and 12 in. base are reported as estimates with warning W-BY-003.
