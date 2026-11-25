@@ -657,7 +657,7 @@ within 2.3 % of a diffusion-wave solution with 0.7 % volume error.
 
 ![Report output: outfall hydrographs for the 2-, 10- and 100-yr storms.](images/manual/chart-hydrograph-routing.png)
 
-**Other unit hydrographs** (Merged (PR #87)). A `UH` column in `[Subbasins]` chooses each sub-basin's
+**Other unit hydrographs** (PR #87). A `UH` column in `[Subbasins]` chooses each sub-basin's
 transform:
 
 - blank or `scs`: the NRCS curve, as before.
@@ -1193,7 +1193,7 @@ HEC-RAS run of the same data.
 
 ![Report output: longitudinal profile with WS and EG for each profile.](images/manual/chart-river-profile.png)
 
-**Floodway encroachment** (Merged (PR #77)). `floodway profile = <profile>` runs a FEMA floodway for one profile.
+**Floodway encroachment** (PR #77). `floodway profile = <profile>` runs a FEMA floodway for one profile.
 
 - **Method 4** (default) narrows both overbanks by equal conveyance reduction until the water surface rises by the
   allowable surcharge, `floodway surcharge`: 1.0 ft, or 0.3 m in SI.
@@ -1203,7 +1203,7 @@ HEC-RAS run of the same data.
 The output is a floodway table (encroachment stations, top width, base and floodway W.S., surcharge), the floodway W.S.
 on the profile chart, and the encroachment lines on each cross-section.
 
-**Importing HEC-RAS geometry** (Merged (PR #79)). `hec-ras geometry = <path to .g01>` reads the cross-sections of
+**Importing HEC-RAS geometry** (PR #79). `hec-ras geometry = <path to .g01>` reads the cross-sections of
 a HEC-RAS geometry file in place of `[Sections]` and `[Points]`. `hec-ras reach = River, Reach` picks the reach. The
 import brings in:
 
