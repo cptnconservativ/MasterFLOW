@@ -74,6 +74,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Structure buoyancy (flotation) check: manholes, vaults, outlet structures | Archimedes uplift vs. concrete and soil on the base extension; required ballast or extension | [structure-buoyancy.md](structure-buoyancy.md) |
 | ★ Site feasibility: lot yield, drainage concept, cost range, go/no-go | FEMA NFHL, NRCS SSURGO, USGS 3DEP, NOAA Atlas 14, RCMC Title 17, TR-55, SWQM | [site-feasibility.md](site-feasibility.md) |
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
+| Preliminary detention storage estimate | NRCS TR-55 (1986) Ch. 6 Fig. 6-1; modified rational critical duration (IDCM Table 4-2); Abt and Grigg (1978), Baker (1979) ratios | [storage-estimate.md](storage-estimate.md) |
 | ★ Dynamic-wave storm sewer routing: unsteady HGL, surcharge, flooding | EPA SWMM 5 dynamic wave (link-node), IDCM §4.6.7 | [dynamic-wave.md](dynamic-wave.md) |
 | Stormwater pump stations: system curve, cycling and storage routing | FHWA HEC-24 (2001) | [pump-station.md](pump-station.md) |
 | ★ Climate stress test | Reruns the storm network for future rainfall projections, finds the rainfall increase at which each structure and pipe first fails, and writes a client resilience memo. [climate-stress.md](climate-stress.md) |
