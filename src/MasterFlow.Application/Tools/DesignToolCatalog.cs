@@ -25,6 +25,7 @@ public static class DesignToolCatalog
         ["outlet-designer"] = "Detention and water quality", ["water-quality"] = "Detention and water quality",
         ["spillway-breach"] = "Detention and water quality",
         ["erosion-sediment"] = "Detention and water quality",
+        ["groundwater-mounding"] = "Detention and water quality",
         ["backwater-profile"] = "Open channels and structures", ["channel-profile"] = "Open channels and structures",
         ["floodplain-risk"] = "Open channels and structures",
         ["river-profile"] = "Open channels and structures", ["hds5-culvert"] = "Open channels and structures",
