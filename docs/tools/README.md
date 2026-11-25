@@ -38,6 +38,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Culvert analysis | FHWA HDS-5 (2012), IDCM §4.7 | [culverts.md](culverts.md) |
 | Culverts for aquatic organism passage (stream simulation) | FHWA HEC-26 (2010) | [aop-culvert.md](aop-culvert.md) |
 | Outlet protection: riprap apron, riprap basin, plunge pool | FHWA HEC-14 (2006) §10, IDCM §4.9 | [outlet-protection.md](outlet-protection.md) |
+| Trash rack head loss, through-rack velocity and clogging | Kirschmer (1926) bar-shape equation; Creager and Justin (1950) / USBR net-area equation | [trash-rack.md](trash-rack.md) |
 | Riprap bank and channel revetment, filter check | FHWA HEC-11 (1989); HEC-23 DG 4 classes | [riprap-revetment.md](riprap-revetment.md) |
 | Hydraulic jump and stilling basins: free jump, USBR Type III and IV, SAF, USBR Type VI impact, CSU rigid boundary | FHWA HEC-14 (2006) Ch. 6, 8, 9; IDCM §4.9.2, §4.9.6 as a check | [stilling-basin.md](stilling-basin.md) |
 | Bridge scour: contraction, pier, abutment | FHWA HEC-18 (2012) | [bridge-scour.md](bridge-scour.md) |
