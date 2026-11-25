@@ -257,4 +257,55 @@ public class ManualWorkedExampleTests
         Assert.Contains(blank.Messages, m => m.Code == "I-BY-002");
         Assert.Equal(given.Tables[0].Rows[0], blank.Tables[0].Rows[0]);
     }
+
+    // ---------------- HEC-21 (1993), Chapter 10 Examples 1 and 3 ----------------
+    private const string Hec21 = "Sx = 0.02\nn = 0.016\nC = 0.9\nT allow = 10\napproach Q = 0\ndrain = grate\nL = 1.5\nW = 1.0\nVo = 4.9\nclogging = 0\n";
+
+    [Fact]
+    public void Hec21_Example1_NoInletsNeeded()
+    {
+        // 500 ft at 3 %, Wp = 18 ft, i = 6.0 in/hr. Manual: Lo = 1,837 ft (> 500 ft, no inlets).
+        var r = Ok(new DeckDrainageTool(), Hec21 + "bridge length = 500\nwidth = 18\nS = 0.03\ni = 6.0\n", Us);
+        Near(1837, (double)Cell(r, "Design values", "Length to the first drain")!, 0.01);
+    }
+
+    [Fact]
+    public void Hec21_Example3_InletSpacing()
+    {
+        // 1,200 ft at 3 %, Wp = 34 ft, i = 7.3 in/hr, 1 × 1.5 ft curved vane grate. Manual: Qf 4.1 cfs, Lo 800 ft, E 0.245, Lc 196 ft.
+        var r = Ok(new DeckDrainageTool(), Hec21 + "bridge length = 1200\nwidth = 34\nS = 0.03\ni = 7.3\n", Us);
+        Near(4.1, (double)Cell(r, "Design values", "Gutter capacity")!, 0.01);
+        Near(800, (double)Cell(r, "Design values", "Length to the first drain")!, 0.01);
+        Near(0.245, (double)Cell(r, "Design values", "Frontal flow ratio")!, 0.005);
+        // Known difference: the manual takes E = Eo (no side flow); MasterFlow adds the HEC-22 side-flow term Rs·(1 − Eo),
+        // giving E 0.265 and Lc 212 ft. With E = Eo the spacing is the manual's 196 ft.
+        double e = (double)Cell(r, "Design values", "Drain efficiency")!, lc = (double)Cell(r, "Design values", "Spacing of later drains")!;
+        Near(0.265, e, 0.01);
+        Near(196, lc * 0.245 / e, 0.01);
+    }
+
+    // ---------------- HEC-23 (3rd ed., 2009), Design Guideline 14 §14.4 ----------------
+    [Fact]
+    public void Hec23_DG14_AbutmentRiprap()
+    {
+        // Spill-through left abutment, y = 2.7 ft, SBR = 225/9.7 = 23.2 → V = Qf/Af = 7,720/613.5 = 12.6 ft/s, Fr = 1.35 > 0.8 → Eq. 14.2.
+        // Manual: D50 = 0.40 × 2.7 = 1.1 ft; toe apron 2y = 5.4 ft; thickness 1.5·D50 = 1.7 ft.
+        var r = Ok(new ScourCountermeasureTool(), "Ss = 2.65\n[Abutments]\nName\tType\tDepth y (ft)\tVelocity V (ft/s)\tQ total (cfs)\tA total (ft²)\tSBR\tQf setback (cfs)\tAf setback (ft²)\nLeft\tspill-through\t2.7\t\t33220\t2590.5\t23.2\t7720\t613.5\n", Us);
+        var row = r.Tables.Single(t => t.Title.Contains("abutments")).Rows[0];
+        Near(12.6, (double)row[3]!, 0.005);
+        Near(1.35, (double)row[5]!, 0.01);
+        Assert.Equal("Eq. 14.2", row[7]);
+        Near(1.1 * 12, (double)row[8]!, 0.03);                                       // 13.0 in. (manual rounds to 1.1 ft)
+        Near(5.4, (double)row[12]!, 0.005);
+    }
+
+    // ---------------- HEC-20 (4th ed., 2012), §6.5.2 Example Problem 2 ----------------
+    [Fact]
+    public void Hec20_Example2_EquilibriumSlope()
+    {
+        // Q 780 cfs, W 350 ft, S 0.0014, n 0.027, D50 0.30 mm, D90 0.96 mm, F* 0.047. Manual Eq. 6.17 with D90: Seq = 0.000108.
+        var r = Ok(new StreamStabilityTool(), "Q = 780\nwidth = 350\nslope = 0.0014\nn = 0.027\nD50 = 0.30\nD90 = 0.96\nShields = 0.047\n", Us);
+        Near(0.000108, (double)Cell(r, "", "Equilibrium slope Seq for D90")!, 0.01);
+        Near(1.05, (double)Cell(r, "", "Normal depth")!, 0.03);                      // manual's given depth 1.05 ft
+    }
 }
