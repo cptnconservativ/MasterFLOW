@@ -48,6 +48,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Outlet protection: riprap apron, riprap basin, plunge pool | FHWA HEC-14 (2006) §10, IDCM §4.9 | [outlet-protection.md](outlet-protection.md) |
 | Riprap bank and channel revetment, filter check | FHWA HEC-11 (1989); HEC-23 DG 4 classes | [riprap-revetment.md](riprap-revetment.md) |
 | Hydraulic jump and stilling basins: free jump, USBR Type III and IV, SAF, USBR Type VI impact, CSU rigid boundary | FHWA HEC-14 (2006) Ch. 6, 8, 9; IDCM §4.9.2, §4.9.6 as a check | [stilling-basin.md](stilling-basin.md) |
+| Stream stability at highway crossings (Level 2) | FHWA HEC-20 (2012): incipient motion, equilibrium slope, armoring; Leopold–Wolman; Lane's relation | [stream-stability.md](stream-stability.md) |
 | Bridge scour: contraction, pier, abutment | FHWA HEC-18 (2012) | [bridge-scour.md](bridge-scour.md) |
 | Bridge scour countermeasures: pier and abutment riprap | FHWA HEC-23 (2009) DG 11, DG 14 | [scour-countermeasures.md](scour-countermeasures.md) |
 | ★ Batch scenarios | Any tool or the network HGL, side by side | [batch-scenarios.md](batch-scenarios.md) |

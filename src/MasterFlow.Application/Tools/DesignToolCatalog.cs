@@ -45,6 +45,7 @@ public static class DesignToolCatalog
         ["pavement-edge-drain"] = "Streets and inlets", ["bioretention-underdrain"] = "Detention and water quality",
         ["utility-conflicts"] = "Land development and construction", ["permit-tracker"] = "Land development and construction",
         ["field-to-model"] = "Land development and construction", ["construction-companion"] = "Land development and construction",
+        ["stream-stability"] = "Open channels and structures",
         ["climate-stress"] = "Land development and construction", ["memory-search"] = "Land development and construction",
     };
 
