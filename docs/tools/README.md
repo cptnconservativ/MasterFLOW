@@ -56,6 +56,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Hydraulic jump and stilling basins: free jump, USBR Type III and IV, SAF, USBR Type VI impact, CSU rigid boundary | FHWA HEC-14 (2006) Ch. 6, 8, 9; IDCM §4.9.2, §4.9.6 as a check | [stilling-basin.md](stilling-basin.md) |
 | Stream stability at highway crossings (Level 2) | FHWA HEC-20 (2012): incipient motion, equilibrium slope, armoring; Leopold–Wolman; Lane's relation | [stream-stability.md](stream-stability.md) |
 | Bridge scour: contraction, pier, abutment | FHWA HEC-18 (2012) | [bridge-scour.md](bridge-scour.md) |
+| Flow measurement: V-notch, rectangular and Cipolletti weirs, Parshall flumes (rating tables, submergence) | USBR Water Measurement Manual (2001): Kindsvater–Shen, Kindsvater–Carter, Parshall free-flow equations | [flow-measurement.md](flow-measurement.md) |
 | Bridge scour countermeasures: pier and abutment riprap | FHWA HEC-23 (2009) DG 11, DG 14 | [scour-countermeasures.md](scour-countermeasures.md) |
 | ★ Batch scenarios | Any tool or the network HGL, side by side | [batch-scenarios.md](batch-scenarios.md) |
 | ★ Cost estimate and bid tabulation | Network takeoff, your prices and bids | [cost-estimate.md](cost-estimate.md) |
