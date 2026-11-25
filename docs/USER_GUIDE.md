@@ -1,7 +1,7 @@
 ---
 title: "MasterFlow User Manual"
 subtitle: "Storm drainage, hydrology and open-channel hydraulics for Windows"
-date: "Edition 3 of 24 November 2026 · covers MasterFlow main after #60–#70, and seventeen new HEC/HDS and hydrology tools with three additions to existing tools, #71, #73 and #74 merged, the rest pending (#75–#89)"
+date: "Edition 3 of 24 November 2026 · covers MasterFlow main after #60–#70, and seventeen new HEC/HDS and hydrology tools with three additions to existing tools, all merged (#71–#89)"
 ---
 
 # About this manual
@@ -30,9 +30,8 @@ frequency and dynamic-wave tools (PRs #60–#65, #70) and the Design tools windo
 
 Edition 3 adds seventeen tools built from the FHWA hydraulic manuals and other standard methods. It also covers three
 additions to existing tools: Clark, Snyder and CUHP unit hydrographs in hydrograph routing, and FEMA floodway
-encroachment and HEC-RAS geometry import in natural channel profiles. Riprap revetment, scour countermeasures and AOP culverts (#71, #73, #74) are merged. The rest are pending merge on
-the date of this edition; each section gives its pull request. Pending tools are described from their code and tests,
-and their screenshots will be added when they merge.
+encroachment and HEC-RAS geometry import in natural channel profiles. All of them are merged (#71–#89); each section gives its pull request. Their screenshots will be added in the next
+manual rebuild.
 
 ## Screenshots
 
@@ -483,29 +482,29 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | TR-55 hydrology | `tr55-hydrology` | Free |
 | | Hydrograph network routing | `hydrograph-routing` | ★ Premium |
 | | Flood frequency (Bulletin 17C) | `flood-frequency` | Free |
-| | Regional regression peak flows (HDS-2, USGS) *pending #88* | `regional-regression` | Free |
-| | Snowmelt and rain-on-snow *pending #82* | `snowmelt` | Free |
+| | Regional regression peak flows (HDS-2, USGS) | `regional-regression` | Free |
+| | Snowmelt and rain-on-snow | `snowmelt` | Free |
 | 9 Streets and inlets | Gutter spread and inlets | `gutter-inlets` | Free |
 | | Street capacity and gutter spread | `street-capacity` | Free |
 | | Inlet capacity and bypass routing | `inlet-network` | ★ Premium |
 | | Sag inlet ponding and clogging | `sag-ponding` | Free |
-| | Bridge deck drainage (HEC-21) *pending #75* | `deck-drainage` | Free |
-| | Pavement edge drains and permeable base *pending #83* | `pavement-edge-drain` | Free |
+| | Bridge deck drainage (HEC-21) | `deck-drainage` | Free |
+| | Pavement edge drains and permeable base | `pavement-edge-drain` | Free |
 | 10 Storm sewer design | Storm network plan review (IDCM §4.6) | `network-plan-review` | ★ Premium |
 | | Network optimizer | `network-optimizer` | ★ Premium |
 | | Plan and profile sheets (DXF) | `plan-profile-dxf` | ★ Premium |
 | | EPA SWMM 5 exchange | `swmm-exchange` | ★ Premium |
 | | Dynamic-wave storm sewer routing | `dynamic-wave` | ★ Premium |
-| | Stormwater pump stations (HEC-24) *pending #86* | `pump-station` | Free |
+| | Stormwater pump stations (HEC-24) | `pump-station` | Free |
 | 11 Detention and water quality | Detention pond routing | `detention-routing` | Free |
 | | Pond stage–storage from a TIN | `pond-storage` | Free |
 | | Multi-stage outlet designer | `outlet-designer` | ★ Premium |
 | | Water quality and LID sizing | `water-quality` | ★ Premium |
 | | Erosion and sediment control | `erosion-sediment` | Free |
-| | Pond sediment and clean-out interval *pending #81* | `pond-sediment` | Free |
-| | Groundwater mounding (Hantush) *pending #78* | `groundwater-mounding` | Free |
-| | Bioretention underdrain *pending #83* | `bioretention-underdrain` | Free |
-| | Emergency spillways and dam breach (TR-60) *pending #76* | `spillway-breach` | Free |
+| | Pond sediment and clean-out interval | `pond-sediment` | Free |
+| | Groundwater mounding (Hantush) | `groundwater-mounding` | Free |
+| | Bioretention underdrain | `bioretention-underdrain` | Free |
+| | Emergency spillways and dam breach (TR-60) | `spillway-breach` | Free |
 | 12 Open channels and structures | Backwater / drawdown profile | `backwater-profile` | Free |
 | | Channel water surface profile and lining checks | `channel-profile` | Free |
 | | Natural channel profiles (HEC-RAS method) | `river-profile` | ★ Premium |
@@ -514,13 +513,13 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Hydraulic jump and stilling basins | `stilling-basin` | Free |
 | | Bridge scour (HEC-18) | `bridge-scour` | Free |
 | | Riprap revetment (HEC-11) | `riprap-revetment` | Free |
-| | Channel and swale linings (HEC-15) *pending #80* | `channel-lining` | Free |
+| | Channel and swale linings (HEC-15) | `channel-lining` | Free |
 | | Culverts for aquatic organism passage (HEC-26) | `aop-culvert` | Free |
 | | Bridge scour countermeasures (HEC-23) | `scour-countermeasures` | Free |
-| | Bridge debris and hydraulic forces (HEC-9, HDS-7) *pending #89* | `bridge-debris-forces` | Free |
-| | Stream stability (HEC-20) *pending #84* | `stream-stability` | Free |
-| | Sediment transport (HDS-6) *pending #85* | `sediment-transport` | Free |
-| | Flood risk and least total expected cost (HEC-17) *pending #77* | `floodplain-risk` | Free |
+| | Bridge debris and hydraulic forces (HEC-9, HDS-7) | `bridge-debris-forces` | Free |
+| | Stream stability (HEC-20) | `stream-stability` | Free |
+| | Sediment transport (HDS-6) | `sediment-transport` | Free |
+| | Flood risk and least total expected cost (HEC-17) | `floodplain-risk` | Free |
 | 13 Quantities and cost | Quantity takeoff and cost opinion | `quantity-takeoff` | Free |
 | | Cost estimate and bid tabulation | `cost-estimate` | ★ Premium |
 | 14 Productivity and deliverables | Batch scenarios | `batch-scenarios` | ★ Premium |
@@ -658,7 +657,7 @@ within 2.3 % of a diffusion-wave solution with 0.7 % volume error.
 
 ![Report output: outfall hydrographs for the 2-, 10- and 100-yr storms.](images/manual/chart-hydrograph-routing.png)
 
-**Other unit hydrographs** (**Pending merge (PR #87)**). A `UH` column in `[Subbasins]` chooses each sub-basin's
+**Other unit hydrographs** (Merged (PR #87)). A `UH` column in `[Subbasins]` chooses each sub-basin's
 transform:
 
 - blank or `scs`: the NRCS curve, as before.
@@ -693,7 +692,7 @@ check against PeakFQ for formal submittals. Ungaged Rapid City basins use IDCM h
 
 ## Regional regression peak flows (HDS-2)
 
-Free · `regional-regression` · **Pending merge (PR #88)**
+Free · `regional-regression` · Merged (PR #88)
 
 Peak discharges at an ungaged site from the USGS regional regression equations for the region (FHWA HDS-2 Ch. 5). The
 equations are typed in from the USGS report or a StreamStats report: `[Variables]` (name, site value, and the range of
@@ -706,7 +705,7 @@ gage's drainage area.
 
 ## Snowmelt and rain-on-snow
 
-Free · `snowmelt` · U.S. units · **Pending merge (PR #82)**
+Free · `snowmelt` · U.S. units · Merged (PR #82)
 
 Daily snowpack accounting for spring melt and rain-on-snow events. Precipitation is snow at or below the threshold
 temperature (34 °F). On dry days, melt is Cm·(Ta − 32). On rain days it follows the USACE EM 1110-2-1406 rain-on-snow
@@ -805,7 +804,7 @@ The fully clogged case is a resilience check and reports REVIEW, not FAILS.
 
 ## Bridge deck drainage (HEC-21)
 
-Free · `deck-drainage` · U.S. units · **Pending merge (PR #75)**
+Free · `deck-drainage` · U.S. units · Merged (PR #75)
 
 Lays out deck drains along one gutter of a bridge by FHWA HEC-21. It gives the length to the first drain at the
 allowable spread, L1 = 43,560·(Qallow − Qapproach)/(C·i·W), and the grate or scupper efficiency on grade by the HEC-22
@@ -814,7 +813,7 @@ the end of the deck. A scupper is treated as a D × D opening with a low splash-
 
 ## Pavement edge drains and permeable base
 
-Free · `pavement-edge-drain` · U.S. units · **Pending merge (PR #83)**
+Free · `pavement-edge-drain` · U.S. units · Merged (PR #83)
 
 Pavement subsurface drainage by FHWA-NHI-99-028. It computes Cedergren infiltration qi = Ic·(Nc/W + Wc/(W·Cs)) + kp
 and the resultant slope and flow path length. It checks the permeable base's steady capacity k·H·SR against qi·LR. Time
@@ -938,7 +937,7 @@ a check (I-DW-002).
 
 ## Stormwater pump stations (HEC-24)
 
-Free · `pump-station` · U.S. units · **Pending merge (PR #86)**
+Free · `pump-station` · U.S. units · Merged (PR #86)
 
 Checks an underpass or depressed-roadway pump station by FHWA HEC-24. Input:
 
@@ -1073,7 +1072,7 @@ time ≥ 16 h, months to half full (§1.3.3.6).
 
 ## Pond sediment and clean-out interval
 
-Free · `pond-sediment` · U.S. units · **Pending merge (PR #81)**
+Free · `pond-sediment` · U.S. units · Merged (PR #81)
 
 How fast sediment fills a forebay and a main pool, and how often each needs cleaning. The steps are:
 
@@ -1084,7 +1083,7 @@ How fast sediment fills a forebay and a main pool, and how often each needs clea
 
 ## Groundwater mounding (Hantush)
 
-Free · `groundwater-mounding` · **Pending merge (PR #78)**
+Free · `groundwater-mounding` · Merged (PR #78)
 
 The rise of the water table under a rectangular infiltration basin, by the Hantush (1967) solution as programmed in USGS
 SIR 2010-5102. It reports:
@@ -1098,7 +1097,7 @@ A mound above half the saturated thickness, or recharge above K, is warned: use 
 
 ## Bioretention underdrain
 
-Free · `bioretention-underdrain` · U.S. units · **Pending merge (PR #83)**
+Free · `bioretention-underdrain` · U.S. units · Merged (PR #83)
 
 Media flow by Darcy, Q = k·A·(h + d)/d, against the perforated underdrain's Manning capacity, with an optional
 restricting orifice. It gives two drain times:
@@ -1110,7 +1109,7 @@ These are checked against 48 h for the surface and 72 h below it by default.
 
 ## Emergency spillways and dam breach (TR-60)
 
-Free · `spillway-breach` · U.S. units · **Pending merge (PR #76)**
+Free · `spillway-breach` · U.S. units · Merged (PR #76)
 
 For detention and stock-pond embankments under dam safety rules. It covers:
 
@@ -1194,7 +1193,7 @@ HEC-RAS run of the same data.
 
 ![Report output: longitudinal profile with WS and EG for each profile.](images/manual/chart-river-profile.png)
 
-**Floodway encroachment** (**Pending merge (PR #77)**). `floodway profile = <profile>` runs a FEMA floodway for one profile.
+**Floodway encroachment** (Merged (PR #77)). `floodway profile = <profile>` runs a FEMA floodway for one profile.
 
 - **Method 4** (default) narrows both overbanks by equal conveyance reduction until the water surface rises by the
   allowable surcharge, `floodway surcharge`: 1.0 ft, or 0.3 m in SI.
@@ -1204,7 +1203,7 @@ HEC-RAS run of the same data.
 The output is a floodway table (encroachment stations, top width, base and floodway W.S., surcharge), the floodway W.S.
 on the profile chart, and the encroachment lines on each cross-section.
 
-**Importing HEC-RAS geometry** (**Pending merge (PR #79)**). `hec-ras geometry = <path to .g01>` reads the cross-sections of
+**Importing HEC-RAS geometry** (Merged (PR #79)). `hec-ras geometry = <path to .g01>` reads the cross-sections of
 a HEC-RAS geometry file in place of `[Sections]` and `[Points]`. `hec-ras reach = River, Reach` picks the reach. The
 import brings in:
 
@@ -1313,7 +1312,7 @@ soil.
 
 ## Channel and swale linings (HEC-15)
 
-Free · `channel-lining` · U.S. units · **Pending merge (PR #80)**
+Free · `channel-lining` · U.S. units · Merged (PR #80)
 
 Flexible linings for roadside channels by FHWA HEC-15, at normal depth with the lining's depth-dependent n:
 
@@ -1347,7 +1346,7 @@ Use it with the HEC-18 bridge scour tool.
 
 ## Bridge debris and hydraulic forces (HEC-9, HDS-7)
 
-Free · `bridge-debris-forces` · **Pending merge (PR #89)**
+Free · `bridge-debris-forces` · Merged (PR #89)
 
 - **Design debris raft:** the width is the design log length, and the thickness defaults to half the depth.
 - **Pier scour with debris:** the effective pier width a_d = [K1·T·W + (y − K1·T)·a]/y (HEC-18), with CSU pier scour shown with and without the raft.
@@ -1356,7 +1355,7 @@ Free · `bridge-debris-forces` · **Pending merge (PR #89)**
 
 ## Stream stability (HEC-20)
 
-Free · `stream-stability` · **Pending merge (PR #84)**
+Free · `stream-stability` · Merged (PR #84)
 
 The HEC-20 Level 2 checks for a reach near a crossing:
 
@@ -1369,7 +1368,7 @@ The HEC-20 Level 2 checks for a reach near a crossing:
 
 ## Sediment transport (HDS-6)
 
-Free · `sediment-transport` · **Pending merge (PR #85)**
+Free · `sediment-transport` · Merged (PR #85)
 
 Transport capacity by Yang (1973), Engelund–Hansen and Meyer-Peter and Müller, with Rubey fall velocity. A sediment
 budget through a chain of reaches (for example the approach, the bridge opening and the reach downstream) shows where
@@ -1377,7 +1376,7 @@ the bed aggrades or degrades during a flood of given duration.
 
 ## Flood risk and least total expected cost (HEC-17)
 
-Free · `floodplain-risk` · **Pending merge (PR #77)**
+Free · `floodplain-risk` · Merged (PR #77)
 
 Risk of exceedance over a service life, R = 1 − (1 − 1/T)^n. For each alternative, expected annual damage comes from
 the damage–probability curve, and its present worth plus capital and O&M gives the total expected cost. The alternative
@@ -1695,7 +1694,7 @@ comparison program was not reachable from the build machine. Check them before r
 | Natural channel profiles | Not yet compared with a HEC-RAS run |
 | Flood frequency | Confidence limits use the Bulletin 17B approximation; compare with PeakFQ for formal submittals |
 | Bridge scour | NCHRP 24-20 abutment method, coarse-bed and pressure-flow scour not included |
-| Hydrograph routing | The NRCS unit hydrograph is the default; Clark, Snyder and CUHP are available per sub-basin *(pending)* |
+| Hydrograph routing | The NRCS unit hydrograph is the default; Clark, Snyder and CUHP are available per sub-basin |
 | Site feasibility, Atlas 14 | Live public services were tested against recorded responses only |
 | Field-to-model | State Plane projection not yet checked against a surveyed control point |
 | Utility conflicts, permits | Default separation rules and permit durations are typical values, not the City's |
