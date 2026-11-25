@@ -16,6 +16,29 @@ and swales stay in the free **Channel water surface profile** tool.
 - `regime` = subcritical (default), supercritical or mixed. `downstream` = normal (`downstream slope`), critical or known
   (`downstream ws` = one elevation per profile, comma-separated). `upstream` = critical or known (`upstream ws`).
 
+## Importing HEC-RAS geometry
+
+Instead of typing [Sections] and [Points], point the tool at a HEC-RAS geometry file:
+
+```
+hec-ras geometry = C:\Projects\Rapid Creek\RapidCreek.g01
+hec-ras reach = Rapid Creek, Upper     # optional; the first reach when left out
+```
+
+The flows, boundary conditions, bridges and floodway keys are entered as usual. The import reads, for each cross-section of
+the chosen reach: river station, reach lengths (LOB, channel, ROB), station–elevation points, Manning's n by station
+(horizontal variation), bank stations, contraction and expansion coefficients, and normal ineffective flow areas that start
+at the section ends. Using both `hec-ras geometry` and [Sections]/[Points] is an error (E-RAS-001).
+
+| ID | Decision |
+|---|---|
+| D-500 | The geometry file is plain text with the station–elevation, Manning and ineffective tables in 8-character fixed-width fields, which is how HEC-RAS 4 to 6 writes them. Interpolated sections (RS ending in `*`) are imported as ordinary sections. |
+| D-501 | A Manning's n break between two survey points is inserted as a point on the ground line (linear interpolation), so n changes at the same station as in HEC-RAS. |
+| D-502 | Bridges, culverts, inline and lateral structures, levees, blocked obstructions and ineffective areas inside the section are listed as warnings (W-RAS-003) and not imported. Bridges can be entered under [Bridges]; blocked ineffective areas are treated as normal ones. |
+| D-503 | One reach is modeled. A file with several reaches imports the first one (W-RAS-001) unless `hec-ras reach` names another; junctions are not modeled. |
+| D-504 | The geometry file does not record its units (the .prj does), so the units chosen in MasterFlow must match the file (I-RAS-001 says so). |
+| D-505 | Validation: an imported reach gives the same water surfaces, digit for digit, as the same sections typed as tables (HecRasImportTests). No HEC-RAS example project was available in the build environment, so the parser is checked against files written in the HEC-RAS layout, not against files exported from HEC-RAS; please run one of your own models and compare. |
+
 ## Method
 
 | Item | Method |
@@ -127,3 +150,49 @@ against HEC-RAS itself needs a Windows machine with HEC-RAS (not available here)
   - Weir flow matches C·L·H^1.5 free, and with Villemonte submergence.
   - Overtopping splits the flow so that opening flow plus weir flow equals Q.
   - A drowned opening runs as an orifice or a lidded energy solution.
+
+## Floodway encroachment (FEMA regulatory floodway)
+
+Add `floodway profile = <profile name>` (or an `[Encroachments]` table) to compute a floodway for that profile,
+usually the 100-yr. Keys: `floodway surcharge` (default 1.0 ft, 0.3 m in SI; use a lower state limit where one
+applies) and `floodway optimize` (yes by default).
+
+- **Method 4 (equal conveyance reduction, HEC-RAS).** At each section the encroachment stations are found so that the
+  encroached section at base W.S. + target carries the natural section's conveyance at the base W.S. Half of the
+  conveyance to remove comes from each overbank; when one overbank runs out, the rest comes from the other. Stations
+  never enter the main channel (bank stations).
+- **Method 1 (fixed stations).** `[Encroachments]`: RS, Left station, Right station. Those sections use the given
+  stations; the others use Method 4.
+- The encroached sections (ground outside the stations removed, walls at the stations) are run as a subcritical profile
+  from the same downstream boundary type as the base run. With `floodway optimize = yes` the target is lowered at each
+  section whose computed surcharge exceeds the limit, and the run is repeated (up to 8 times), much like HEC-RAS
+  Method 5.
+- Output: a floodway data table (base and floodway W.S., surcharge, target, stations, floodway width, area and mean
+  velocity, OK / EXCEEDS / negative surcharge), the floodway W.S. on the profile chart and the encroachment stations on
+  each cross-section.
+
+Floodway decisions:
+
+- **D-440** Floodway runs use the subcritical pass (supercritical regime is refused). Bridges inside the floodway are
+  computed with the encroached approach sections.
+- **D-441** The floodway run starts from the same downstream boundary as the base run: normal depth on the encroached
+  downstream section, or the same known W.S. (so the surcharge there is zero, as is usual where the floodway ties into
+  a downstream study).
+- **D-442** The encroached section does not add wetted perimeter for the encroachment walls beyond the end-wall rule
+  the section already uses (water above an end point), the same treatment as a section that ends at the encroachment.
+- **D-443** When the encroachments reach both bank stations before the target surcharge, the floodway is the main
+  channel and the tool says so (I-FW-002).
+
+Floodway tests (`FloodwayTests`): Method 4 stations give the base conveyance at base W.S. + 1 ft and are symmetric in a
+symmetric section; a three-section compound reach stays within 1.0 ft with real encroachment; fixed stations are used
+and a too-narrow floodway is flagged; an unknown floodway profile is an error.
+
+| Code | Meaning |
+|---|---|
+| E-FW-001 | Floodway profile not found |
+| E-FW-002 | Supercritical regime |
+| E-FW-003 | Encroachment right station not greater than left |
+| E-FW-004 | Surcharge not above zero |
+| W-FW-001 | Surcharge above the limit |
+| W-FW-002 | Negative surcharge |
+| I-FW-001/002 | Largest surcharge; encroachments at the banks |

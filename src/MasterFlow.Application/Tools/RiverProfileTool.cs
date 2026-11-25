@@ -153,6 +153,23 @@ public sealed class RiverProfileTool : IDesignTool
         string L = si ? "m" : "ft", V = si ? "m/s" : "ft/s", Qu = si ? "m³/s" : "cfs";
         var p = ToolInput.Parse(input);
         var msgs = new List<CalcMessage>();
+        if (p.Text("hec-ras geometry") is { } geomPath)
+        {
+            if (p.HasSection("Sections") || p.HasSection("Points"))
+                msgs.Add(CalcMessage.Error("E-RAS-001", "Use either hec-ras geometry = ... or [Sections] and [Points], not both."));
+            else
+            {
+                string? text = null;
+                try { text = File.ReadAllText(geomPath.Trim().Trim('"')); }
+                catch (Exception ex) { msgs.Add(CalcMessage.Error("E-RAS-002", $"Cannot read the HEC-RAS geometry file \"{geomPath}\": {ex.Message}")); }
+                if (text is not null)
+                {
+                    var (rasTables, notes) = ImportHecRas(text, p.Text("hec-ras reach"));
+                    msgs.AddRange(notes);
+                    if (rasTables is not null) p = ToolInput.Parse(input + "\n" + rasTables);
+                }
+            }
+        }
         var sections = ParseSections(p, k, msgs);
         var bridges = ParseBridges(p, sections, msgs, si);
         string lowFlow = (p.Text("bridge low flow") ?? "energy").ToLowerInvariant();
@@ -229,6 +246,38 @@ public sealed class RiverProfileTool : IDesignTool
             Checks(res, profiles[pi], msgs, L);
         }
 
+        // Floodway encroachment (FEMA regulatory floodway; HEC-17 Ch. 4, HEC-RAS Method 4 or fixed stations).
+        List<FloodwaySection>? floodway = null; string? fwProfile = null;
+        double fwSurcharge = p.Number("floodway surcharge", si ? 0.3 : 1.0);
+        if (p.Text("floodway profile") is { } fwp || p.HasSection("Encroachments"))
+        {
+            fwProfile = p.Text("floodway profile") ?? profiles.FirstOrDefault(x => x.Contains("100")) ?? profiles[^1];
+            int pi = profiles.FindIndex(x => x.Equals(fwProfile, StringComparison.OrdinalIgnoreCase));
+            var fixedSta = new Dictionary<double, (double L, double R)>();
+            foreach (var r in p.Rows("Encroachments"))
+            {
+                if (p.Cell(r, 0, "RS", "Encroachments") is not { } ers || p.Cell(r, 1, "left station", $"Encroachments RS {ers}") is not { } el || p.Cell(r, 2, "right station", $"Encroachments RS {ers}") is not { } er) continue;
+                if (er <= el) { msgs.Add(CalcMessage.Error("E-FW-003", $"Encroachments RS {ers}: the right station must be greater than the left.")); continue; }
+                fixedSta[ers] = (el, er);
+            }
+            if (pi < 0) msgs.Add(CalcMessage.Error("E-FW-001", $"floodway profile \"{fwProfile}\" is not one of the profiles ({string.Join(", ", profiles)})."));
+            else if (regime == "supercritical") msgs.Add(CalcMessage.Error("E-FW-002", "Floodway encroachments are computed with the subcritical regime; set regime = subcritical or mixed."));
+            else if (!(fwSurcharge > 0)) msgs.Add(CalcMessage.Error("E-FW-004", "floodway surcharge must be above zero."));
+            else if (!msgs.Any(m => m.Code == "E-FW-003"))
+            {
+                var qs = sections.Select(s => FlowAt(s)[pi]).ToArray();
+                var baseSub = all[pi].Res;
+                var fwMsgs = new List<CalcMessage>();
+                floodway = Floodway(sections, qs, baseSub, fwSurcharge, p.Flag("floodway optimize", true), fixedSta, enc =>
+                {
+                    double? bc = down switch { "normal" => enc[0].Normal(qs[0], dSlope), "known" => dWs[pi], _ => null };
+                    return Subcritical(enc, qs, bc, g, fwMsgs, fwProfile + " floodway", bridges, lowFlow, []);
+                });
+                foreach (var m in fwMsgs.Where(m => m.Severity != MessageSeverity.Info).GroupBy(m => m.Code).Select(gr => gr.First())) msgs.Add(m);
+            }
+            if (msgs.Any(m => m.Severity == MessageSeverity.Error)) return new(title, [], [], msgs);
+        }
+
         // Output tables.
         var rows = new List<IReadOnlyList<object?>>();
         foreach (var s in sections.AsEnumerable().Reverse())
@@ -274,6 +323,29 @@ public sealed class RiverProfileTool : IDesignTool
                 msgs.Add(CalcMessage.Warning("W-BR-004", $"{b.Profile}, {b.Bridge.Name}: the road is overtopped; {b.QWeir:F1} {Qu} flows over the weir."));
         }
 
+        if (floodway is not null)
+        {
+            var frows = new List<IReadOnlyList<object?>>();
+            foreach (var f in floodway.AsEnumerable().Reverse())
+            {
+                double area = f.Encroached.H.Area, width = f.Right - f.Left;
+                bool ok = f.Surcharge <= fwSurcharge + 0.005;
+                frows.Add([f.Natural.Name, R(f.Base.Ws, 2), R(f.Encroached.Ws, 2), R(f.Surcharge, 2), f.Fixed ? "fixed" : R(f.Target, 2), R(f.Left, 1), R(f.Right, 1),
+                    R(f.Base.H.TopWidth, 1), R(width, 1), R(area, 1), R(f.Encroached.Q / area, 2), ok ? (f.Surcharge < -0.005 ? "negative surcharge" : "OK") : "EXCEEDS"]);
+                if (!ok) msgs.Add(CalcMessage.Warning("W-FW-001", $"Floodway, RS {f.Natural.Name}: surcharge {f.Surcharge:F2} {L} exceeds the {fwSurcharge:G3} {L} allowed{(f.Fixed ? " with the fixed encroachment stations" : "")}."));
+                if (f.Surcharge < -0.005) msgs.Add(CalcMessage.Warning("W-FW-002", $"Floodway, RS {f.Natural.Name}: the floodway W.S. is {-f.Surcharge:F2} {L} below the base flood W.S.; FEMA reviewers question negative surcharges. Check the encroachments upstream and downstream."));
+            }
+            tables.Add(new($"Floodway ({fwProfile}, equal conveyance reduction)", ["River Sta", $"Base W.S. ({L})", $"Floodway W.S. ({L})", $"Surcharge ({L})", $"Target ({L})", $"Left encroachment ({L})", $"Right encroachment ({L})",
+                $"Base top width ({L})", $"Floodway width ({L})", $"Floodway area ({L}²)", $"Mean velocity ({V})", "Result"], frows,
+                [$"HEC-RAS Method 4: at each section the encroachment stations make the conveyance at base W.S. + target equal to the natural conveyance at the base W.S., removing equal conveyance from each overbank and never entering the main channel. The encroached sections are then run as a profile; with floodway optimize = yes the target is lowered where the computed surcharge exceeds {fwSurcharge:G3} {L} and the run repeated.",
+                 "FEMA (44 CFR 60.3(d)) allows a surcharge of no more than 1.0 ft (lower where the state sets it). Floodway W.S. starts from the same downstream boundary type as the base run.",
+                 "[Encroachments] rows fix the stations at a section (HEC-RAS Method 1)."]));
+            var atBanks = floodway.Where(f => !f.Fixed && Math.Abs(f.Left - Math.Max(f.Natural.LeftBank, f.Natural.Extent.Left)) < 0.05 && Math.Abs(f.Right - Math.Min(f.Natural.RightBank, f.Natural.Extent.Right)) < 0.05 && f.Surcharge < fwSurcharge - 0.05).ToList();
+            if (atBanks.Count > 0) msgs.Add(CalcMessage.Info("I-FW-002", $"Floodway: at RS {string.Join(", ", atBanks.Select(f => f.Natural.Name))} the encroachments reached the bank stations before the target surcharge; the floodway there is the main channel."));
+            double maxS = floodway.Max(f => f.Surcharge);
+            msgs.Add(CalcMessage.Info("I-FW-001", $"Floodway ({fwProfile}): largest surcharge {maxS:F2} {L}, narrowest floodway {floodway.Min(f => f.Right - f.Left):F0} {L}."));
+        }
+
         // Charts: longitudinal profile (channel distance from the downstream section).
         var dist = new double[sections.Count];
         for (int i = 1; i < sections.Count; i++) dist[i] = dist[i - 1] + sections[i].LengthCh;
@@ -285,6 +357,7 @@ public sealed class RiverProfileTool : IDesignTool
             series.Add(new($"WS {prof}", res.Select((r, i) => (dist[i], r.Ws)).ToList()));
             series.Add(new($"EG {prof}", res.Select((r, i) => (dist[i], r.Eg)).ToList(), Dashed: true));
         }
+        if (floodway is not null) series.Add(new($"WS {fwProfile} floodway", floodway.Select((f, i) => (dist[i], f.Encroached.Ws)).ToList()));
         foreach (var br in bridges)
         {
             int iu = sections.FindIndex(x => Math.Abs(x.RiverStation - br.UpstreamRs) < 1e-6);
@@ -307,6 +380,12 @@ public sealed class RiverProfileTool : IDesignTool
                 fs.Add(new($"{br.Name} low chord", ToolSeriesKind.Limit, [(br.LeftAbutment, br.LowChord), (br.RightAbutment, br.LowChord)]));
                 foreach (var (ps, pw) in br.Piers)
                     fs.Add(new($"{br.Name} pier", ToolSeriesKind.Limit, [(ps - pw / 2, s.Interp(ps)), (ps - pw / 2, br.LowChord), (ps + pw / 2, br.LowChord), (ps + pw / 2, s.Interp(ps))]));
+            }
+            if (floodway?.FirstOrDefault(f => f.Natural == s) is { } fw)
+            {
+                double topEl = Math.Max(fw.Encroached.Ws, fw.Base.Ws) + 1;
+                fs.Add(new("Floodway encroachments", ToolSeriesKind.Limit, [(fw.Left, topEl), (fw.Left, s.Interp(fw.Left))]));
+                fs.Add(new("Floodway encroachments", ToolSeriesKind.Limit, [(fw.Right, s.Interp(fw.Right)), (fw.Right, topEl)]));
             }
             fs.Add(new("Bank stations", ToolSeriesKind.Limit, [(s.LeftBank, s.LeftBankElevation), (s.LeftBank, s.MinElevation), (s.RightBank, s.MinElevation), (s.RightBank, s.RightBankElevation)]));
             figures.Add(new ToolFigure($"RS {s.Name}: cross-section, {prof} water surface", fs, $"Station ({L})", $"Elevation ({L})"));
@@ -373,6 +452,46 @@ public sealed class RiverProfileTool : IDesignTool
 
     private static List<double> Numbers(string? s) =>
         (s ?? "").Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries).Select(t => ToolInput.TryNumber(t, out double v) ? v : double.NaN).ToList();
+
+    /// <summary>
+    /// Turns the text of a HEC-RAS geometry file into [Sections] and [Points] tables for one river and reach
+    /// (<paramref name="reach"/> as "River, Reach"; the first reach when null). Returns null tables when nothing can be imported.
+    /// </summary>
+    public static (string? Tables, List<CalcMessage> Messages) ImportHecRas(string geometryText, string? reach)
+    {
+        var msgs = new List<CalcMessage>();
+        HecRasGeometry.Result g;
+        try { g = HecRasGeometry.Parse(geometryText); }
+        catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException or OverflowException)
+        {
+            msgs.Add(CalcMessage.Error("E-RAS-003", $"The HEC-RAS geometry file could not be read: {ex.Message}"));
+            return (null, msgs);
+        }
+        var reaches = g.Sections.Select(s => (s.River, s.Reach)).Distinct().ToList();
+        if (reaches.Count == 0) { msgs.Add(CalcMessage.Error("E-RAS-004", "The HEC-RAS geometry file has no cross-sections.")); return (null, msgs); }
+        var pick = reaches[0];
+        if (reach is not null)
+        {
+            var parts = reach.Split(',').Select(t => t.Trim()).ToArray();
+            int idx = reaches.FindIndex(r => r.River.Equals(parts[0], StringComparison.OrdinalIgnoreCase)
+                && (parts.Length < 2 || r.Reach.Equals(parts[1], StringComparison.OrdinalIgnoreCase)));
+            if (idx < 0)
+            {
+                msgs.Add(CalcMessage.Error("E-RAS-005", $"hec-ras reach \"{reach}\" is not in the file. Reaches: {string.Join("; ", reaches.Select(r => $"{r.River}, {r.Reach}"))}."));
+                return (null, msgs);
+            }
+            pick = reaches[idx];
+        }
+        else if (reaches.Count > 1)
+            msgs.Add(CalcMessage.Warning("W-RAS-001", $"The file has {reaches.Count} reaches; {pick.River}, {pick.Reach} was imported. Set hec-ras reach = River, Reach for another. Junctions are not modeled."));
+        var secs = g.Sections.Where(s => (s.River, s.Reach) == pick).Select(HecRasGeometry.WithManningPoints).ToList();
+        foreach (var s in secs.Where(s => s.Manning.Count == 0))
+            msgs.Add(CalcMessage.Warning("W-RAS-002", $"RS {s.Rs}: no Manning's n in the file."));
+        foreach (var note in g.Skipped.Where(n => n.StartsWith($"{pick.River} {pick.Reach} ", StringComparison.Ordinal)))
+            msgs.Add(CalcMessage.Warning("W-RAS-003", note + (note.Contains("bridge") || note.Contains("culvert") ? ". Enter bridges under [Bridges] if needed." : ".")));
+        msgs.Add(CalcMessage.Info("I-RAS-001", $"Imported {secs.Count} cross-sections of {pick.River}, {pick.Reach}{(g.Title.Length > 0 ? $" from \"{g.Title}\"" : "")}. The file does not record its units: they must match the units chosen here."));
+        return (HecRasGeometry.ToToolInput(secs), msgs);
+    }
 
     public static List<RiverSection> ParseSections(ToolInput p, double k, List<CalcMessage> msgs)
     {
@@ -527,6 +646,73 @@ public sealed class RiverProfileTool : IDesignTool
         }
         res[n - 1] = res[n - 1] with { Sf = n > 1 ? res[n - 2].Sf : 0 };
         return [.. res];
+    }
+
+    /// <summary>One section of a floodway run: base and encroached solutions, encroachment stations and the target surcharge used.</summary>
+    public sealed record FloodwaySection(RiverSection Natural, Result Base, Result Encroached, double Left, double Right, double Target, bool Fixed)
+    {
+        public double Surcharge => Encroached.Ws - Base.Ws;
+    }
+
+    /// <summary>
+    /// HEC-RAS encroachment Method 4 (equal conveyance reduction): the stations at which the encroached section, at the base
+    /// W.S. plus <paramref name="target"/>, carries the natural section's conveyance at the base W.S., taking half of the
+    /// conveyance to remove from each overbank (the rest from the other side when one side runs out). Never inside the banks.
+    /// </summary>
+    public static (double Left, double Right) Method4(RiverSection s, double wsBase, double target)
+    {
+        double wsT = wsBase + target;
+        var (x0, x1) = s.Extent;
+        double kBase = s.At(wsBase).Conveyance, kNat = s.At(wsT).Conveyance, dK = kNat - kBase;
+        if (!(dK > 0)) return (x0, x1);
+        double K(double l, double r) => s.Encroach(l, r).At(wsT).Conveyance;
+        double remL = s.LeftBank > x0 ? kNat - K(s.LeftBank, x1) : 0, remR = s.RightBank < x1 ? kNat - K(x0, s.RightBank) : 0;
+        double takeL = Math.Min(dK / 2, remL), takeR = Math.Min(dK - takeL, remR);
+        takeL = Math.Min(dK - takeR, remL);
+        double l = x0;
+        if (takeL > 0)
+        {
+            double lo = x0, hi = s.LeftBank;
+            for (int i = 0; i < 80; i++) { double m = 0.5 * (lo + hi); if (kNat - K(m, x1) < takeL) lo = m; else hi = m; }
+            l = 0.5 * (lo + hi);
+        }
+        // Right station: the encroached section at the target W.S. carries the base conveyance (the right bank at most).
+        double r = s.RightBank;
+        if (K(l, s.RightBank) < kBase)
+        {
+            double lo = s.RightBank, hi = x1;
+            for (int i = 0; i < 80; i++) { double m = 0.5 * (lo + hi); if (K(l, m) < kBase) lo = m; else hi = m; }
+            r = 0.5 * (lo + hi);
+        }
+        return (l, r);
+    }
+
+    private static List<FloodwaySection> Floodway(List<RiverSection> secs, double[] qs, List<Result> baseRes, double surcharge, bool optimize,
+        IReadOnlyDictionary<double, (double L, double R)> fixedSta, Func<List<RiverSection>, List<Result>> run)
+    {
+        var targets = secs.Select(_ => surcharge).ToArray();
+        List<FloodwaySection> best = [];
+        for (int it = 0; it < (optimize ? 8 : 1); it++)
+        {
+            var sta = new (double L, double R)[secs.Count];
+            var enc = new List<RiverSection>();
+            for (int i = 0; i < secs.Count; i++)
+            {
+                bool fx = fixedSta.TryGetValue(secs[i].RiverStation, out var f);
+                sta[i] = fx ? f : Method4(secs[i], baseRes[i].Ws, Math.Max(targets[i], 0.001));
+                enc.Add(secs[i].Encroach(sta[i].L, sta[i].R));
+            }
+            var res = run(enc);
+            best = Enumerable.Range(0, secs.Count).Select(i => new FloodwaySection(secs[i], baseRes[i], res[i], sta[i].L, sta[i].R, targets[i], fixedSta.ContainsKey(secs[i].RiverStation))).ToList();
+            bool changed = false;
+            for (int i = 0; i < secs.Count; i++)
+            {
+                double over = best[i].Surcharge - surcharge;
+                if (over > 0.005 && !best[i].Fixed && targets[i] > 0.002) { targets[i] = Math.Max(0.001, targets[i] - over); changed = true; }
+            }
+            if (!changed) break;
+        }
+        return best;
     }
 
     private static void Checks(List<Result> res, string prof, List<CalcMessage> msgs, string L)
