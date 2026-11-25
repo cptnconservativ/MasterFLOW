@@ -38,7 +38,9 @@ asin(62/D) + asin(8/D) = 90°, so D = √(62² + 8²) = 62.5 in. → 72 in. stru
 - D-605 (2026-11-25): Default sizes are Rinker Materials' round manholes, 48, 54, 60, 72, 84, 96, 120 and 144 in. Rinker
   drawings 016/017 print the walls (48 in. 5 in., 54 in. 5½ in., 60 in. 6 in., 72 in. 7 in.) and a 12 in. cast floor for the
   60 and 72 in.; the 84–144 in. sheet prints no dimensions, so those walls follow the same ID/12 + 1 in. rule and the base
-  12 in., both to confirm with Rinker. The table (`ManholeSizingTool.Rinker`) also feeds the buoyancy tool.
+  12 in., both to confirm with Rinker. Rinker's Rapid City 48 in. sanitary shop drawings (Feb. 2026) confirm the 5 in.
+  wall and 6 in. floor, print the barrel at 862.5 lb/ft (the 150 pcf calculation gives 867) and show the extended base
+  as an 8 in. slab projecting 6 in. (enter Ext = 0.5 ft, base 0.67 ft in the buoyancy tool for that option). The table (`ManholeSizingTool.Rinker`) also feeds the buoyancy tool.
 
 ## Limits
 

@@ -37,8 +37,13 @@ HDS-2 (2024), HDS-6 (2001), HDS-7 (2024) with FHWA-HRT-09-028 (2009), NRCS TR-21
 | HDS-2 Examples 6.1, 6.2 | Colorado Mountain, A 66.4 mi², S 26 %, P 28.8 in., SE 40 % | Q25 900 cfs, SE 0.167 log, 600–1,300 cfs | 900, 0.167, 621–1,323 | Manual rounds to hundreds |
 | HDS-6 §4.13.8 Problem 7 (Yang) | Q 7,820 cfs, y 7.58 ft, V 3.02 ft/s, S 0.00022, D50 0.00105 ft | 91 ppm, 1,900 tons/day | 95 ppm, 1,980 tons/day | MasterFlow's Rubey fall velocity 0.136 ft/s against the given 0.141 |
 | TR-210-60 Figure 2–2, 2–1; ch. 1 breach | Hazard rows, P100, PMP; Vs, Hw, A, L | Rules as printed | Same | Criteria checks, no numeric example in TR-210-60 |
+| HEC-18 §7.10.7 Example 7 | Round pier a 2.5 ft, y 11.5 ft, V 9 ft/s; debris W 20 ft, H 4 ft | a_d 3.8 (tri) / 7.3 ft (rect); ys 8.9, 6.8 (no debris), 13.6 ft | Same to 0.1 ft | Confirms K1 = K2 = 1 with debris |
+| CUHP 2016 Table B-4 | 0.23 mi², I 50 %, tu 5 min, L 0.48 mi, Lca 0.24 mi, S 0.03 | CT 0.0882, P 4.75, Cp 0.2696, tp 0.0725 h, Tp 6.85 min, qp 2,379, Qp 547 cfs, W50 12.61, W75 6.56, K50 0.33, K75 0.44 | Same | CT and Cp now computed |
+| SDDOT Ex. 7.10 (rural, Subregion B) | CA 317 mi², PII 0.76 | Q25 3,501, Q100 8,206 cfs | Same (within 0.2 %) | Built-in sd-B equations |
+| SDDOT Ex. 7.12 (urban) | CA 50 mi², PII 0.76, BDF 12 | RQ25 1,190, RQ100 2,587; UQ25 4,515, UQ100 8,714 cfs | 1,190, 2,587; 4,505, 8,705 | Manual rounds A^0.15 to 1.8 |
+| Rinker 48 in. shop drawings | Barrel pieces 1.3 to 5.3 ft | 862.5 lb/ft | 867 lb/ft at 150 pcf (wall 5 in.) | Wall and 6 in. floor confirmed |
 | StormTech catalog | 8 chambers at the catalog layout, 40 % porosity | e.g. SC-310 29.3 ft³, MC-3500 175.0 ft³ | 29.30, 175.0 (all within 0.3 %) | Validates the chamber data |
 
 Not matched: HEC-20 Example 1 (log-law shear), HDS-6 Problem 2 (USBR MPM form with wall correction), HEC-11 Example 2
 (chart-based bank geometry), HEC-24 (no complete numeric example; its Eq. 7-6 Vmin = 15·Qp·t is the tool's wet-well rule).
-HEC-26, HEC-18 and HDS-5 were not in the reference set.
+HEC-26 and HDS-5 were not in the reference set.

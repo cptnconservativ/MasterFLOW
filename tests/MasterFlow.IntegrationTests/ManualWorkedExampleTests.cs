@@ -1,3 +1,4 @@
+using MasterFlow.Application.Hydrology;
 using MasterFlow.Application.Tools;
 using MasterFlow.Domain;
 
@@ -365,4 +366,119 @@ public class ManualWorkedExampleTests
     [InlineData(100, 100, 0.63)]
     [InlineData(500, 25, 0.05)]
     public void Hec17_Table62_RiskOverServiceLife(double t, double n, double table) => Assert.Equal(table, FloodplainRiskTool.Risk(t, n), 2);
+
+    // ---------------- HEC-18 (5th ed., 2012) §7.10.7 Example Problem 7: pier scour with debris ----------------
+    [Fact]
+    public void Hec18_Example7_PierScourWithDebris()
+    {
+        // Round-nose pier a = 2.5 ft, y = 11.5 ft, V = 9 ft/s; debris W = 20 ft, H = 4 ft. Fr = 9/√(32.2·11.5) = 0.47.
+        double fr = 9 / Math.Sqrt(32.2 * 11.5);
+        Assert.Equal(0.47, fr, 2);
+        double adTri = BridgeDebrisTool.EffectiveWidth(0.21, 4, 20, 11.5, 2.5), adRect = BridgeDebrisTool.EffectiveWidth(0.79, 4, 20, 11.5, 2.5);
+        Assert.Equal(3.8, adTri, 1);
+        Assert.Equal(7.3, adRect, 1);
+        // "The shape of the pier itself has no effect once debris has accumulated": K1 = K2 = 1.0, K3 = 1.1 (clear-water).
+        Assert.Equal(8.9, BridgeDebrisTool.Csu(1, 1, 1.1, 11.5, adTri, fr), 1);
+        Assert.Equal(6.8, BridgeDebrisTool.Csu(1, 1, 1.1, 11.5, 2.5, fr), 1);
+        Assert.Equal(13.6, BridgeDebrisTool.Csu(1, 1, 1.1, 11.5, adRect, fr), 1);
+    }
+
+    // ---------------- CUHP 2.0 User Manual (MHFD, 2016) Appendix B, Table B-4 ----------------
+    [Fact]
+    public void Cuhp2016_TableB4_UnitHydrographParameters()
+    {
+        double ct = UnitHydrographs.CuhpCt(50), pk = UnitHydrographs.CuhpP(50), cp = UnitHydrographs.CuhpCp(pk, ct, 0.23);
+        Assert.Equal(0.0882, ct, 4);
+        Assert.Equal(4.75, pk, 4);
+        Assert.Equal(0.2696, cp, 4);
+        double tp = UnitHydrographs.CuhpLag(ct, 0.48, 0.24, 0.03);
+        Assert.Equal(0.0725, tp, 4);
+        var u = UnitHydrographs.CuhpParameters(0.23, tp, cp, 5);
+        Assert.Equal(6.85, u.TpMin, 2);
+        Near(2379, u.QpUnit, 0.001);
+        Near(547, u.Qp, 0.002);
+        Assert.Equal(12.61, u.W50Min, 2);
+        Assert.Equal(6.56, u.W75Min, 2);
+        Assert.Equal(0.33, u.K50, 2);
+        Assert.Equal(0.44, u.K75, 2);
+        // The curves join at the range breaks (Figures B-7 and B-8) and the two Cp forms meet near 120 ac.
+        Assert.Equal(0.1259, UnitHydrographs.CuhpCt(10), 4);
+        Assert.Equal(0.0932, UnitHydrographs.CuhpCt(40), 3);
+        Near(UnitHydrographs.CuhpCp(4, 0.1, 0.1875), 4 * 0.1 * Math.Pow(0.1875, 0.30), 0.02);
+    }
+
+    [Fact]
+    public void Cuhp_RoutingTakesCtAndCpFromImperviousness()
+    {
+        string input = """
+            storms = 100
+            rainfall = type-ii
+            P100 = 4.5
+            time step = 1
+            simulation = 1800
+            [Subbasins]
+            Name	Node	Area (ac)	CN	Imp (%)	UH	L (mi)	Lca (mi)	Slope
+            D	OUT	147.2	80	50	cuhp	0.48	0.24	0.03
+            """;
+        var r = new HydrographRoutingTool().Run(input, Us);
+        Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
+        Assert.Contains(r.Messages, m => m.Code == "I-HR-020" && m.Text.Contains("CT = 0.0882") && m.Text.Contains("Cp = 0.2696"));
+        Assert.StartsWith("CUHP, CT 0.088, Cp 0.270", (string)r.Tables.Single(t => t.Title == "Subbasin runoff").Rows.Single()[12]!);
+        // The unit hydrograph peaks at 640·Cp·A/tp (Eq. B-32/B-33), at tp + Δt/2.
+        var uh = UnitHydrographs.Cuhp(147.2, 0.0725, 0.2696, 1 / 60.0);
+        Near(547, uh.Qp, 0.002);
+        Assert.Equal(0.0725 + 0.5 / 60, uh.Tp, 9);
+    }
+
+    // ---------------- SDDOT Drainage Manual (2011) Chapter 7 ----------------
+    [Fact]
+    public void Sddot_Example710_RuralRegressionSubregionB()
+    {
+        // Medicine Knoll Creek near Blunt: CA = 317 mi², PII = 0.76 → Q25 = 3501, Q100 = 8206 cfs (§7.10.2).
+        var r = Ok(new RegionalRegressionTool(), "equations = sd-B\nCA = 317\nPII = 0.76\n", Us);
+        var rows = r.Tables[0].Rows;
+        Near(3501, (double)rows.Single(x => (double)x[0]! == 25)[2]!, 0.002);
+        Near(8206, (double)rows.Single(x => (double)x[0]! == 100)[2]!, 0.002);
+        Assert.Equal(7, rows.Count);
+        Assert.Contains(r.Messages, m => m.Code == "I-RR-001");
+        Assert.DoesNotContain(r.Messages, m => m.Code == "W-RR-001");   // inside the Figure 7.9-D ranges
+    }
+
+    [Fact]
+    public void Sddot_Example712_UrbanRegression()
+    {
+        // Upper 50 mi², fully developed (BDF 12): RQ25 = 1190, RQ100 = 2587; UQ25 = 4515, UQ100 = 8714 cfs (§7.12.2, rounded steps).
+        var r = Ok(new RegionalRegressionTool(), "equations = sd-B\nCA = 50\nPII = 0.76\nBDF = 12\n", Us);
+        var urban = r.Tables.Single(t => t.Title.StartsWith("Urban peaks")).Rows;
+        Near(1190, (double)urban.Single(x => (double)x[0]! == 25)[1]!, 0.002);
+        Near(2587, (double)urban.Single(x => (double)x[0]! == 100)[1]!, 0.002);
+        Near(4515, (double)urban.Single(x => (double)x[0]! == 25)[2]!, 0.005);
+        Near(8714, (double)urban.Single(x => (double)x[0]! == 100)[2]!, 0.005);
+    }
+
+    [Fact]
+    public void Sddot_SubregionsAndErrors()
+    {
+        var tool = new RegionalRegressionTool();
+        // Subregion F needs the main-channel slope; Subregion D warns above 15 mi².
+        Assert.Contains(tool.Run("equations = sd-F\nCA = 20\n", Us).Messages, m => m.Code == "E-RR-007");
+        var f = Ok(tool, "equations = sd-F\nCA = 20\nS = 80\n", Us);
+        Near(0.352 * Math.Pow(20, 0.960) * Math.Pow(80, 1.25), (double)f.Tables[0].Rows.Single(x => (double)x[0]! == 100)[2]!, 0.001);
+        Assert.Contains(Ok(tool, "equations = sd-D\nCA = 40\n", Us).Messages, m => m.Code == "W-RR-004");
+        Assert.Contains(Ok(tool, "equations = sd-C\nCA = 2000\n", Us).Messages, m => m.Code == "W-RR-001");
+        Assert.Contains(tool.Run("equations = sd-H\nCA = 20\n", Us).Messages, m => m.Code == "E-RR-008");
+        Assert.Equal(7, RegionalRegressionTool.SouthDakota.Count);
+    }
+
+    // ---------------- Rinker Rapid City shop drawings (48 in. sanitary, Feb. 2026) ----------------
+    [Fact]
+    public void Rinker_ShopDrawings48()
+    {
+        // Barrels listed at 1,150.5 lb (16 in.), 2,299.5 lb (32 in.), 3,450 lb (4 ft) and 4,600.5 lb (64 in.): 862.5 lb/ft.
+        foreach (var (lb, ft) in new[] { (1150.5, 16 / 12.0), (2299.5, 32 / 12.0), (3450.0, 4.0), (4600.5, 64 / 12.0) })
+            Near(ManholeSizingTool.Rinker48ShopLbPerFt, lb / ft, 0.001);
+        // The 5 in. wall at 150 pcf gives 867 lb/ft, within 0.6 % of the printed weight.
+        Near(ManholeSizingTool.Rinker48ShopLbPerFt, ManholeSizingTool.RinkerWeightPerFoot(ManholeSizingTool.RinkerManhole(48)!), 0.006);
+        Assert.Equal(6, ManholeSizingTool.RinkerManhole(48)!.BaseIn);
+    }
 }

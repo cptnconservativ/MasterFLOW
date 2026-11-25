@@ -20,7 +20,9 @@ public sealed class ManholeSizingTool : IDesignTool
     /// Walls for 48–72 in. and the 12 in. cast floor of the 60 and 72 in. are printed on Rinker drawings 016 and 017; the
     /// 6 in. for the 48 and 54 in. base is the only slab dimension on drawing 016. Rinker's 84–144 in. sheet (016, 03/2023)
     /// prints no dimensions, so those walls follow the same ID/12 + 1 in. rule the smaller sizes fit and the bases use 12 in.;
-    /// confirm both with Rinker.
+    /// confirm both with Rinker. The Rapid City plant's 48 in. sanitary shop drawings (Feb. 2026 submittal) confirm the 5 in. wall
+    /// and 6 in. floor, list the barrel at 862.5 lb/ft (theoretical design weight; 1,150.5 lb per 16 in. up to 4,600.5 lb per
+    /// 5.33 ft), and show the extended base option as an 8 in. slab projecting 6 in. beyond the outside wall.
     /// </summary>
     public sealed record PrecastManhole(double IdIn, double WallIn, double BaseIn, bool Printed);
 
@@ -32,6 +34,12 @@ public sealed class ManholeSizingTool : IDesignTool
 
     /// <summary>The Rinker manhole with this inside diameter (in.), within half an inch, or null.</summary>
     public static PrecastManhole? RinkerManhole(double idIn) => Rinker.FirstOrDefault(m => Math.Abs(m.IdIn - idIn) < 0.5);
+
+    /// <summary>Rinker 48 in. barrel weight printed on the Rapid City shop drawings, lb per vertical foot.</summary>
+    public const double Rinker48ShopLbPerFt = 862.5;
+
+    /// <summary>Rinker 48 in. extended base (shop drawings): slab thickness and projection beyond the outside wall, in.</summary>
+    public const double Rinker48ExtendedBaseIn = 8, Rinker48ExtendedProjectionIn = 6;
 
     /// <summary>Concrete weight of a Rinker barrel per vertical foot (lb/ft) at 150 pcf.</summary>
     public static double RinkerWeightPerFoot(PrecastManhole m) => 150 * Math.PI / 4 * (Math.Pow((m.IdIn + 2 * m.WallIn) / 12, 2) - Math.Pow(m.IdIn / 12, 2));
@@ -236,7 +244,7 @@ public sealed class ManholeSizingTool : IDesignTool
             new("Opening pairs at the chosen size", ["Structure", "Pipes", "Plan angle (deg)", "Needed (deg)", $"Wall left ({U})", "Check"], prows),
         };
         msgs.Add(CalcMessage.Info("I-MH-002", "Check the result against the precaster's maximum hole size table and the structure's base and cone/top slab openings; this tool checks the barrel wall only."));
-        if (!si) msgs.Add(CalcMessage.Info("I-MH-003", "Default sizes are Rinker's round manholes (48 to 144 in.); Rinker walls: 48 in. 5 in., 54 in. 5½ in., 60 in. 6 in., 72 in. 7 in. (drawings 016/017). Use them in the buoyancy tool by leaving Wall and Base blank."));
+        if (!si) msgs.Add(CalcMessage.Info("I-MH-003", "Default sizes are Rinker's round manholes (48 to 144 in.); Rinker walls: 48 in. 5 in., 54 in. 5½ in., 60 in. 6 in., 72 in. 7 in. (drawings 016/017; the 48 in. 5 in. wall and 6 in. floor are confirmed by Rinker Rapid City shop drawings, 862.5 lb/ft barrel; extended base 8 in. thick, 6 in. projection). Use them in the buoyancy tool by leaving Wall and Base blank."));
         return new ToolResult(title, summary, tables, msgs);
     }
 

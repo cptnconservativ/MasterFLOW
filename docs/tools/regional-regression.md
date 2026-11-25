@@ -38,4 +38,14 @@ report or a StreamStats report into the `[Equations]` table. The sample's coeffi
   in `ManualWorkedExampleTests`: Q25 = 900 cfs, 600 to 1,300 cfs within 1 SE. HDS-2 prints no national coefficients;
   regression coefficients stay inputs from the USGS report for the region (for western South Dakota, the USGS South
   Dakota peak-flow report).
+- D-565 (2026-11-25): `equations = sd-A` … `sd-G` loads the South Dakota rural equations of the SDDOT Drainage Manual
+  (October 2011) Figure 7.9-C (USGS SIR 2008-5104) for that hydrologic subregion (Figure 7.9-A), with their standard
+  errors of prediction, equivalent years of record and the Figure 7.9-D ranges. Site values are `CA` (mi²), `PII` (in.,
+  Subregions A and B, Figure 7.9-B) and `S` (ft/mi, Subregion F). The §7.9.2.2 cautions (Subregion D above 15 mi², karst
+  losses in the Black Hills Subregions F and G) and the §7.9.2.5 check for large errors are shown as messages. This
+  supersedes D-560 for South Dakota; other regions still type their equations in.
+- D-566 (2026-11-25): `BDF = 0…12` adds the USGS nationwide three-parameter urban equations, UQ = RC·A^b1·(13 −
+  BDF)^b2·RQ^b3 (SDDOT Figure 7.11-A, the form HDS-2 recommends), applied to the rural estimate, for 0.2–100 mi².
+  SDDOT Examples 7.10 (Q25 3,501, Q100 8,206 cfs) and 7.12 (UQ25 4,515, UQ100 8,714 cfs) are reproduced in
+  `ManualWorkedExampleTests`; the urban values differ by 0.2 % because the manual rounds A^0.15 to 1.8.
 
