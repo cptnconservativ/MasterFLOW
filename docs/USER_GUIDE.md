@@ -1939,7 +1939,7 @@ computer; extracted text is cached so later searches take a second or two.
 Free · `sanitary-lift-station` · U.S. units
 
 Checks a wastewater lift station and its force main, and gives the hydraulic items Rapid City IDCM §3.13.3 asks the
-lift station design report to contain. Input: average, peak and minimum flows; the number of identical pumps and one
+lift station design report to contain. Input: average, peak and initial (first-year) average flows; the number of identical pumps and one
 pump's curve; the wet well size and control levels (off, lead on, lag on, alarm); the force main length, diameter,
 Hazen-Williams C and fitting K; the discharge elevation and, optionally, the force main profile.
 
@@ -1950,11 +1950,14 @@ The tool reports:
   flow, and brake horsepower with the next motor size
 - the force main velocity (2 ft/s minimum)
 - the wet well volume against V = T·Q/4 and the cycle times
-- detention in the wet well and force main at the minimum flow (30 and 120 min warning limits, adjustable)
+- detention at the initial average flow: wet well 30 min (City of Fort Wayne SA8.07.1); force main under 35 min needs
+  nothing, 35 to 90 min protect the discharge manhole, over 90 min active H2S control (Clean Water Services Ch. 9);
+  wet well plus force main 180 min (New Braunfels Utilities). All adjustable.
 - Joukowsky surge against the pressure class
 - air valves at high points
 
-Ten States Standards Ch. 40 supplies the limits; the detention limits are MasterFlow defaults (D-712).
+Ten States Standards Ch. 40 supplies the pump and force main limits. Neither it nor the IDCM sets detention times, so
+those come from the utility criteria named above (D-712).
 
 # Verification status and known limits
 
@@ -2046,6 +2049,7 @@ are in its document under `docs/tools/`.
 - NOAA Atlas 14 Precipitation-Frequency Atlas, Volume 8.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Water Works* (Ten States Standards), §38.3.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Wastewater Facilities* (Ten States Standards), 2014, Ch. 40.
+- City of Fort Wayne, *SA8 Lift Station and Force Main Design*; Clean Water Services, *Design and Construction Standards* Ch. 9 (pump stations); New Braunfels Utilities, *Lift Station Design Criteria* (2024).
 - 2010 ADA Standards for Accessible Design, §403 and §405.
 - FHWA HEC-9, *Debris Control Structures Evaluation and Countermeasures*, 3rd ed., 2005; NCHRP Report 653, 2010.
 - FHWA HEC-11, *Design of Riprap Revetment*, 1989.

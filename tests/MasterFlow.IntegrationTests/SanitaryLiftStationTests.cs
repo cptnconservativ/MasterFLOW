@@ -18,7 +18,8 @@ public class SanitaryLiftStationTests
     {
         var r = Run(Sample);
         Assert.True(r.Succeeded, string.Join("\n", r.Messages.Select(m => m.Text)));
-        Assert.DoesNotContain(r.Messages, m => m.Severity == MessageSeverity.Warning);
+        // The sample's 2,600 ft force main holds 64 min at the initial flow: protect the discharge (35–90 min), nothing else.
+        Assert.Equal(["W-LS-007"], r.Messages.Where(m => m.Severity == MessageSeverity.Warning).Select(m => m.Code));
         Assert.NotEmpty(r.Charts);
         Assert.False(Tool.Run(Sample, new DesignToolContext(UnitSystem.SI)).Succeeded);
     }
@@ -57,9 +58,20 @@ public class SanitaryLiftStationTests
         Assert.Contains(Run(Sample.Replace("peak flow = 300", "peak flow = 500")).Messages, m => m.Code == "W-LS-001");
         Assert.Contains(Run(Sample.Replace("force main diameter = 6", "force main diameter = 12")).Messages, m => m.Code == "W-LS-002");
         Assert.Contains(Run(Sample.Replace("lead on = 3372.5", "lead on = 3371.0")).Messages, m => m.Code == "W-LS-004");
-        Assert.Contains(Run(Sample.Replace("minimum flow = 60", "minimum flow = 20")).Messages, m => m.Code is "W-LS-005" or "W-LS-007");
+        Assert.Contains(Run(Sample.Replace("initial average flow = 60", "initial average flow = 25")).Messages, m => m.Code == "W-LS-005");
         Assert.Contains(Run(Sample.Replace("pressure class = 235", "pressure class = 80")).Messages, m => m.Code == "W-LS-009");
         Assert.Contains(Run(Sample.Replace("2600\t3410", "2600\t3420")).Messages, m => m.Code == "W-LS-006");
+    }
+
+    [Theory]
+    [InlineData(150, null)]          // 3,819 gal / 150 gpm = 25 min: no H2S measures
+    [InlineData(60, "protect")]      // 64 min: protect the discharge
+    [InlineData(35, "active")]       // 109 min: active H2S control
+    public void ForceMainDetention_CleanWaterServicesTiers(double q, string? expect)
+    {
+        var r = Run(Tool.SampleInput(Us).Replace("initial average flow = 60", $"initial average flow = {q}"));
+        var m = r.Messages.Where(x => x.Code == "W-LS-007").ToList();
+        if (expect is null) Assert.Empty(m); else Assert.Contains(expect, Assert.Single(m).Text);
     }
 
     [Fact]

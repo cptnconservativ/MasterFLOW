@@ -49,7 +49,7 @@ public sealed class SanitaryLiftStationTool : IDesignTool
         # Sanitary lift station and force main. U.S. units: flows gpm, elevations and lengths ft, diameters in.
         average flow = 120          # gpm, design average (e.g. from the sanitary sewer network tool)
         peak flow = 300             # gpm, design peak hour
-        minimum flow = 60           # gpm, initial-year low flow (for detention times; blank = average)
+        initial average flow = 60   # gpm, average dry-weather flow in the first year (longest detention); blank = average flow
         pumps = 2                   # identical pumps; firm capacity = all but one running
         wet well diameter = 8       # ft inside (Rinker round), or give "wet well area" in ft²
         wet well bottom = 3368.0
@@ -100,7 +100,7 @@ public sealed class SanitaryLiftStationTool : IDesignTool
             return v;
         }
         double? qAvg = Need("average flow", "the average flow"), qPeak = Need("peak flow", "the peak flow");
-        double qMin = p.Number("minimum flow", qAvg ?? 0);
+        double qMin = p.Number("initial average flow", p.Number("minimum flow", qAvg ?? 0));
         int pumps = (int)Math.Round(p.Number("pumps", 2));
         double? off = Need("pump off", "the pump-off level"), leadOn = Need("lead on", "the lead pump-on level"), hd = Need("discharge elevation", "the force main discharge elevation");
         double? lagOn = p.OptionalNumber("lag on"), alarm = p.OptionalNumber("high alarm"), inletInv = p.OptionalNumber("inlet invert"), bottom = p.OptionalNumber("wet well bottom");
@@ -109,7 +109,10 @@ public sealed class SanitaryLiftStationTool : IDesignTool
         double c = p.Number("hazen C", 120), k = p.Number("minor K", 0), eff = p.Number("efficiency", 0.65), tMin = p.Number("min cycle time", 10);
         double a = p.Number("wave speed", 1300), pClass = p.Number("pressure class", 0);
         double vMin = p.Number("min velocity", 2.0), vMax = p.Number("max velocity", 8.0);
-        double wwDetMax = p.Number("max wet well detention", 30), fmDetMax = p.Number("max force main detention", 120);
+        // Detention limits from published utility criteria (see docs/tools/sanitary-lift-station.md, D-712).
+        double wwDetMax = p.Number("max wet well detention", 30);
+        double fmProtect = p.Number("force main detention protect", 35), fmControl = p.Number("force main detention control", 90);
+        double totalDetMax = p.Number("max total detention", 180);
 
         var curve = new List<(double Q, double H)>();
         foreach (var r in p.Rows("Pump curve"))
@@ -167,7 +170,7 @@ public sealed class SanitaryLiftStationTool : IDesignTool
         double tWorst = 4 * vol / q1Off;
         double tAvg = CycleTime(vol, q1Off, Qa), tMinFlow = CycleTime(vol, q1Off, qMin);
         double storedToOn = bottom is { } b ? area * (leadOn.Value - b) * 7.4805 : vol;
-        double wwDet = storedToOn / qMin;
+        double wwDet = vol / qMin, wwDetAvg = vol / Qa;   // operating volume (off to lead on), as V = Qavg·Tdet
         double fmVol = pipeArea * L * 7.4805;
         double fmDet = fmVol / qMin;
 
@@ -180,7 +183,7 @@ public sealed class SanitaryLiftStationTool : IDesignTool
         {
             $"One pump: {q1Off:F0} gpm at {tdh1:F1} ft TDH (pump off) to {q1On:F0} gpm (wet well at {(lagOn ?? leadOn.Value):F2}); force main {V(q1Off):F2} ft/s.",
             $"Firm capacity ({firmN} of {pumps} pumps, largest out of service): {qFirm:F0} gpm against the {Qp:F0} gpm peak — {(qFirm >= Qp - 1e-9 ? "OK" : "SHORT")}.",
-            $"Wet well {vol:F0} gal between off and lead on; shortest cycle {tWorst:F1} min (needs {tMin:G3}); detention at {qMin:F0} gpm {wwDet:F0} min, force main {fmDet:F0} min.",
+            $"Wet well {vol:F0} gal between off and lead on; shortest cycle {tWorst:F1} min (needs {tMin:G3}); detention at the initial average {qMin:F0} gpm: wet well {wwDet:F0} min, force main {fmDet:F0} min.",
             $"Brake horsepower {bhp:F1} hp at {eff:P0} efficiency; next standard motor {(double.IsNaN(motor) ? "over 300" : motor.ToString("G4"))} hp. Surge on sudden stop ΔH = {dH:F0} ft, peak {pMax:F0} psi" + (pClass > 0 ? $" against class {pClass:G4} psi." : "."),
         };
 
@@ -188,8 +191,10 @@ public sealed class SanitaryLiftStationTool : IDesignTool
         if (V(q1Off) < vMin - 1e-9) msgs.Add(CalcMessage.Warning("W-LS-002", $"Force main velocity {V(q1Off):F2} ft/s with one pump is below {vMin:G3} ft/s (Ten States Ch. 40 force main cleansing velocity); use a smaller force main or larger pump."));
         if (V(qAll) > vMax + 1e-9) msgs.Add(CalcMessage.Warning("W-LS-003", $"Force main velocity {V(qAll):F2} ft/s with all pumps exceeds {vMax:G3} ft/s (head loss and surge)."));
         if (tWorst < tMin - 1e-9) msgs.Add(CalcMessage.Warning("W-LS-004", $"Shortest cycle {tWorst:F1} min is below {tMin:G3} min: raise the lead-on level by {(vReq - vol) / 7.4805 / area:F2} ft (needs {vReq:F0} gal, V = T·Q/4)."));
-        if (wwDet > wwDetMax) msgs.Add(CalcMessage.Warning("W-LS-005", $"Wet well detention {wwDet:F0} min at {qMin:F0} gpm exceeds {wwDetMax:G3} min: septic conditions and odor (IDCM §3.13.3 2d, 2e)."));
-        if (fmDet > fmDetMax) msgs.Add(CalcMessage.Warning("W-LS-007", $"Force main detention {fmDet:F0} min at {qMin:F0} gpm exceeds {fmDetMax:G3} min: sulfide generation likely; address odor control (IDCM §3.13.3 2e)."));
+        if (wwDet > wwDetMax) msgs.Add(CalcMessage.Warning("W-LS-005", $"Wet well detention {wwDet:F0} min at the initial average flow {qMin:F0} gpm exceeds {wwDetMax:G3} min (Fort Wayne SA8.07.1; 30 min at average flow is common practice): septic conditions and odor (IDCM §3.13.3 2d, 2e). Lower the lead-on level or use variable speed, keeping the minimum cycle time."));
+        if (fmDet > fmControl) msgs.Add(CalcMessage.Warning("W-LS-007", $"Force main detention {fmDet:F0} min at {qMin:F0} gpm exceeds {fmControl:G3} min: install active hydrogen sulfide control (Clean Water Services Ch. 9 §9.01.3.i; IDCM §3.13.3 2e)."));
+        else if (fmDet > fmProtect) msgs.Add(CalcMessage.Warning("W-LS-007", $"Force main detention {fmDet:F0} min at {qMin:F0} gpm is between {fmProtect:G3} and {fmControl:G3} min: protect the discharge manhole and downstream sewer from H2S (lining or coating; Clean Water Services Ch. 9 §9.01.3.i)."));
+        if (wwDet + fmDet > totalDetMax) msgs.Add(CalcMessage.Warning("W-LS-013", $"Wet well plus force main detention {wwDet + fmDet:F0} min exceeds {totalDetMax:G3} min (New Braunfels Utilities §3.06.1 odor practice)."));
         if (q1Off <= 0) msgs.Add(CalcMessage.Warning("W-LS-008", $"One pump's shut-off head ({curve[0].H:F1} ft) does not exceed the static head {statMax:F1} ft: no flow."));
         if (pClass > 0 && pMax > pClass) msgs.Add(CalcMessage.Warning("W-LS-009", $"Static plus Joukowsky surge {pMax:F0} psi exceeds the {pClass:G4} psi pressure class; add surge relief, slow-closing check valves, or a heavier class (detailed transient analysis recommended)."));
         if (D < 4 - 1e-9) msgs.Add(CalcMessage.Warning("W-LS-010", $"Force main {D:G3} in. is below the 4 in. minimum (Ten States Ch. 40) unless grinder pumps are used."));
@@ -198,7 +203,7 @@ public sealed class SanitaryLiftStationTool : IDesignTool
         if (q1Off > curve[^1].Q * 0.999 || qAll / pumps > curve[^1].Q * 0.999) msgs.Add(CalcMessage.Warning("W-LS-012", "An operating point runs off the end of the pump curve; extend the curve or choose another pump."));
         foreach (var h in highs) msgs.Add(CalcMessage.Info("I-LS-001", $"High point at station {h.Sta:F0} ({h.Elev:F2}): combination air release / vacuum valve (Ten States Ch. 40)."));
         msgs.Add(CalcMessage.Info("I-LS-002", "IDCM §3.13.3 design report items covered: pump number, capacity and horsepower; system head curve with force main size, length and C; detention times in the wet well and force main. NPSH (dry-pit pumps), odor control, standby power, O&M and economics are for the report."));
-        msgs.Add(CalcMessage.Info("I-LS-003", $"Limits: firm capacity with the largest pump out, 2 ft/s minimum force main velocity (Ten States Ch. 40), cycle V = T·Q/4; wet well {wwDetMax:G3} min and force main {fmDetMax:G3} min detention are MasterFlow defaults (change max wet well detention / max force main detention)."));
+        msgs.Add(CalcMessage.Info("I-LS-003", $"Limits: firm capacity with the largest pump out, 2 ft/s minimum force main velocity (Ten States Ch. 40), cycle V = T·Q/4; detention at the initial average flow: wet well ≤ {wwDetMax:G3} min (Fort Wayne SA8.07.1), force main < {fmProtect:G3} min needs no H2S measures, {fmProtect:G3}–{fmControl:G3} min protect the discharge, over {fmControl:G3} min active control (Clean Water Services §9.01.3.i), wet well + force main ≤ {totalDetMax:G3} min (New Braunfels §3.06.1). Change with max wet well detention, force main detention protect / control, max total detention."));
 
         // Tables
         var curveRows = new List<IReadOnlyList<object?>>();
@@ -223,7 +228,7 @@ public sealed class SanitaryLiftStationTool : IDesignTool
             ["Operating volume, off to lead on (gal)", R(vol, 0)], ["Required V = T·Q/4 (gal)", R(vReq, 0)],
             ["Shortest cycle, inflow = Q/2 (min)", R(tWorst, 1)], [$"Cycle at average flow {Qa:F0} gpm (min)", R(tAvg, 1)], [$"Cycle at minimum flow {qMin:F0} gpm (min)", R(tMinFlow, 1)],
             ["Starts per hour (worst case)", R(60 / tWorst, 1)],
-            [$"Wet well detention at {qMin:F0} gpm (min)", R(wwDet, 0)], ["Force main volume (gal)", R(fmVol, 0)], [$"Force main detention at {qMin:F0} gpm (min)", R(fmDet, 0)],
+            [$"Wet well detention at initial average {qMin:F0} gpm (min)", R(wwDet, 0)], [$"Wet well detention at average {Qa:F0} gpm (min)", R(wwDetAvg, 0)], [$"Held below lead on at initial average (min)", R(storedToOn / qMin, 0)], ["Force main volume (gal)", R(fmVol, 0)], [$"Force main detention at initial average {qMin:F0} gpm (min)", R(fmDet, 0)], ["Wet well + force main (min)", R(wwDet + fmDet, 0)],
             ["Velocity at one pump (ft/s)", R(V(q1Off), 2)], ["Surge ΔH = a·V/g (ft)", R(dH, 1)], ["Static + surge (psi)", R(pMax, 0)],
         ];
         var tables = new List<ToolTable>
