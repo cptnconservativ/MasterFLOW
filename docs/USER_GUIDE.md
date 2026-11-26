@@ -1963,8 +1963,11 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
   are the alternatives. Infiltration (gpd per inch-mile) and inflow (gpd/ac) are optional (zero by default).
 - Manning depth and velocity at peak and average flow in each pipe.
 - Design, upstream first: the smallest size (not below 8 in. or any pipe upstream) meeting d/D ≤ 0.70, at the
-  steeper of the Ten States minimum slope, the slope giving 2.0 ft/s at peak flow, and the slope that keeps the
-  minimum cover at the next manhole. Upstream inverts give each manhole its required drop and match crowns.
+  steeper of the Ten States minimum slope and the slope that keeps the minimum cover at the next manhole. Upstream
+  inverts give each manhole its required drop and match crowns.
+- Sewers under 2.0 ft/s at peak flow are not steepened. They are listed under **Design exceptions** with the slope
+  they would need and their average-flow velocity (1.8 ft/s deviation), so you can steepen them or request a design
+  exception from the Public Works Director.
 - Checks: d/D, velocities, Ten States minimum slope, 10 ft/s, minimum size, larger pipe upstream, n < 0.013, manhole
   spacing (400 / 500 ft), cover, slopes over 20 %, manhole drops, crowns and drop manholes (2 ft and more; the City
   allows them only with written permission and never inside the manhole).
@@ -1972,10 +1975,9 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 - Hydrogen sulfide (IDCM 3.12.14): Z at 1 % to 105 % of peak flow on the flattest slope, for every pipe up to 24 in.
 - A profile of the longest flow path with rims, invert, crown and the peak water surface.
 
-**Points to confirm.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and
-with the slope in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed;
-`h2s formula = Pomeroy` uses the original (D-704). The 2.0 ft/s minimum is applied at peak flow as the IDCM says,
-which steepens the first pipes of each line beyond the Ten States minimum (D-706).
+**Note.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and with the slope
+in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
+governs; `h2s formula = Pomeroy` uses the original (D-704).
 
 # Verification status and known limits
 

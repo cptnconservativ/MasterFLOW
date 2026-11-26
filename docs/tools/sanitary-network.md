@@ -78,7 +78,8 @@ outlet invert.
 **Design** (blank cells), upstream first. Sizes are tried from the smallest listed size that is not below the
 minimum or any upstream pipe. For each size:
 
-1. Minimum slope = the steeper of the Ten States slope and the slope giving `min velocity` at peak (or full) flow.
+1. Minimum slope = the Ten States slope (with `min velocity basis = full`, also the slope for that velocity full). The
+   velocity at peak flow is checked afterwards, not designed for (D-706).
 2. Upstream invert = the lowest of: rim − cover − D (− 2 walls); each inlet's invert − its required drop; the inlet
    crown minus D (crowns matched).
 3. Slope = the steeper of the minimum and the slope keeping the minimum cover at the next manhole, capped at the
@@ -98,16 +99,17 @@ common.
 
 ## Decisions
 
-- **D-704** IDCM 3.12.14 prints Z = EBOD/(S^½·Q^⅓)·P/B with S in ft/ft. The source it cites (Pomeroy; EPA 1974;
+- **D-704** (Confirmed by Kyle 2026-11-26: use the IDCM form.) IDCM 3.12.14 prints Z = EBOD/(S^½·Q^⅓)·P/B with S in ft/ft. The source it cites (Pomeroy; EPA 1974;
   ASCE MOP 60) is Z = 3·EBOD/(S^½·Q^⅓)·P/B with S in ft/100 ft, which gives values 3.3 times smaller. The IDCM form
   is the default because the IDCM governs; with it almost every small sewer at minimum slope rates "common".
-  `h2s formula = Pomeroy` uses the original form. To be confirmed with the City.
+  `h2s formula = Pomeroy` uses the original form.
 - **D-705** The IDCM Z table prints "Z < 8,000 rare" and "5,000 ≤ Z ≤ 10,000 marginal", which overlap. MasterFlow
   takes 5,000 as the upper limit of rare (the marginal row and Pomeroy's original limits).
-- **D-706** The 2.0 ft/s minimum is checked at the design peak flow as IDCM 3.12.6 item 1 states; at the head of a
-  line this needs a slope steeper than the Ten States minimum. The 1.8 ft/s average-flow deviation (item 2) needs
-  written approval, so it is reported (W-SS-002 says when it would be met) but not applied. `min velocity basis =
-  full` checks the Ten States full-flow velocity instead.
+- **D-706** The 2.0 ft/s minimum at the design peak flow (IDCM 3.12.6 item 1) is checked but not designed for (Kyle,
+  2026-11-26). Designed slopes follow the Ten States minimum and cover. A sewer below 2.0 ft/s at peak gets W-SS-002
+  with the slope it would need, and is listed in the "Design exceptions" table with its average-flow velocity against
+  the 1.8 ft/s deviation of item 2, so the engineer can steepen it or request a written design exception.
+  `min velocity basis = full` checks the Ten States full-flow velocity instead.
 - **D-707** RF tables: "<500" and "501–1,000" are read as ≤ 500 and ≤ 1,000 people (and the same for acres). The
   commercial/industrial RF uses the commercial and industrial acres served above the pipe; public loads have no RF.
 - **D-708** Mixed land uses: each load's Qave·PF is multiplied by the RF of its land-use group. EBOD for H2S is the

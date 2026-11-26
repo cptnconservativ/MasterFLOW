@@ -212,6 +212,20 @@ public class SanitarySewerTests
     }
 
     [Fact]
+    public void LowPeakVelocity_IsFlaggedForAnException_NotDesignedAway()
+    {
+        var r = Run(Tool.SampleInput(Us));
+        var ex = r.Tables.Single(t => t.Title.StartsWith("Design exceptions"));
+        var s1 = ex.Rows.Single(x => (string?)x[0] == "S-1");
+        // The designed slope stays below the slope 2 ft/s would need, and that slope is reported.
+        Assert.True(Num(s1[2]) < Num(s1[4]));
+        Assert.True(Num(s1[3]) < 2.0);
+        double need = SanitarySewerTool.SlopeForVelocityAtQ(37.1 / 448.831, 8.0 / 12, 0.013, 2.0) * 100;
+        Assert.Equal(need, Num(s1[4]), 1);
+        Assert.Contains(r.Messages, m => m.Code == "W-SS-002" && m.Text.Contains("design exception"));
+    }
+
+    [Fact]
     public void H2S_ZByHand_IdcmAndPomeroy()
     {
         double z = SanitarySewerTool.ZValue(300, 0.004, 0.1, 1.5, 1.0, pomeroy: false);

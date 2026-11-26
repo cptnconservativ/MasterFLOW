@@ -410,8 +410,9 @@ public sealed class SanitarySewerTool : IDesignTool
                 if (x.DesignInv)
                 {
                     double sMin = TenStatesMinSlope(dIn);
-                    if (vAtPeak && qPk > 0) sMin = Math.Max(sMin, SlopeForVelocityAtQ(qPk, dFt, x.N, vMin));
-                    else sMin = Math.Max(sMin, SlopeForFullVelocity(dFt, x.N, vMin));
+                    // The IDCM 2 ft/s at peak flow is checked, not designed for (Kyle, 2026-11-26): a short pipe is flagged with the
+                    // slope it would need and a design exception is suggested, instead of steepening the line.
+                    if (!vAtPeak) sMin = Math.Max(sMin, SlopeForFullVelocity(dFt, x.N, vMin));
                     double sMaxV = SlopeForFullVelocity(dFt, x.N, vMax);
                     up = DesignUp(dIn, sMin);
                     double dnMax = mTo.Rim!.Value - cover - (dIn + 2 * wallIn) / 12;
@@ -442,6 +443,7 @@ public sealed class SanitarySewerTool : IDesignTool
         var formRows = new List<IReadOnlyList<object?>>();
         var flowRows = new List<IReadOnlyList<object?>>();
         var checkRows = new List<IReadOnlyList<object?>>();
+        var exceptions = new List<IReadOnlyList<object?>>();
         double flattest = pipes.Min(x => x.Slope);
         foreach (var name in order)
         {
@@ -466,10 +468,12 @@ public sealed class SanitarySewerTool : IDesignTool
             else if (yPk / dFt > maxDd + 1e-9) { issues.Add("d/D"); msgs.Add(CalcMessage.Warning("W-SS-001", $"{x.Name}: d/D = {yPk / dFt:F2} at peak flow exceeds {maxDd:G2} (IDCM 3.12.4).")); }
             if (vAtPeak)
             {
-                if (vPk < vMin - 1e-9)
+                if (vPk < vMin - 1e-9 && qPk > 0)
                 {
                     issues.Add("V peak");
-                    msgs.Add(CalcMessage.Warning("W-SS-002", $"{x.Name}: {vPk:F2} ft/s at peak flow is below {vMin:G3} ft/s (IDCM 3.12.6 item 1)." + (vAv >= 1.8 ? $" The average-flow velocity is {vAv:F2} ft/s, so the 1.8 ft/s deviation (item 2) is available with the Public Works Director's written approval." : "")));
+                    double sNeed = SlopeForVelocityAtQ(qPk, dFt, x.N, vMin);
+                    exceptions.Add([x.Name, dIn, R(s * 100, 3), R(vPk, 2), R(sNeed * 100, 3), R(vAv, 2), vAv >= 1.8 ? "1.8 ft/s at average flow met (item 2)" : "below 1.8 ft/s at average flow too"]);
+                    msgs.Add(CalcMessage.Warning("W-SS-002", $"{x.Name}: {vPk:F2} ft/s at peak flow is below {vMin:G3} ft/s (IDCM 3.12.6 item 1); it needs {sNeed * 100:F2} % instead of {s * 100:F2} %. The slope is left as designed: request a design exception from the Public Works Director" + (vAv >= 1.8 ? $" (the average-flow velocity {vAv:F2} ft/s meets the 1.8 ft/s deviation of item 2)." : $" (the average-flow velocity {vAv:F2} ft/s is also below the 1.8 ft/s deviation of item 2).")));
                 }
             }
             else if (vFull < vMin - 1e-9) { issues.Add("V full"); msgs.Add(CalcMessage.Warning("W-SS-002", $"{x.Name}: {vFull:F2} ft/s flowing full is below {vMin:G3} ft/s (Ten States §33.41).")); }
@@ -597,8 +601,14 @@ public sealed class SanitarySewerTool : IDesignTool
                  "Condition: Z < 5,000 rare; 5,000 to 10,000 marginal; over 10,000 common."]));
         if (designed.Count > 0)
             tables.Add(new("Designed sizes and inverts", ["Pipe", "D (in)", "Up invert", "Down invert", "Slope (%)"], designed,
-                [$"Upstream invert = the lowest of: rim − {cover:G3} ft cover − D; each inlet invert − required drop; crown matched to the lowest inlet crown. Slope = the steeper of the minimum (Ten States, and {vMin:G3} ft/s at {(vAtPeak ? "peak" : "full")} flow) and the slope keeping {cover:G3} ft cover at the next manhole, capped at {vMax:G3} ft/s.",
+                [$"Upstream invert = the lowest of: rim − {cover:G3} ft cover − D; each inlet invert − required drop; crown matched to the lowest inlet crown. Slope = the steeper of the Ten States minimum{(vAtPeak ? "" : $" ({vMin:G3} ft/s full)")} and the slope keeping {cover:G3} ft cover at the next manhole, capped at {vMax:G3} ft/s. The {vMin:G3} ft/s at peak flow is checked, not designed for: see \"Design exceptions\".",
                  "Smallest listed size (not below the minimum or any upstream pipe) with d/D within the limit at that slope."]));
+        if (exceptions.Count > 0)
+        {
+            tables.Add(new("Design exceptions: velocity at peak flow (IDCM 3.12.6)", ["Pipe", "D (in)", "Slope (%)", "V peak (ft/s)", $"Slope for {vMin:G3} ft/s (%)", "V average (ft/s)", "Item 2 deviation"], exceptions,
+                [$"These sewers do not reach {vMin:G3} ft/s at the design peak flow (IDCM 3.12.6 item 1). MasterFlow leaves their slopes as designed and lists the slope that would be needed. Steepen them, or request a design exception in writing from the Public Works Director or his designee; item 2 allows down to 1.8 ft/s at average daily flow with that approval."]));
+            summary.Add($"{exceptions.Count} sewer(s) need an increased slope for {vMin:G3} ft/s at peak flow or a design exception; see \"Design exceptions\".");
+        }
 
         msgs.Add(CalcMessage.Info("I-SS-002", rc
             ? "Rapid City IDCM 2012 §3.12 governs, with Ten States Standards (adopted by §3.3.2) where the IDCM refers to them. Master planning documents override the per-capita and per-acre rates (§3.12.2)."
