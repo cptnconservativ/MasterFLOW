@@ -9,7 +9,7 @@ public static class DesignToolCatalog
     public static readonly IReadOnlyList<string> CategoryOrder =
     [
         "Hydrology", "Streets and inlets", "Storm sewer design", "Detention and water quality",
-        "Open channels and structures", "Quantities and cost", "Productivity and deliverables", "Land development and construction", "Other",
+        "Open channels and structures", "Quantities and cost", "Productivity and deliverables", "Land development and construction", "Sanitary sewers", "Other",
     ];
 
     private static readonly Dictionary<string, string> Map = new()
@@ -56,6 +56,8 @@ public static class DesignToolCatalog
         ["stream-stability"] = "Open channels and structures",
         ["climate-stress"] = "Land development and construction", ["memory-search"] = "Land development and construction",
         ["bridge-debris-forces"] = "Open channels and structures",
+        // Sanitary sewer tools (the lift station id is listed ahead of its PR so both PRs leave this block alike).
+        ["sanitary-network"] = "Sanitary sewers", ["sanitary-lift-station"] = "Sanitary sewers",
     };
 
     public static string Category(IDesignTool tool) => Map.TryGetValue(tool.Id, out var c) ? c : "Other";
