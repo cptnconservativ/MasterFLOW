@@ -48,7 +48,7 @@ Charts labelled *Report output* are taken from the HTML report that the tool's *
 
 MasterFlow is a calculation aid. It does not choose Manning's n, runoff coefficients, loss coefficients or criteria
 for you, and it never replaces the judgment of the engineer of record. Every result lists its method, inputs,
-assumptions and warnings so that it can be checked by hand. Chapter 16 lists the items whose published sources could
+assumptions and warnings so that it can be checked by hand. Chapter 17 lists the items whose published sources could
 not be fully verified while the program was built; check those against your copy of the reference before relying on
 them.
 
@@ -160,6 +160,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
+| Sanitary sewers | Lift station and force main (`sanitary-lift-station`) | |
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
@@ -552,6 +553,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Construction-phase companion | `construction-companion` | ★ Premium |
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
+| 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
 
@@ -1930,6 +1932,30 @@ MasterFlow projects (every saved tool input, network and calculation), PDF and W
 engineering synonyms (sag = sump = low point; inlet = catch basin = CB …) and number forms (6 % = 0.06). Nothing leaves the
 computer; extracted text is cached so later searches take a second or two.
 
+# Sanitary sewers
+
+## Sanitary lift station and force main
+
+Free · `sanitary-lift-station` · U.S. units
+
+Checks a wastewater lift station and its force main, and gives the hydraulic items Rapid City IDCM §3.13.3 asks the
+lift station design report to contain. Input: average, peak and minimum flows; the number of identical pumps and one
+pump's curve; the wet well size and control levels (off, lead on, lag on, alarm); the force main length, diameter,
+Hazen-Williams C and fitting K; the discharge elevation and, optionally, the force main profile.
+
+The tool reports:
+- the system head curves at the pump-off and pump-on levels, taken to the discharge or to a higher point on the
+  force main
+- operating points for one to all pumps, the firm capacity with the largest pump out of service against the peak
+  flow, and brake horsepower with the next motor size
+- the force main velocity (2 ft/s minimum)
+- the wet well volume against V = T·Q/4 and the cycle times
+- detention in the wet well and force main at the minimum flow (30 and 120 min warning limits, adjustable)
+- Joukowsky surge against the pressure class
+- air valves at high points
+
+Ten States Standards Ch. 40 supplies the limits; the detention limits are MasterFlow defaults (D-712).
+
 # Verification status and known limits
 
 Every tool is tested against independent hand calculations or published examples (listed in each tool's document under
@@ -2019,6 +2045,7 @@ are in its document under `docs/tools/`.
 - Mile High Flood District, *Urban Storm Drainage Criteria Manual*, Volumes 1 and 3.
 - NOAA Atlas 14 Precipitation-Frequency Atlas, Volume 8.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Water Works* (Ten States Standards), §38.3.
+- Great Lakes–Upper Mississippi River Board, *Recommended Standards for Wastewater Facilities* (Ten States Standards), 2014, Ch. 40.
 - 2010 ADA Standards for Accessible Design, §403 and §405.
 - FHWA HEC-9, *Debris Control Structures Evaluation and Countermeasures*, 3rd ed., 2005; NCHRP Report 653, 2010.
 - FHWA HEC-11, *Design of Riprap Revetment*, 1989.
