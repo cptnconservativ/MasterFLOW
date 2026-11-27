@@ -48,6 +48,7 @@ public static class PremiumFeatures
         new("dynamic-wave", "Dynamic-wave storm sewer routing (unsteady HGL, surcharge and flooding)", ["dynamic-wave"]),
         new("sanitary-network", "Sanitary sewer network design (Rapid City IDCM §3.12: design flows, sizing, inverts, H2S)", ["sanitary-network"]),
         new("sanitary-plan-profile-dxf", "Sanitary sewer plan and profile DXF sheets (peak water surface, d/D, design exception flags)", ["sanitary-plan-profile-dxf"]),
+        new("sanitary-deep-structural", "Sanitary sewer structural check at designed depths (PVC/HDPE deflection, RCP class)", ["sanitary-deep-structural"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
