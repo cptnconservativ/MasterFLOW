@@ -146,8 +146,19 @@ public sealed class SanitarySewerTool : IDesignTool
             """;
     }
 
-    public ToolResult Run(string input, DesignToolContext context)
+    public ToolResult Run(string input, DesignToolContext context) => Run(input, context, out _);
+
+    /// <summary>One designed or checked sewer, for tools that build on this one (trunk HGL, build-out phasing). Flows in gpm include I/I; lengths and elevations in ft (Run = the length the slope is measured over, inside wall to inside wall); D in inches.</summary>
+    public sealed record DesignedSewer(string Name, string From, string To, double Length, double Run, double DiameterIn, double UpInvert, double DownInvert, double N, double Slope, double QaveGpm, double QpeakGpm, double Population, bool SizeDesigned);
+    /// <summary>A manhole of the design: rim (null when not given), deflection (deg, null when not given), coordinates.</summary>
+    public sealed record DesignedManhole(string Name, double? Rim, double? Deflection, double? Northing, double? Easting);
+    /// <summary>The sewers and manholes after design, upstream first.</summary>
+    public sealed record SanitaryDesign(IReadOnlyList<DesignedSewer> Sewers, IReadOnlyList<DesignedManhole> Manholes);
+
+    /// <summary>Runs the tool and also returns the designed sewers (null when the run failed).</summary>
+    public ToolResult Run(string input, DesignToolContext context, out SanitaryDesign? design)
     {
+        design = null;
         const string title = "Sanitary sewer network design";
         if (context.Units == UnitSystem.SI)
             return ToolResult.Failed(title, CalcMessage.Error("E-SS-001", "The sanitary sewer tool works in U.S. units (gpm, in., ft) as the Rapid City IDCM and Ten States Standards are written; switch the project to U.S. units."));
@@ -651,6 +662,10 @@ public sealed class SanitarySewerTool : IDesignTool
                     : np).ToList(),
             };
 
+        design = new SanitaryDesign(
+            order.Select(nm => byName[nm]).Select(x => new DesignedSewer(x.Name, x.From, x.To, x.Length, Run(x), x.D!.Value, x.Up!.Value, x.Dn!.Value, x.N, x.Slope,
+                x.QaveGpm + x.Ii, x.QpeakGpm + x.Ii, x.PopRes, x.DesignD)).ToList(),
+            mhs.Values.Select(m => new DesignedManhole(m.Name, m.Rim, m.Deflection, m.N, m.E)).ToList());
         return new ToolResult(title, summary, tables, msgs)
         {
             Figures = figures,
