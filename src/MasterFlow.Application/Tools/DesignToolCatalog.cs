@@ -59,6 +59,7 @@ public static class DesignToolCatalog
         // Sanitary sewer tools (the lift station id is listed ahead of its PR so both PRs leave this block alike).
         ["sanitary-network"] = "Sanitary sewers", ["sanitary-lift-station"] = "Sanitary sewers",
         ["sanitary-wet-weather"] = "Sanitary sewers",
+        ["sewer-sulfide"] = "Sanitary sewers",
     };
 
     public static string Category(IDesignTool tool) => Map.TryGetValue(tool.Id, out var c) ? c : "Other";
