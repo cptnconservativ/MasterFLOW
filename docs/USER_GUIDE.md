@@ -164,7 +164,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
-| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`) |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); build-out projection and phasing (`sanitary-buildout`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -555,6 +555,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer build-out projection and phasing | `sanitary-buildout` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
@@ -1980,6 +1981,35 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 **Note.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and with the slope
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
+
+## Sanitary sewer build-out projection and phasing ★ Premium
+
+★ Premium · `sanitary-buildout` · U.S. units
+
+Answers "build it now or oversize it?" for planned sewers. Flows are projected year by year from today's loads to
+build-out, and each sewer gets the year it reaches d/D 0.70 at peak flow and the year it surcharges.
+
+**Input.** Use the same input as **Sanitary sewer network design**, with the planned sizes and inverts given. Add:
+
+- `base year` and `build-out year`.
+- `[Loads]`: today's loads.
+- `[Growth]`: the growth by basin. Each row has the manhole, land use, area, DU/ac, population or flow, the Start
+  year and the End year. The load rises linearly from the Start year to the End year. With no End year, it is all
+  added in the Start year.
+- `decision horizon` (20 years) and `report every` (5 years).
+
+**Results.**
+- A phasing table: each sewer's peak flow and d/D today and at build-out, the year it passes 0.70, the year it
+  surcharges, and the size the build-out flow needs on the same slope. The recommendation is one of:
+  - adequate;
+  - over the limit already;
+  - build the build-out size now (it reaches the limit within the horizon);
+  - build as planned and relieve it by the year it reaches the limit.
+- d/D by year, flow at the outlet by year, the growth schedule, and a chart of d/D against year with the 0.70 line.
+
+**Note.** Peaking and reduction factors are worked out again each year (D-728). The horizon rule is a planning input,
+not a City criterion (D-726). For a trunk near the limit, check the backwater with **Sanitary trunk sewer HGL** using
+that year's loads.
 
 ## Sanitary lift station and force main
 
