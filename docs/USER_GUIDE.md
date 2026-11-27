@@ -160,7 +160,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
-| Sanitary sewers | Lift station and force main (`sanitary-lift-station`) | |
+| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), sulfide build-up and corrosion (`sewer-sulfide`) | |
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
@@ -557,6 +557,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer build-out projection and phasing | `sanitary-buildout` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
+| 16 Sanitary sewers | Sewer sulfide build-up and corrosion | `sewer-sulfide` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
 
@@ -2036,6 +2037,28 @@ The tool reports:
 
 Ten States Standards Ch. 40 supplies the pump and force main limits. Neither it nor the IDCM sets detention times, so
 those come from the utility criteria named above (D-712).
+
+## Sewer sulfide build-up and corrosion
+
+Free · `sewer-sulfide` · U.S. units
+
+Follows the sulfide concentration reach by reach down a long trunk sewer or force main, and gives each concrete reach a
+corrosion rate and a material recommendation for the IDCM §3.12.1 75-year design life (§3.12.8 item 2 asks for the
+corrosion protection to reach it). Input: the wastewater BOD, temperature and pH, the sulfide entering the run, and
+the reaches in flow order (type, length, diameter, slope, n, average flow, material).
+
+The tool reports:
+- sulfide in and out of each reach and the limiting sulfide of each gravity reach (Pomeroy–Parkhurst, EPA 1985 and
+  ASCE MOP 69), with force mains and surcharged reaches built up by the full-pipe equation
+- the H2S flux to the exposed wall and the concrete corrosion rate 11.5·k·φ/A, the loss over the design life, and
+  the years to lose the allowable 1 in. of cover
+- a recommendation for each reach: plain concrete, calcareous aggregate or extra sacrificial concrete, or PVC, HDPE
+  or PP pipe or lined RCP with lined or coated manholes
+- charts of sulfide and of corrosion rate along the run
+
+This is the MOP 60 sulfide analysis IDCM §3.12.14 asks for on sewers over 24 in. The Z screening stays in the
+sanitary sewer network tool, with the formula as printed. Drops, junctions and force main discharges release H2S
+locally; the tool flags them but does not model them (D-758).
 
 # Verification status and known limits
 
