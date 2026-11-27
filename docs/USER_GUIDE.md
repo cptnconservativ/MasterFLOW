@@ -48,7 +48,7 @@ Charts labelled *Report output* are taken from the HTML report that the tool's *
 
 MasterFlow is a calculation aid. It does not choose Manning's n, runoff coefficients, loss coefficients or criteria
 for you, and it never replaces the judgment of the engineer of record. Every result lists its method, inputs,
-assumptions and warnings so that it can be checked by hand. Chapter 16 lists the items whose published sources could
+assumptions and warnings so that it can be checked by hand. Chapter 17 lists the items whose published sources could
 not be fully verified while the program was built; check those against your copy of the reference before relying on
 them.
 
@@ -160,9 +160,11 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
+| Sanitary sewers | Lift station and force main (`sanitary-lift-station`) | |
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -552,6 +554,8 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Construction-phase companion | `construction-companion` | ★ Premium |
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
 
@@ -1930,6 +1934,79 @@ MasterFlow projects (every saved tool input, network and calculation), PDF and W
 engineering synonyms (sag = sump = low point; inlet = catch basin = CB …) and number forms (6 % = 0.06). Nothing leaves the
 computer; extracted text is cached so later searches take a second or two.
 
+# Sanitary sewers
+
+## Sanitary sewer network design ★ Premium
+
+★ Premium · `sanitary-network` · U.S. units
+
+Designs and checks a gravity sanitary sewer network by the City of Rapid City IDCM (2012) §3.12, which adopts the Ten
+States Standards (§3.3.2). Set `criteria = Ten States` to use the Ten States Standards alone. The main table is the
+City's *Sanitary Sewer System Design Computation Form* (IDCM Table 3-3), so the output can go into a submittal as is.
+
+**Input.** Keys set the design rates and limits; every default is the IDCM value and is listed in the sample:
+100 gpcd and 2.65 persons per household; 3 gpm/ac commercial and industrial, 2 gpm/ac public; PF 4.2 / 1.7 / 1.2 with
+the IDCM reduction factors; 8 in. minimum; d/D ≤ 0.70 at peak; at least 2.0 ft/s at peak flow; at most 10 ft/s at
+half depth; 5 ft cover over the pipe; 48 in. manholes; slopes measured inside wall to inside wall.
+
+- `[Manholes]`: name, rim, deflection angle (sets the 0.10 or 0.15 ft minimum drop).
+- `[Loads]`: manhole, land use (Residential, Multi-family, Commercial, Industrial, Public, or Flow), area, DU/ac,
+  population, flow, PF. Leave out the columns you do not need.
+- `[Pipes]`: name, from, to, length, diameter, up and down invert, n. **Leave a diameter blank to have it sized, and
+  both inverts blank to have them designed.**
+
+Leave out `[Pipes]` to use the selected network, for example a Civil 3D sanitary network imported from LandXML. Add
+`redesign = sizes and inverts` to have MasterFlow design it; **Apply to network** then writes the sizes, inverts and
+peak flows back, ready for **LandXML…** export to Civil 3D.
+
+**Method.**
+- Design flows: Qave from each land use (IDCM 3.12.2), added up through the manholes. Qpeak = Σ Qave × PF × RF, with
+  the RF from the population or the commercial acres served above each pipe. `peaking = Harmon` or a fixed number
+  are the alternatives. Infiltration (gpd per inch-mile) and inflow (gpd/ac) are optional (zero by default).
+- Manning depth and velocity at peak and average flow in each pipe.
+- Design, upstream first: the smallest size (not below 8 in. or any pipe upstream) meeting d/D ≤ 0.70, at the
+  steeper of the Ten States minimum slope and the slope that keeps the minimum cover at the next manhole. Upstream
+  inverts give each manhole its required drop and match crowns.
+- Sewers under 2.0 ft/s at peak flow are not steepened. They are listed under **Design exceptions** with the slope
+  they would need and their average-flow velocity (1.8 ft/s deviation), so you can steepen them or request a design
+  exception from the Public Works Director.
+- Checks: d/D, velocities, Ten States minimum slope, 10 ft/s, minimum size, larger pipe upstream, n < 0.013, manhole
+  spacing (400 / 500 ft), cover, slopes over 20 %, manhole drops, crowns and drop manholes (2 ft and more; the City
+  allows them only with written permission and never inside the manhole).
+- Manholes: depth, Rinker 48 in. round or precast tee for 24 in. and larger, eccentric cone at 5.5 ft and deeper.
+- Hydrogen sulfide (IDCM 3.12.14): Z at 1 % to 105 % of peak flow on the flattest slope, for every pipe up to 24 in.
+- A profile of the longest flow path with rims, invert, crown and the peak water surface.
+
+**Note.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and with the slope
+in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
+governs; `h2s formula = Pomeroy` uses the original (D-704).
+
+## Sanitary lift station and force main
+
+Free · `sanitary-lift-station` · U.S. units
+
+Checks a wastewater lift station and its force main, and gives the hydraulic items Rapid City IDCM §3.13.3 asks the
+lift station design report to contain. Input: average, peak and initial (first-year) average flows; the number of
+identical pumps and one
+pump's curve; the wet well size and control levels (off, lead on, lag on, alarm); the force main length, diameter,
+Hazen-Williams C and fitting K; the discharge elevation and, optionally, the force main profile.
+
+The tool reports:
+- the system head curves at the pump-off and pump-on levels, taken to the discharge or to a higher point on the
+  force main
+- operating points for one to all pumps, the firm capacity with the largest pump out of service against the peak
+  flow, and brake horsepower with the next motor size
+- the force main velocity (2 ft/s minimum)
+- the wet well volume against V = T·Q/4 and the cycle times
+- detention at the initial average flow: wet well 30 min (City of Fort Wayne SA8.07.1); force main under 35 min needs
+  nothing, 35 to 90 min protect the discharge manhole, over 90 min active H2S control (Clean Water Services Ch. 9);
+  wet well plus force main 180 min (New Braunfels Utilities). All adjustable.
+- Joukowsky surge against the pressure class
+- air valves at high points
+
+Ten States Standards Ch. 40 supplies the pump and force main limits. Neither it nor the IDCM sets detention times, so
+those come from the utility criteria named above (D-712).
+
 # Verification status and known limits
 
 Every tool is tested against independent hand calculations or published examples (listed in each tool's document under
@@ -2019,6 +2096,9 @@ are in its document under `docs/tools/`.
 - Mile High Flood District, *Urban Storm Drainage Criteria Manual*, Volumes 1 and 3.
 - NOAA Atlas 14 Precipitation-Frequency Atlas, Volume 8.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Water Works* (Ten States Standards), §38.3.
+- Great Lakes–Upper Mississippi River Board, *Recommended Standards for Wastewater Facilities* (Ten States Standards), 2014, §11, §33, §34 and Ch. 40.
+- ASCE MOP 60 / WEF MOP FD-5, *Gravity Sanitary Sewer Design and Construction*, 2nd ed., 2007; US EPA, *Process Design Manual for Sulfide Control in Sanitary Sewerage Systems*, 1974 (Pomeroy Z formula).
+- City of Fort Wayne, *SA8 Lift Station and Force Main Design*; Clean Water Services, *Design and Construction Standards* Ch. 9 (pump stations); New Braunfels Utilities, *Lift Station Design Criteria* (2024).
 - 2010 ADA Standards for Accessible Design, §403 and §405.
 - FHWA HEC-9, *Debris Control Structures Evaluation and Countermeasures*, 3rd ed., 2005; NCHRP Report 653, 2010.
 - FHWA HEC-11, *Design of Riprap Revetment*, 1989.

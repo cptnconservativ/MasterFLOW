@@ -45,6 +45,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Flood risk and least total expected cost | FHWA HEC-17 (2016) | [floodplain-risk.md](floodplain-risk.md) |
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | ★ Review comment tracker and response letter | Agency review rounds; network results; IDCM §4.6 plan review | [review-comments.md](review-comments.md) |
+| ★ Sanitary sewer network design: design flows, sizing, inverts, manholes, H2S | Rapid City IDCM 2012 §3.12; Ten States Standards (2014) §11, §33–34; EPA 1974 / ASCE MOP 60 sulfide Z | [sanitary-network.md](sanitary-network.md) |
 | Manhole and structure size from pipe sizes, angles and inverts | Opening and wall-leg geometry; ASTM C76 wall B; your precaster's sizes | [manhole-sizing.md](manhole-sizing.md) |
 | ★ Plan and profile sheets (DXF) with HGL and EGL | Network solution; IDCM §4.6.7 clearance | [plan-profile-dxf.md](plan-profile-dxf.md) |
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
@@ -76,6 +77,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Hydrograph network routing | NRCS UH, TR-55, Muskingum–Cunge, IDCM §4.3 | [hydrograph-routing.md](hydrograph-routing.md) |
 | Preliminary detention storage estimate | NRCS TR-55 (1986) Ch. 6 Fig. 6-1; modified rational critical duration (IDCM Table 4-2); Abt and Grigg (1978), Baker (1979) ratios | [storage-estimate.md](storage-estimate.md) |
 | ★ Dynamic-wave storm sewer routing: unsteady HGL, surcharge, flooding | EPA SWMM 5 dynamic wave (link-node), IDCM §4.6.7 | [dynamic-wave.md](dynamic-wave.md) |
+| Sanitary lift station and force main: system curves, firm capacity, cycling, detention, surge | Rapid City IDCM §3.13.3; Ten States Standards (2014) Ch. 40; Hazen-Williams; Joukowsky | [sanitary-lift-station.md](sanitary-lift-station.md) |
 | Stormwater pump stations: system curve, cycling and storage routing | FHWA HEC-24 (2001) | [pump-station.md](pump-station.md) |
 | ★ Climate stress test | Reruns the storm network for future rainfall projections, finds the rainfall increase at which each structure and pipe first fails, and writes a client resilience memo. [climate-stress.md](climate-stress.md) |
 | ★ Construction-phase companion | Checks submittals (pipe, castings, riprap) and RFIs against the design, re-solves the network for each change, and drafts the response letter. [construction-companion.md](construction-companion.md) |
