@@ -47,6 +47,7 @@ public static class PremiumFeatures
         new("swmm-exchange", "EPA SWMM 5 exchange: export .inp, import .inp, compare SWMM results with the HGL", ["swmm-exchange"]),
         new("dynamic-wave", "Dynamic-wave storm sewer routing (unsteady HGL, surcharge and flooding)", ["dynamic-wave"]),
         new("sanitary-network", "Sanitary sewer network design (Rapid City IDCM §3.12: design flows, sizing, inverts, H2S)", ["sanitary-network"]),
+        new("sanitary-plan-profile-dxf", "Sanitary sewer plan and profile DXF sheets (peak water surface, d/D, design exception flags)", ["sanitary-plan-profile-dxf"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>
