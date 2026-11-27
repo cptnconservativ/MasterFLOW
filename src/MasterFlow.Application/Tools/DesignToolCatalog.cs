@@ -58,6 +58,8 @@ public static class DesignToolCatalog
         ["bridge-debris-forces"] = "Open channels and structures",
         // Sanitary sewer tools (the lift station id is listed ahead of its PR so both PRs leave this block alike).
         ["sanitary-network"] = "Sanitary sewers", ["sanitary-lift-station"] = "Sanitary sewers",
+        // Casing and siphon tools are listed in both of their PRs so either can merge first.
+        ["sewer-casing"] = "Sanitary sewers", ["inverted-siphon"] = "Sanitary sewers",
     };
 
     public static string Category(IDesignTool tool) => Map.TryGetValue(tool.Id, out var c) ? c : "Other";
