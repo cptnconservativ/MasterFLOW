@@ -160,7 +160,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
-| Sanitary sewers | Lift station and force main (`sanitary-lift-station`) | |
+| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), sewer casings and trenchless crossings (`sewer-casing`), inverted siphons (`inverted-siphon`) | |
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
@@ -555,6 +555,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Inverted siphon | `inverted-siphon` | Free |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
@@ -1980,6 +1981,26 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 **Note.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and with the slope
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
+
+## Inverted siphon
+
+Free · `inverted-siphon` · U.S. units
+
+Designs or checks a sanitary inverted siphon by ASCE MOP 60 and the Ten States Standards (the IDCM has no siphon
+criteria). Input: minimum, average, peak and wet weather flows; the available head (or the upstream and downstream
+water surfaces); the barrel length, n and K values; optionally the barrels to check, the inlet weir length and the
+incoming sewer size for the air jumper.
+
+The tool:
+- sizes barrel 1 to run 3 ft/s at the average flow, barrel 2 to bring the capacity up to the peak, and a wet-weather
+  barrel when needed, all fed by side weirs in the inlet chamber (at least two barrels)
+- gives each barrel's capacity, the flow at which it joins and its weir crest elevation
+- tabulates the flow split, velocities, head and inlet water surface from the minimum to the design flow
+- checks the head against the available head and 3 ft/s in each daily barrel at the peak, and notes the velocity at
+  the minimum flow, barrels that run only in wet weather, and the capacity with the largest barrel out
+- sizes the air jumper between the chambers (half the incoming sewer by default) and its air loss
+
+The air demand, jumper size and loss limit are defaults to set from an odor study (D-748).
 
 ## Sanitary lift station and force main
 
