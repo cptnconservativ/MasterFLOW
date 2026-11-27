@@ -164,7 +164,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
-| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`) |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); structural check at designed depths (`sanitary-deep-structural`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -555,6 +555,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer structural check at designed depths | `sanitary-deep-structural` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
@@ -1980,6 +1981,25 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 **Note.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and with the slope
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
+
+## Sanitary sewer structural check at designed depths ★ Premium
+
+★ Premium · `sanitary-deep-structural` · U.S. units
+
+Checks every sewer of a sanitary design at the depth it was designed to, with the pipe structural tool's methods. Put
+the structural keys ahead of the sanitary design input. Cover is measured from each manhole rim to the outside top
+of the pipe. The deep end governs the earth load and the shallow end the HL-93 live load.
+
+- **PVC** (`material = auto` up to 36 in.): Modified Iowa deflection against the Ten States 5 % limit. SDR 35 (PS 46)
+  is tried first, then SDR 26 (PS 115) where SDR 35 deflects too much. Embedment and compaction set Howard's E′
+  (default gravel, moderate: 2,000 psi).
+- **HDPE**: AASHTO M294 stiffness by size, same deflection check.
+- **Reinforced concrete** (`auto` above 36 in., or `material = RCP`): Rinker precast ASTM C76 wall B on a Type 2
+  installation, with the D-load and class.
+- `[Materials]` changes the material, stiffness, installation or wall of single sewers.
+
+Sewers at 15 ft of cover and deeper are listed in the summary. The governing pipes are also written as input for
+**Pipe structural design** (`pipe-structural input.txt`).
 
 ## Sanitary lift station and force main
 

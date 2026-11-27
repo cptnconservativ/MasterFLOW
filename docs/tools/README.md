@@ -46,6 +46,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | ★ Review comment tracker and response letter | Agency review rounds; network results; IDCM §4.6 plan review | [review-comments.md](review-comments.md) |
 | ★ Sanitary sewer network design: design flows, sizing, inverts, manholes, H2S | Rapid City IDCM 2012 §3.12; Ten States Standards (2014) §11, §33–34; EPA 1974 / ASCE MOP 60 sulfide Z | [sanitary-network.md](sanitary-network.md) |
+| ★ Sanitary sewer structural check at designed depths: PVC/HDPE deflection, RCP class | Ten States §33.85; AASHTO LRFD §12; ACPA; Howard (1977) | [sanitary-deep-structural.md](sanitary-deep-structural.md) |
 | Manhole and structure size from pipe sizes, angles and inverts | Opening and wall-leg geometry; ASTM C76 wall B; your precaster's sizes | [manhole-sizing.md](manhole-sizing.md) |
 | ★ Plan and profile sheets (DXF) with HGL and EGL | Network solution; IDCM §4.6.7 clearance | [plan-profile-dxf.md](plan-profile-dxf.md) |
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
