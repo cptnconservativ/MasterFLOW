@@ -164,7 +164,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
-| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); structural check at designed depths (`sanitary-deep-structural`) |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); plan and profile DXF sheets (`sanitary-plan-profile-dxf`); structural check at designed depths (`sanitary-deep-structural`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -555,6 +555,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer plan and profile sheets (DXF) | `sanitary-plan-profile-dxf` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer structural check at designed depths | `sanitary-deep-structural` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 | 16 Sanitary sewers | Sewer sulfide build-up and corrosion | `sewer-sulfide` | Free |
@@ -1982,6 +1983,26 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 **Note.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and with the slope
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
+
+## Sanitary sewer plan and profile sheets (DXF) ★ Premium
+
+★ Premium · `sanitary-plan-profile-dxf` · U.S. units
+
+Draws a sanitary sewer design as plan and profile sheets in a DXF file for AutoCAD and Civil 3D. Put the sheet keys
+(`runs`, `horizontal scale`, `vertical scale`, `sheet`, `plan`, `title`) ahead of the usual sanitary design input; the
+tool runs the design and draws what it designed, using the same sheet layout as the storm sheets.
+
+- The plan sits at the manhole coordinates (a network imported from LandXML), with each sewer's size, length, slope,
+  peak flow and d/D.
+- Each profile runs from an upstream manhole to the outlet, stationed from 0+00 at the outlet. It shows the rim line,
+  inverts and crowns, the manholes with rim, inverts in and out and depth, and **the water surface at the design peak
+  flow** (normal depth). Each sewer carries its Qpeak, V at peak and d/D.
+- **Flags** are circled on the sheets and listed in "Flags on the sheets" with their sheet numbers. A sewer below
+  2 ft/s at peak is marked **DESIGN EXCEPTION** with the slope it would need. d/D over 0.70, surcharge, low cover,
+  manhole drops and drop manholes, and the other design warnings are flagged too.
+- Layers start with `MF-SAN-`, so storm and sanitary sheets can share a drawing.
+
+The full sanitary design tables come back with the sheets, so the drawing can be checked against the computation form.
 
 ## Sanitary sewer structural check at designed depths ★ Premium
 
