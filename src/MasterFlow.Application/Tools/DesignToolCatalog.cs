@@ -58,6 +58,7 @@ public static class DesignToolCatalog
         ["bridge-debris-forces"] = "Open channels and structures",
         // Sanitary sewer tools (the lift station id is listed ahead of its PR so both PRs leave this block alike).
         ["sanitary-network"] = "Sanitary sewers", ["sanitary-lift-station"] = "Sanitary sewers",
+        ["sanitary-plan-profile-dxf"] = "Sanitary sewers",
         ["sewer-sulfide"] = "Sanitary sewers",
     };
 
