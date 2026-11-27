@@ -164,7 +164,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
-| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`) |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); trunk sewer HGL and surcharge (`sanitary-trunk-hgl`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -555,6 +555,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Sanitary trunk sewer HGL and surcharge | `sanitary-trunk-hgl` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
@@ -1980,6 +1981,38 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 **Note.** The IDCM prints the Z formula without the factor 3 of the original (Pomeroy, EPA 1974) and with the slope
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
+
+## Sanitary trunk sewer HGL and surcharge ★ Premium
+
+★ Premium · `sanitary-trunk-hgl` · U.S. units
+
+Computes the HGL and EGL of a trunk sewer or interceptor at its design peak flow. Large mains are sized to run close
+to d/D 0.70 at peak, where a backwater from the next pipe or a manhole loss can lift the water past the limit, into
+surcharge, or up to a basement. Normal depth alone does not show that.
+
+**Input.** Use the same input as **Sanitary sewer network design**: its keys, `[Manholes]`, `[Loads]` and `[Pipes]`, or
+the selected network. The flows, sizes and inverts are worked out the same way, with blank cells designed first. Add:
+
+- `outlet water surface`: `normal` (the default: normal depth in the outlet sewer), `free`, `crown`, or an
+  elevation such as the HGL of the interceptor downstream.
+- `losses = IDCM` (the default) uses the junction and bend cases of IDCM Figures 4-6/4-7, picked from the pipe layout
+  and each manhole's deflection. `losses = K` with `manhole K` uses K·V²/2g; a `K` column under `[Manholes]`
+  sets one manhole.
+- `[Services]`: the lowest service or basement elevations, at a manhole, or on a pipe at a station from its upstream
+  end.
+- `rim freeboard` and `service freeboard` (1 ft each), `flow factor` for a wet-weather or future check, and
+  `[Flows]` to type a pipe's peak flow from a master plan.
+
+**Results.**
+- For each sewer: d/D at normal depth, at each end and the largest along the computed profile, the HGL and EGL, and
+  whether it surcharges.
+- For each manhole: the loss case, hj, and rim − HGL.
+- For each service: the HGL there and its margin.
+- A profile of the longest path with the HGL and EGL.
+
+**Note.** The IDCM gives no HGL criterion for sanitary sewers, only d/D ≤ 0.70 at peak flow. The 1 ft freeboards
+are inputs that mirror the storm sewer clearance (D-722). The storm junction losses are conservative for shaped
+sanitary manholes (D-720).
 
 ## Sanitary lift station and force main
 
