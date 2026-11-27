@@ -60,6 +60,7 @@ public static class DesignToolCatalog
         ["sanitary-network"] = "Sanitary sewers", ["sanitary-lift-station"] = "Sanitary sewers",
         // Casing and siphon tools are listed in both of their PRs so either can merge first.
         ["sewer-casing"] = "Sanitary sewers", ["inverted-siphon"] = "Sanitary sewers",
+        ["sewer-sulfide"] = "Sanitary sewers",
     };
 
     public static string Category(IDesignTool tool) => Map.TryGetValue(tool.Id, out var c) ? c : "Other";
