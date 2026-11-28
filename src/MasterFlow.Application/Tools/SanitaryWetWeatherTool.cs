@@ -123,10 +123,10 @@ public sealed class SanitaryWetWeatherTool : IDesignTool
         var msgs = new List<CalcMessage>();
 
         // ---- the sanitary design: from this input's tables, or the project's saved sanitary-network input ----
-        (ToolResult Result, SanitaryDesign? Design) sd;
+        (ToolResult Result, SanitaryFlowDesign? Design) sd;
         bool own = p.HasSection("Pipes") || p.HasSection("Loads");
-        if (own) sd = SanitarySewerTool.Design(input, context);
-        else if (SanitaryDesign.FromProject(context) is { } fp) sd = fp;
+        if (own) sd = SanitarySewerTool.FlowDesign(input, context);
+        else if (SanitaryFlowDesign.FromProject(context) is { } fp) sd = fp;
         else return ToolResult.Failed(title, CalcMessage.Error("E-WW-002", "Design the sewers first with the Sanitary sewer network design tool (its input is saved with the project), or paste a sanitary-network input with [Manholes], [Loads] and [Pipes] here."));
         if (sd.Design is not { } design)
         {
@@ -414,7 +414,7 @@ public sealed class SanitaryWetWeatherTool : IDesignTool
     }
 
     /// <summary>The designed sanitary network as a storm network (for dynamic-wave routing and SWMM): rims, sizes (ft), inverts, free outfall.</summary>
-    public static StormNetwork ToNetwork(SanitaryDesign d) => new()
+    public static StormNetwork ToNetwork(SanitaryFlowDesign d) => new()
     {
         Name = "Sanitary sewer",
         Structures = d.Manholes.Select(m => new NetworkStructure { Name = m.Name, Kind = "Manhole", RimElevation = m.Rim, Northing = m.Northing, Easting = m.Easting }).ToList(),
