@@ -164,7 +164,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
-| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); trunk sewer HGL and surcharge (`sanitary-trunk-hgl`); plan and profile DXF sheets (`sanitary-plan-profile-dxf`); structural check at designed depths (`sanitary-deep-structural`); build-out projection and phasing (`sanitary-buildout`) |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); wet-weather flows with diurnal DWF, RTK RDII, dynamic-wave surcharge and SWMM export (`sanitary-wet-weather`); trunk sewer HGL and surcharge (`sanitary-trunk-hgl`); plan and profile DXF sheets (`sanitary-plan-profile-dxf`); structural check at designed depths (`sanitary-deep-structural`); build-out projection and phasing (`sanitary-buildout`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -560,6 +560,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | 16 Sanitary sewers | Sanitary sewer structural check at designed depths | `sanitary-deep-structural` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer build-out projection and phasing | `sanitary-buildout` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
+| 16 Sanitary sewers | Sanitary wet-weather flows and SWMM export | `sanitary-wet-weather` | ★ Premium |
 | 16 Sanitary sewers | Sewer sulfide build-up and corrosion | `sewer-sulfide` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
@@ -1986,6 +1987,40 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
 
+## Sanitary wet-weather flows and SWMM export ★ Premium
+
+★ Premium · `sanitary-wet-weather` · U.S. units
+
+Takes the sewers designed with **Sanitary sewer network design** (saved with the project) and asks what they do in a
+storm. Paste a sanitary-network input here instead to run it on its own.
+
+**Input.**
+- Hourly patterns for residential, commercial, industrial and public loads: 24 multipliers each, midnight–1 AM
+  first, or the names `residential`, `commercial` and `flat`. The defaults are typical curves, since the IDCM gives no
+  pattern. Replace them with metered data where you have it.
+- RDII by three RTK triangles (`rtk short`, `rtk medium`, `rtk long` = R, T in hours, K). **The defaults are
+  placeholders**, and the tool warns until you enter your own values calibrated to flow monitoring.
+- The design storm: the Rapid City 24-hour depth for `return period` 2, 10 or 100, or a `storm depth`, as an NRCS Type
+  II or uniform storm. It starts at `storm start` hours after midnight of day 1.
+- `[Sewersheds]` gives the RDII area at each manhole. By default this is the load areas.
+
+**Method.** The dry-weather flow at each manhole is the load average flows times their hourly multipliers. The
+design's infiltration allowance is added as a constant. RDII is the rain convolved with the three triangles, with
+volume R × depth × area. The hydrographs are summed down the network (no attenuation) and also routed by dynamic wave,
+with overflow at the rims and a free outlet.
+
+**Output.**
+- Inflows by manhole: DWF, the peak and low hours, infiltration, sewershed area, and RDII peak and volume.
+- The hourly patterns and RTK triangles.
+- For each pipe: the IDCM design peak against the dry-weather peak hour, the RDII peak, the summed and routed
+  wet-weather peaks, and the peak depth.
+- For each manhole: peak HGL, freeboard to the rim, hours surcharged and overflow volume (SSO).
+- The outlet hydrograph and the storm.
+- An EPA SWMM 5 `.inp` file with `[DWF]`, `[PATTERNS]`, `[HYDROGRAPHS]` (RTK) and `[RDII]`, for the design-storm
+  surcharge run in SWMM.
+
+**Note.** IDCM §3.12 sizes sewers for the peak dry-weather flow (Qave × PF × RF) with no wet-weather allowance. A
+wet-weather peak above the design peak is flagged so the report can state the RDII basis (D-763, D-764).
 ## Sanitary trunk sewer HGL and surcharge ★ Premium
 
 ★ Premium · `sanitary-trunk-hgl` · U.S. units
@@ -2225,6 +2260,7 @@ are in its document under `docs/tools/`.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Water Works* (Ten States Standards), §38.3.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Wastewater Facilities* (Ten States Standards), 2014, §11, §33, §34 and Ch. 40.
 - ASCE MOP 60 / WEF MOP FD-5, *Gravity Sanitary Sewer Design and Construction*, 2nd ed., 2007; US EPA, *Process Design Manual for Sulfide Control in Sanitary Sewerage Systems*, 1974 (Pomeroy Z formula).
+- US EPA, *Computer Tools for Sanitary Sewer System Capacity Analysis and Planning* (SSOAP), EPA/600/R-07/111, 2007; Rossman, L.A. and Huber, W.C., *SWMM Reference Manual Vol. I: Hydrology*, EPA, 2016, Ch. 10 (RDII).
 - City of Fort Wayne, *SA8 Lift Station and Force Main Design*; Clean Water Services, *Design and Construction Standards* Ch. 9 (pump stations); New Braunfels Utilities, *Lift Station Design Criteria* (2024).
 - 2010 ADA Standards for Accessible Design, §403 and §405.
 - FHWA HEC-9, *Debris Control Structures Evaluation and Countermeasures*, 3rd ed., 2005; NCHRP Report 653, 2010.

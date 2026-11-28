@@ -148,6 +148,17 @@ public sealed class SanitarySewerTool : IDesignTool
 
     public ToolResult Run(string input, DesignToolContext context) => Design(input, context).Result;
 
+    /// <summary>
+    /// Runs the design and also returns the designed network (sizes, inverts, flows, loads), for the tools that build on it
+    /// (wet-weather flows, bypass pumping). The design is null when the run has errors.
+    /// </summary>
+    public static (ToolResult Result, SanitaryFlowDesign? Design) FlowDesign(string input, DesignToolContext context)
+    {
+        SanitaryFlowDesign? d = null;
+        var r = new SanitarySewerTool().RunCore(input, context, out _, out _, x => d = x);
+        return (r, d);
+    }
+
     /// <summary>One designed or checked sewer, for tools that build on this one (trunk HGL, build-out phasing). Flows in gpm include I/I; lengths and elevations in ft (Run = the length the slope is measured over, inside wall to inside wall); D in inches.</summary>
     public sealed record DesignedSewer(string Name, string From, string To, double Length, double Run, double DiameterIn, double UpInvert, double DownInvert, double N, double Slope, double QaveGpm, double QpeakGpm, double Population, bool SizeDesigned);
     /// <summary>A manhole of the design: rim (null when not given), deflection (deg, null when not given), coordinates.</summary>
@@ -174,7 +185,7 @@ public sealed class SanitarySewerTool : IDesignTool
         return (r, r.Succeeded ? d : null);
     }
 
-    private ToolResult RunCore(string input, DesignToolContext context, out SanitaryDesign? design, out SewerLayout? layout)
+    private ToolResult RunCore(string input, DesignToolContext context, out SanitaryDesign? design, out SewerLayout? layout, Action<SanitaryFlowDesign>? capture = null)
     {
         layout = null;
         design = null;
@@ -691,6 +702,14 @@ public sealed class SanitarySewerTool : IDesignTool
                     : np).ToList(),
             };
 
+        capture?.Invoke(new SanitaryFlowDesign(
+            pipes.Select(x => new SanitaryDesignPipe(x.Name, x.From, x.To, x.Length, x.D!.Value, x.N, x.Up!.Value, x.Dn!.Value, x.Slope,
+                x.QaveGpm, x.QpeakGpm, x.Ii, inflowRate * x.AreaTotal / 1440)).ToList(),
+            mhs.Values.Where(m => pipes.Any(x => x.From.Equals(m.Name, StringComparison.OrdinalIgnoreCase) || x.To.Equals(m.Name, StringComparison.OrdinalIgnoreCase)))
+                .Select(m => new SanitaryDesignManhole(m.Name, m.Rim, m.N, m.E)).ToList(),
+            loads.Select(l => new SanitaryDesignLoad(l.Manhole, (SanitaryLandUse)(int)l.Use, l.Area, l.Population, l.QaveGpm, l.Pf)).ToList(),
+            mhDia, cover));
+
         layout = new SewerLayout(
             order.Select(nm => byName[nm]).Select(x => new DesignedSewer(x.Name, x.From, x.To, x.Length, Run(x), x.D!.Value, x.Up!.Value, x.Dn!.Value, x.N, x.Slope,
                 x.QaveGpm + x.Ii, x.QpeakGpm + x.Ii, x.PopRes, x.DesignD)).ToList(),
@@ -750,6 +769,48 @@ public sealed class SanitarySewerTool : IDesignTool
     }
 
     private static double R(double v, int d) => double.IsFinite(v) ? Math.Round(v, d) + 0.0 : double.NaN;
+}
+
+/// <summary>Land use of a sanitary load (same order as the tool's own list).</summary>
+public enum SanitaryLandUse { Residential, MultiFamily, Commercial, Industrial, Public, Flow }
+
+/// <summary>A designed sanitary sewer: size (in.), inverts (ft), slope (ft/ft) and accumulated flows (gpm).</summary>
+/// <param name="IiGpm">Infiltration and inflow allowance in the pipe (not included in Qave or Qpeak).</param>
+/// <param name="InflowGpm">The inflow (gpd/ac) part of <paramref name="IiGpm"/>; the rest is infiltration.</param>
+public sealed record SanitaryDesignPipe(string Name, string From, string To, double Length, double DiameterIn, double N, double UpInvert, double DownInvert,
+    double Slope, double QaveGpm, double QpeakGpm, double IiGpm, double InflowGpm);
+
+public sealed record SanitaryDesignManhole(string Name, double? Rim, double? Northing, double? Easting);
+
+/// <summary>A load at a manhole: average flow (gpm) and its land use, area (ac) and population.</summary>
+public sealed record SanitaryDesignLoad(string Manhole, SanitaryLandUse Use, double AreaAc, double Population, double QaveGpm, double Pf);
+
+/// <summary>The flows and loads of a sanitary sewer design, for the tools that route them (wet-weather flows, bypass pumping).</summary>
+public sealed record SanitaryFlowDesign(IReadOnlyList<SanitaryDesignPipe> Pipes, IReadOnlyList<SanitaryDesignManhole> Manholes, IReadOnlyList<SanitaryDesignLoad> Loads,
+    double ManholeDiameterFt, double MinimumCoverFt)
+{
+    /// <summary>The outlet pipes (no pipe downstream).</summary>
+    public IEnumerable<SanitaryDesignPipe> Outlets => Pipes.Where(x => !Pipes.Any(y => y.From.Equals(x.To, StringComparison.OrdinalIgnoreCase)));
+    public SanitaryDesignPipe? Pipe(string name) => Pipes.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    public SanitaryDesignManhole? Manhole(string name) => Manholes.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    /// <summary>Pipes upstream of and including <paramref name="pipe"/>.</summary>
+    public List<SanitaryDesignPipe> Upstream(SanitaryDesignPipe pipe)
+    {
+        var list = new List<SanitaryDesignPipe> { pipe };
+        var stack = new Stack<string>([pipe.From]);
+        while (stack.Count > 0)
+        {
+            string at = stack.Pop();
+            foreach (var y in Pipes.Where(y => y.To.Equals(at, StringComparison.OrdinalIgnoreCase))) { list.Add(y); stack.Push(y.From); }
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// The saved sanitary sewer design of the project (the sanitary-network tool's input), or null when there is none.
+    /// </summary>
+    public static (ToolResult Result, SanitaryFlowDesign? Design)? FromProject(DesignToolContext context) =>
+        context.ToolInputs.TryGetValue("sanitary-network", out var text) && !string.IsNullOrWhiteSpace(text) ? SanitarySewerTool.FlowDesign(text, context) : null;
 }
 
 /// <summary>One sewer of a sanitary design: geometry as designed or entered, peak and average flows (gpm, I/I included), peak

@@ -47,6 +47,7 @@ public static class PremiumFeatures
         new("swmm-exchange", "EPA SWMM 5 exchange: export .inp, import .inp, compare SWMM results with the HGL", ["swmm-exchange"]),
         new("dynamic-wave", "Dynamic-wave storm sewer routing (unsteady HGL, surcharge and flooding)", ["dynamic-wave"]),
         new("sanitary-network", "Sanitary sewer network design (Rapid City IDCM §3.12: design flows, sizing, inverts, H2S)", ["sanitary-network"]),
+        new("sanitary-wet-weather", "Sanitary wet-weather flows: diurnal DWF, RTK RDII, dynamic-wave surcharge and SWMM export", ["sanitary-wet-weather"]),
         new("sanitary-trunk-hgl", "Sanitary trunk sewer HGL and surcharge (junction losses, rims, services and basements)", ["sanitary-trunk-hgl"]),
         new("sanitary-buildout", "Sanitary sewer build-out projection and phasing (year each sewer reaches d/D 0.70, build now or oversize)", ["sanitary-buildout"]),
         new("sanitary-plan-profile-dxf", "Sanitary sewer plan and profile DXF sheets (peak water surface, d/D, design exception flags)", ["sanitary-plan-profile-dxf"]),
