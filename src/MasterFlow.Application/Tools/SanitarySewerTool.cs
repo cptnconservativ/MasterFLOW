@@ -148,6 +148,21 @@ public sealed class SanitarySewerTool : IDesignTool
 
     public ToolResult Run(string input, DesignToolContext context) => Design(input, context).Result;
 
+    /// <summary>One designed or checked sewer, for tools that build on this one (trunk HGL, build-out phasing). Flows in gpm include I/I; lengths and elevations in ft (Run = the length the slope is measured over, inside wall to inside wall); D in inches.</summary>
+    public sealed record DesignedSewer(string Name, string From, string To, double Length, double Run, double DiameterIn, double UpInvert, double DownInvert, double N, double Slope, double QaveGpm, double QpeakGpm, double Population, bool SizeDesigned);
+    /// <summary>A manhole of the design: rim (null when not given), deflection (deg, null when not given), coordinates.</summary>
+    public sealed record DesignedManhole(string Name, double? Rim, double? Deflection, double? Northing, double? Easting);
+    /// <summary>The sewers and manholes after design, upstream first (the hydraulic layout the trunk HGL and build-out tools route).</summary>
+    public sealed record SewerLayout(IReadOnlyList<DesignedSewer> Sewers, IReadOnlyList<DesignedManhole> Manholes);
+
+    /// <summary>Runs the tool and also returns the designed sewers as a layout (null when the run failed).</summary>
+    public ToolResult Run(string input, DesignToolContext context, out SewerLayout? layout)
+    {
+        var r = RunCore(input, context, out _, out var l);
+        layout = r.Succeeded ? l : null;
+        return r;
+    }
+
     /// <summary>
     /// Runs the design and also returns the designed network as data (sizes, inverts, peak water surface, d/D, cover,
     /// flags), for the tools that build on it: the sanitary plan and profile sheets and the deep-sewer structural check.
@@ -155,12 +170,13 @@ public sealed class SanitarySewerTool : IDesignTool
     /// </summary>
     public (ToolResult Result, SanitaryDesign? Design) Design(string input, DesignToolContext context)
     {
-        var r = RunCore(input, context, out var d);
+        var r = RunCore(input, context, out var d, out _);
         return (r, r.Succeeded ? d : null);
     }
 
-    private ToolResult RunCore(string input, DesignToolContext context, out SanitaryDesign? design)
+    private ToolResult RunCore(string input, DesignToolContext context, out SanitaryDesign? design, out SewerLayout? layout)
     {
+        layout = null;
         design = null;
         const string title = "Sanitary sewer network design";
         if (context.Units == UnitSystem.SI)
@@ -675,6 +691,10 @@ public sealed class SanitarySewerTool : IDesignTool
                     : np).ToList(),
             };
 
+        layout = new SewerLayout(
+            order.Select(nm => byName[nm]).Select(x => new DesignedSewer(x.Name, x.From, x.To, x.Length, Run(x), x.D!.Value, x.Up!.Value, x.Dn!.Value, x.N, x.Slope,
+                x.QaveGpm + x.Ii, x.QpeakGpm + x.Ii, x.PopRes, x.DesignD)).ToList(),
+            mhs.Values.Select(m => new DesignedManhole(m.Name, m.Rim, m.Deflection, m.N, m.E)).ToList());
         design = new SanitaryDesign(pipeResults, mhResults, maxDd, vMin, vAtPeak, cover, wallIn, rc ? "Rapid City IDCM 2012 §3.12" : "Ten States Standards (2014)");
         return new ToolResult(title, summary, tables, msgs)
         {
