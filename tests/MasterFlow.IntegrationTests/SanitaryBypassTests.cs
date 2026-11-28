@@ -88,7 +88,7 @@ public class SanitaryBypassTests
     public void Connection_FromSavedDesign_DesignPeakAndResponseTime()
     {
         var ctx = Us with { ToolInputs = new Dictionary<string, string> { ["sanitary-network"] = new SanitarySewerTool().SampleInput(Us) } };
-        var (_, d) = SanitarySewerTool.Design(ctx.ToolInputs["sanitary-network"], ctx);
+        var (_, d) = SanitarySewerTool.FlowDesign(ctx.ToolInputs["sanitary-network"], ctx);
         var s5 = d!.Pipe("S-5")!;
         var r = Tool.Run("connection = S-5\ndesign flow = design peak\nresponse time = 120", ctx);
         Assert.True(r.Succeeded, Msgs(r));

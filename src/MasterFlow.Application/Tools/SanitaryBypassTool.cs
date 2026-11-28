@@ -41,7 +41,7 @@ public sealed class SanitaryBypassTool : IDesignTool
 
     public string SampleInput(DesignToolContext context)
     {
-        var saved = SanitaryDesign.FromProject(context)?.Design;
+        var saved = SanitaryFlowDesign.FromProject(context)?.Design;
         string conn = saved?.Outlets.FirstOrDefault()?.Name ?? "S-5";
         string src = saved is null
             ? "# No saved Sanitary sewer network design in this project: the network below is the sanitary-network sample.\n" + new SanitarySewerTool().SampleInput(context)
@@ -91,9 +91,9 @@ public sealed class SanitaryBypassTool : IDesignTool
         var msgs = new List<CalcMessage>();
 
         // ---- design (optional) ----
-        SanitaryDesign? design = null;
+        SanitaryFlowDesign? design = null;
         bool own = p.HasSection("Pipes") || p.HasSection("Loads");
-        var sd = own ? SanitarySewerTool.Design(input, context) : SanitaryDesign.FromProject(context);
+        var sd = own ? SanitarySewerTool.FlowDesign(input, context) : SanitaryFlowDesign.FromProject(context);
         if (sd is { Design: { } d0 }) design = d0;
         else if (sd is { } bad && own)
         {

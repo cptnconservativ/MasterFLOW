@@ -165,7 +165,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
-| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`) |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); wet-weather flows with diurnal DWF, RTK RDII, dynamic-wave surcharge and SWMM export (`sanitary-wet-weather`); trunk sewer HGL and surcharge (`sanitary-trunk-hgl`); plan and profile DXF sheets (`sanitary-plan-profile-dxf`); structural check at designed depths (`sanitary-deep-structural`); build-out projection and phasing (`sanitary-buildout`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -556,8 +556,13 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Sanitary trunk sewer HGL and surcharge | `sanitary-trunk-hgl` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer plan and profile sheets (DXF) | `sanitary-plan-profile-dxf` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer structural check at designed depths | `sanitary-deep-structural` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer build-out projection and phasing | `sanitary-buildout` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 | 16 Sanitary sewers | Sanitary bypass pumping plan for tie-ins | `sanitary-bypass` | Free |
+| 16 Sanitary sewers | Sanitary wet-weather flows and SWMM export | `sanitary-wet-weather` | ★ Premium |
 | 16 Sanitary sewers | Sewer sulfide build-up and corrosion | `sewer-sulfide` | Free |
 
 The tool id is what the drainage report (`@tool <id>`), batch scenarios (`tool = <id>`) and inverse design refer to.
@@ -1984,6 +1989,140 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
 
+## Sanitary wet-weather flows and SWMM export ★ Premium
+
+★ Premium · `sanitary-wet-weather` · U.S. units
+
+Takes the sewers designed with **Sanitary sewer network design** (saved with the project) and asks what they do in a
+storm. Paste a sanitary-network input here instead to run it on its own.
+
+**Input.**
+- Hourly patterns for residential, commercial, industrial and public loads: 24 multipliers each, midnight–1 AM
+  first, or the names `residential`, `commercial` and `flat`. The defaults are typical curves, since the IDCM gives no
+  pattern. Replace them with metered data where you have it.
+- RDII by three RTK triangles (`rtk short`, `rtk medium`, `rtk long` = R, T in hours, K). **The defaults are
+  placeholders**, and the tool warns until you enter your own values calibrated to flow monitoring.
+- The design storm: the Rapid City 24-hour depth for `return period` 2, 10 or 100, or a `storm depth`, as an NRCS Type
+  II or uniform storm. It starts at `storm start` hours after midnight of day 1.
+- `[Sewersheds]` gives the RDII area at each manhole. By default this is the load areas.
+
+**Method.** The dry-weather flow at each manhole is the load average flows times their hourly multipliers. The
+design's infiltration allowance is added as a constant. RDII is the rain convolved with the three triangles, with
+volume R × depth × area. The hydrographs are summed down the network (no attenuation) and also routed by dynamic wave,
+with overflow at the rims and a free outlet.
+
+**Output.**
+- Inflows by manhole: DWF, the peak and low hours, infiltration, sewershed area, and RDII peak and volume.
+- The hourly patterns and RTK triangles.
+- For each pipe: the IDCM design peak against the dry-weather peak hour, the RDII peak, the summed and routed
+  wet-weather peaks, and the peak depth.
+- For each manhole: peak HGL, freeboard to the rim, hours surcharged and overflow volume (SSO).
+- The outlet hydrograph and the storm.
+- An EPA SWMM 5 `.inp` file with `[DWF]`, `[PATTERNS]`, `[HYDROGRAPHS]` (RTK) and `[RDII]`, for the design-storm
+  surcharge run in SWMM.
+
+**Note.** IDCM §3.12 sizes sewers for the peak dry-weather flow (Qave × PF × RF) with no wet-weather allowance. A
+wet-weather peak above the design peak is flagged so the report can state the RDII basis (D-763, D-764).
+## Sanitary trunk sewer HGL and surcharge ★ Premium
+
+★ Premium · `sanitary-trunk-hgl` · U.S. units
+
+Computes the HGL and EGL of a trunk sewer or interceptor at its design peak flow. Large mains are sized to run close
+to d/D 0.70 at peak, where a backwater from the next pipe or a manhole loss can lift the water past the limit, into
+surcharge, or up to a basement. Normal depth alone does not show that.
+
+**Input.** Use the same input as **Sanitary sewer network design**: its keys, `[Manholes]`, `[Loads]` and `[Pipes]`, or
+the selected network. The flows, sizes and inverts are worked out the same way, with blank cells designed first. Add:
+
+- `outlet water surface`: `normal` (the default: normal depth in the outlet sewer), `free`, `crown`, or an
+  elevation such as the HGL of the interceptor downstream.
+- `losses = IDCM` (the default) uses the junction and bend cases of IDCM Figures 4-6/4-7, picked from the pipe layout
+  and each manhole's deflection. `losses = K` with `manhole K` uses K·V²/2g; a `K` column under `[Manholes]`
+  sets one manhole.
+- `[Services]`: the lowest service or basement elevations, at a manhole, or on a pipe at a station from its upstream
+  end.
+- `rim freeboard` and `service freeboard` (1 ft each), `flow factor` for a wet-weather or future check, and
+  `[Flows]` to type a pipe's peak flow from a master plan.
+
+**Results.**
+- For each sewer: d/D at normal depth, at each end and the largest along the computed profile, the HGL and EGL, and
+  whether it surcharges.
+- For each manhole: the loss case, hj, and rim − HGL.
+- For each service: the HGL there and its margin.
+- A profile of the longest path with the HGL and EGL.
+
+**Note.** The IDCM gives no HGL criterion for sanitary sewers, only d/D ≤ 0.70 at peak flow. The 1 ft freeboards
+are inputs that mirror the storm sewer clearance (D-722). The storm junction losses are conservative for shaped
+sanitary manholes (D-720).
+
+## Sanitary sewer plan and profile sheets (DXF) ★ Premium
+
+★ Premium · `sanitary-plan-profile-dxf` · U.S. units
+
+Draws a sanitary sewer design as plan and profile sheets in a DXF file for AutoCAD and Civil 3D. Put the sheet keys
+(`runs`, `horizontal scale`, `vertical scale`, `sheet`, `plan`, `title`) ahead of the usual sanitary design input; the
+tool runs the design and draws what it designed, using the same sheet layout as the storm sheets.
+
+- The plan sits at the manhole coordinates (a network imported from LandXML), with each sewer's size, length, slope,
+  peak flow and d/D.
+- Each profile runs from an upstream manhole to the outlet, stationed from 0+00 at the outlet. It shows the rim line,
+  inverts and crowns, the manholes with rim, inverts in and out and depth, and **the water surface at the design peak
+  flow** (normal depth). Each sewer carries its Qpeak, V at peak and d/D.
+- **Flags** are circled on the sheets and listed in "Flags on the sheets" with their sheet numbers. A sewer below
+  2 ft/s at peak is marked **DESIGN EXCEPTION** with the slope it would need. d/D over 0.70, surcharge, low cover,
+  manhole drops and drop manholes, and the other design warnings are flagged too.
+- Layers start with `MF-SAN-`, so storm and sanitary sheets can share a drawing.
+
+The full sanitary design tables come back with the sheets, so the drawing can be checked against the computation form.
+
+## Sanitary sewer structural check at designed depths ★ Premium
+
+★ Premium · `sanitary-deep-structural` · U.S. units
+
+Checks every sewer of a sanitary design at the depth it was designed to, with the pipe structural tool's methods. Put
+the structural keys ahead of the sanitary design input. Cover is measured from each manhole rim to the outside top
+of the pipe. The deep end governs the earth load and the shallow end the HL-93 live load.
+
+- **PVC** (`material = auto` up to 36 in.): Modified Iowa deflection against the Ten States 5 % limit. SDR 35 (PS 46)
+  is tried first, then SDR 26 (PS 115) where SDR 35 deflects too much. Embedment and compaction set Howard's E′
+  (default gravel, moderate: 2,000 psi).
+- **HDPE**: AASHTO M294 stiffness by size, same deflection check.
+- **Reinforced concrete** (`auto` above 36 in., or `material = RCP`): Rinker precast ASTM C76 wall B on a Type 2
+  installation, with the D-load and class.
+- `[Materials]` changes the material, stiffness, installation or wall of single sewers.
+
+Sewers at 15 ft of cover and deeper are listed in the summary. The governing pipes are also written as input for
+**Pipe structural design** (`pipe-structural input.txt`).
+
+## Sanitary sewer build-out projection and phasing ★ Premium
+
+★ Premium · `sanitary-buildout` · U.S. units
+
+Answers "build it now or oversize it?" for planned sewers. Flows are projected year by year from today's loads to
+build-out, and each sewer gets the year it reaches d/D 0.70 at peak flow and the year it surcharges.
+
+**Input.** Use the same input as **Sanitary sewer network design**, with the planned sizes and inverts given. Add:
+
+- `base year` and `build-out year`.
+- `[Loads]`: today's loads.
+- `[Growth]`: the growth by basin. Each row has the manhole, land use, area, DU/ac, population or flow, the Start
+  year and the End year. The load rises linearly from the Start year to the End year. With no End year, it is all
+  added in the Start year.
+- `decision horizon` (20 years) and `report every` (5 years).
+
+**Results.**
+- A phasing table: each sewer's peak flow and d/D today and at build-out, the year it passes 0.70, the year it
+  surcharges, and the size the build-out flow needs on the same slope. The recommendation is one of:
+  - adequate;
+  - over the limit already;
+  - build the build-out size now (it reaches the limit within the horizon);
+  - build as planned and relieve it by the year it reaches the limit.
+- d/D by year, flow at the outlet by year, the growth schedule, and a chart of d/D against year with the 0.70 line.
+
+**Note.** Peaking and reduction factors are worked out again each year (D-728). The horizon rule is a planning input,
+not a City criterion (D-726). For a trunk near the limit, check the backwater with **Sanitary trunk sewer HGL** using
+that year's loads.
+
 ## Sanitary lift station and force main
 
 Free · `sanitary-lift-station` · U.S. units
@@ -2148,6 +2287,7 @@ are in its document under `docs/tools/`.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Water Works* (Ten States Standards), §38.3.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Wastewater Facilities* (Ten States Standards), 2014, §11, §33, §34 and Ch. 40.
 - ASCE MOP 60 / WEF MOP FD-5, *Gravity Sanitary Sewer Design and Construction*, 2nd ed., 2007; US EPA, *Process Design Manual for Sulfide Control in Sanitary Sewerage Systems*, 1974 (Pomeroy Z formula).
+- US EPA, *Computer Tools for Sanitary Sewer System Capacity Analysis and Planning* (SSOAP), EPA/600/R-07/111, 2007; Rossman, L.A. and Huber, W.C., *SWMM Reference Manual Vol. I: Hydrology*, EPA, 2016, Ch. 10 (RDII).
 - City of Fort Wayne, *SA8 Lift Station and Force Main Design*; Clean Water Services, *Design and Construction Standards* Ch. 9 (pump stations); New Braunfels Utilities, *Lift Station Design Criteria* (2024).
 - 2010 ADA Standards for Accessible Design, §403 and §405.
 - FHWA HEC-9, *Debris Control Structures Evaluation and Countermeasures*, 3rd ed., 2005; NCHRP Report 653, 2010.
