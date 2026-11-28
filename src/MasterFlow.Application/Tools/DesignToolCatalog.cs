@@ -59,6 +59,7 @@ public static class DesignToolCatalog
         // Sanitary sewer tools.
         ["sanitary-network"] = "Sanitary sewers",
         ["sanitary-lift-station"] = "Sanitary sewers",
+        ["sewer-life-cycle-cost"] = "Sanitary sewers",
         ["sanitary-wet-weather"] = "Sanitary sewers",
         ["sanitary-trunk-hgl"] = "Sanitary sewers",
         ["sanitary-buildout"] = "Sanitary sewers",

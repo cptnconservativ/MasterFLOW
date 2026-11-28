@@ -160,8 +160,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
-| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), bypass pumping for tie-ins (`sanitary-bypass`) | |
-| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), sulfide build-up and corrosion (`sewer-sulfide`) | |
+| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), bypass pumping for tie-ins (`sanitary-bypass`), sulfide build-up and corrosion (`sewer-sulfide`), gravity vs lift station life-cycle cost (`sewer-life-cycle-cost`) | |
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
@@ -562,6 +561,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | 16 Sanitary sewers | Sanitary sewer build-out projection and phasing | `sanitary-buildout` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 | 16 Sanitary sewers | Sanitary bypass pumping plan for tie-ins | `sanitary-bypass` | Free |
+| 16 Sanitary sewers | Gravity sewer vs lift station life-cycle cost | `sewer-life-cycle-cost` | Free |
 | 16 Sanitary sewers | Sanitary wet-weather flows and SWMM export | `sanitary-wet-weather` | ★ Premium |
 | 16 Sanitary sewers | Sewer sulfide build-up and corrosion | `sewer-sulfide` | Free |
 
@@ -2174,6 +2174,27 @@ the pump and line data. `design flow` is one of:
 - suction lift and NPSH available at the site elevation (about 30 ft of atmosphere in Rapid City)
 - how long the pipes and manholes upstream can hold the flow if the pumps stop: to the incoming crown, to a backup
   elevation you give, and to the lowest rim upstream. This is checked against the crew's response time.
+## Gravity sewer vs lift station life-cycle cost
+
+Free · `sewer-life-cycle-cost` · U.S. units
+
+Compares a gravity route with a lift station and force main over the 75-year design life (IDCM §3.12.1). This is the
+engineering economic analysis and power cost that IDCM §3.13.3 asks for in the lift station report. Input:
+- each alternative's cost items: quantity, unit cost, service life and annual O&M. Lump sums from the cost estimate
+  tool also work.
+- the discount rate (real), power price and any demand charge
+- the initial and build-out average flows
+- the pumping head, given directly or from the force main (as in the lift station tool)
+
+The tool reports:
+- present worth by component (capital, replacements, O&M, energy, salvage) and the equivalent annual cost
+- the power price and the gravity capital at which the two alternatives break even
+- a sensitivity table across discount rates and power prices
+- a cash flow table and a cumulative present worth chart
+
+Pumps, controls and generators are replaced at their service lives. A mechanical item given more than the IDCM's
+25-year life is flagged. Present worth factors follow NIST Handbook 135.
+
 ## Sewer sulfide build-up and corrosion
 
 Free · `sewer-sulfide` · U.S. units
@@ -2287,6 +2308,7 @@ are in its document under `docs/tools/`.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Water Works* (Ten States Standards), §38.3.
 - Great Lakes–Upper Mississippi River Board, *Recommended Standards for Wastewater Facilities* (Ten States Standards), 2014, §11, §33, §34 and Ch. 40.
 - ASCE MOP 60 / WEF MOP FD-5, *Gravity Sanitary Sewer Design and Construction*, 2nd ed., 2007; US EPA, *Process Design Manual for Sulfide Control in Sanitary Sewerage Systems*, 1974 (Pomeroy Z formula).
+- Fuller, S.K. and Petersen, S.R., *Life-Cycle Costing Manual for the Federal Energy Management Program*, NIST Handbook 135, 1995 edition.
 - US EPA, *Computer Tools for Sanitary Sewer System Capacity Analysis and Planning* (SSOAP), EPA/600/R-07/111, 2007; Rossman, L.A. and Huber, W.C., *SWMM Reference Manual Vol. I: Hydrology*, EPA, 2016, Ch. 10 (RDII).
 - City of Fort Wayne, *SA8 Lift Station and Force Main Design*; Clean Water Services, *Design and Construction Standards* Ch. 9 (pump stations); New Braunfels Utilities, *Lift Station Design Criteria* (2024).
 - 2010 ADA Standards for Accessible Design, §403 and §405.
