@@ -49,6 +49,8 @@ public static class PremiumFeatures
         new("sanitary-network", "Sanitary sewer network design (Rapid City IDCM §3.12: design flows, sizing, inverts, H2S)", ["sanitary-network"]),
         new("sanitary-trunk-hgl", "Sanitary trunk sewer HGL and surcharge (junction losses, rims, services and basements)", ["sanitary-trunk-hgl"]),
         new("sanitary-buildout", "Sanitary sewer build-out projection and phasing (year each sewer reaches d/D 0.70, build now or oversize)", ["sanitary-buildout"]),
+        new("sanitary-plan-profile-dxf", "Sanitary sewer plan and profile DXF sheets (peak water surface, d/D, design exception flags)", ["sanitary-plan-profile-dxf"]),
+        new("sanitary-deep-structural", "Sanitary sewer structural check at designed depths (PVC/HDPE deflection, RCP class)", ["sanitary-deep-structural"]),
     ];
 
     /// <summary>The premium feature that gates <paramref name="toolId"/>, or null for a free tool.</summary>

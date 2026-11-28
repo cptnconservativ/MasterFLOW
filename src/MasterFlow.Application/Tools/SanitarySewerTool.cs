@@ -146,18 +146,37 @@ public sealed class SanitarySewerTool : IDesignTool
             """;
     }
 
-    public ToolResult Run(string input, DesignToolContext context) => Run(input, context, out _);
+    public ToolResult Run(string input, DesignToolContext context) => Design(input, context).Result;
 
     /// <summary>One designed or checked sewer, for tools that build on this one (trunk HGL, build-out phasing). Flows in gpm include I/I; lengths and elevations in ft (Run = the length the slope is measured over, inside wall to inside wall); D in inches.</summary>
     public sealed record DesignedSewer(string Name, string From, string To, double Length, double Run, double DiameterIn, double UpInvert, double DownInvert, double N, double Slope, double QaveGpm, double QpeakGpm, double Population, bool SizeDesigned);
     /// <summary>A manhole of the design: rim (null when not given), deflection (deg, null when not given), coordinates.</summary>
     public sealed record DesignedManhole(string Name, double? Rim, double? Deflection, double? Northing, double? Easting);
-    /// <summary>The sewers and manholes after design, upstream first.</summary>
-    public sealed record SanitaryDesign(IReadOnlyList<DesignedSewer> Sewers, IReadOnlyList<DesignedManhole> Manholes);
+    /// <summary>The sewers and manholes after design, upstream first (the hydraulic layout the trunk HGL and build-out tools route).</summary>
+    public sealed record SewerLayout(IReadOnlyList<DesignedSewer> Sewers, IReadOnlyList<DesignedManhole> Manholes);
 
-    /// <summary>Runs the tool and also returns the designed sewers (null when the run failed).</summary>
-    public ToolResult Run(string input, DesignToolContext context, out SanitaryDesign? design)
+    /// <summary>Runs the tool and also returns the designed sewers as a layout (null when the run failed).</summary>
+    public ToolResult Run(string input, DesignToolContext context, out SewerLayout? layout)
     {
+        var r = RunCore(input, context, out _, out var l);
+        layout = r.Succeeded ? l : null;
+        return r;
+    }
+
+    /// <summary>
+    /// Runs the design and also returns the designed network as data (sizes, inverts, peak water surface, d/D, cover,
+    /// flags), for the tools that build on it: the sanitary plan and profile sheets and the deep-sewer structural check.
+    /// The design is null when the run failed.
+    /// </summary>
+    public (ToolResult Result, SanitaryDesign? Design) Design(string input, DesignToolContext context)
+    {
+        var r = RunCore(input, context, out var d, out _);
+        return (r, r.Succeeded ? d : null);
+    }
+
+    private ToolResult RunCore(string input, DesignToolContext context, out SanitaryDesign? design, out SewerLayout? layout)
+    {
+        layout = null;
         design = null;
         const string title = "Sanitary sewer network design";
         if (context.Units == UnitSystem.SI)
@@ -455,6 +474,8 @@ public sealed class SanitarySewerTool : IDesignTool
         var flowRows = new List<IReadOnlyList<object?>>();
         var checkRows = new List<IReadOnlyList<object?>>();
         var exceptions = new List<IReadOnlyList<object?>>();
+        var pipeResults = new List<SanitaryPipeResult>();
+        var mhResults = new List<SanitaryManholeResult>();
         double flattest = pipes.Min(x => x.Slope);
         foreach (var name in order)
         {
@@ -498,6 +519,9 @@ public sealed class SanitarySewerTool : IDesignTool
             if (covUp < cover - 0.005 || covDn < cover - 0.005) { issues.Add("cover"); msgs.Add(CalcMessage.Warning("W-SS-009", $"{x.Name}: cover over the pipe is {Math.Min(covUp ?? 99, covDn ?? 99):F2} ft, less than {cover:G3} ft (IDCM 3.12.5); use insulation or berms, or lower the sewer.")); }
             if (s > 0.20) { issues.Add("anchors"); msgs.Add(CalcMessage.Warning("W-SS-013", $"{x.Name}: slope {s * 100:F1} % is over 20 %; anchor the sewer (IDCM 3.12.6 item 3, Ten States §33.45).")); }
 
+            pipeResults.Add(new SanitaryPipeResult(x.Name, x.From, x.To, x.Length, dIn, x.N, x.Up!.Value, x.Dn!.Value, s, qPkGpm, qAvGpm,
+                x.Surcharged ? double.NaN : yPk, vPk, vAv, x.Surcharged, covUp, covDn, issues.ToList(), issues.Contains("V peak"),
+                issues.Contains("V peak") ? SlopeForVelocityAtQ(qPk, dFt, x.N, vMin) : null));
             formRows.Add([x.Name, $"{x.From} – {x.To}", x.From, DropAt(x.From, x), x.To, x.Length, x.N, R(x.AreaIncr, 2), R(x.AreaTotal, 2),
                 R(qPkGpm, 1), R(qAvGpm, 1), R(s * 100, 3), dIn, Dep(yPk, dFt), R(vPk, 2), x.Surcharged ? double.NaN : R(yPk / dFt, 3), Dep(yAv, dFt), R(vAv, 2)]);
             double pfEff = x.QaveGpm > 0 ? (x.QpeakGpm) / x.QaveGpm : double.NaN;
@@ -519,6 +543,7 @@ public sealed class SanitarySewerTool : IDesignTool
             string type = maxD >= 24 ? "precast tee, 48 in. riser" : "48 in. round (Rinker)";
             string top = depth is null ? "" : depth >= 5.5 ? "eccentric cone" : "flat top (H-20)";
             string drops = "", req = "", note = outP is null ? "outlet" : ins.Count == 0 ? "upstream end" : "";
+            var mhFlags = new List<string>();
             if (outP is not null && ins.Count > 0)
             {
                 var dl = new List<string>(); var rl = new List<string>();
@@ -528,18 +553,22 @@ public sealed class SanitarySewerTool : IDesignTool
                     double defl = Deflection(m, y, outP);
                     double need = RequiredDrop(defl, y.Slope, outP.Slope);
                     dl.Add($"{y.Name} {drop:F2}"); rl.Add($"{need:F2}");
+                    if (drop < need - 0.005) mhFlags.Add($"drop {y.Name} {drop:F2} < {need:F2}");
                     if (drop < need - 0.005) msgs.Add(CalcMessage.Warning("W-SS-010", $"{m.Name}: the drop from {y.Name} to {outP.Name} is {drop:F2} ft, less than the {need:F2} ft required (IDCM 3.12.9 item 5: average of the slopes across the {mhDia:G3} ft manhole, at least {(defl > 45 ? "0.15 ft for a deflection over 45°" : "0.10 ft")})."));
                     if (drop >= dropMhHeight - 1e-9)
                     {
                         note = "drop manhole";
+                        mhFlags.Add("drop manhole");
                         msgs.Add(CalcMessage.Warning("W-SS-012", $"{m.Name}: {y.Name} enters {drop:F2} ft above the outlet invert; a drop connection is needed at {dropMhHeight:G3} ft or more (Ten States §34.2). Rapid City allows drop manholes only with the Public Works Director's written permission and never internal drops (IDCM 3.12.10)."));
                     }
                 }
                 double lowCrown = ins.Min(y => y.Dn!.Value + y.D!.Value / 12);
+                if (outP.Up!.Value + outP.D!.Value / 12 > lowCrown + 0.005) mhFlags.Add("crown above inlet crown");
                 if (outP.Up!.Value + outP.D!.Value / 12 > lowCrown + 0.005)
                     msgs.Add(CalcMessage.Warning("W-SS-011", $"{m.Name}: the crown of {outP.Name} ({outP.Up.Value + outP.D.Value / 12:F2}) is above the lowest inlet crown ({lowCrown:F2}); match crowns at least (IDCM 3.12.6 item 6)."));
                 drops = string.Join("; ", dl); req = string.Join("; ", rl);
             }
+            mhResults.Add(new SanitaryManholeResult(m.Name, m.Rim, m.N, m.E, double.IsFinite(low) ? low : null, depth, type, top, note, mhFlags));
             mhRows.Add([m.Name, m.Rim, double.IsFinite(low) ? R(low, 2) : null, depth is { } dp ? R(dp, 2) : null, type, top, drops, req, note]);
         }
 
@@ -662,10 +691,11 @@ public sealed class SanitarySewerTool : IDesignTool
                     : np).ToList(),
             };
 
-        design = new SanitaryDesign(
+        layout = new SewerLayout(
             order.Select(nm => byName[nm]).Select(x => new DesignedSewer(x.Name, x.From, x.To, x.Length, Run(x), x.D!.Value, x.Up!.Value, x.Dn!.Value, x.N, x.Slope,
                 x.QaveGpm + x.Ii, x.QpeakGpm + x.Ii, x.PopRes, x.DesignD)).ToList(),
             mhs.Values.Select(m => new DesignedManhole(m.Name, m.Rim, m.Deflection, m.N, m.E)).ToList());
+        design = new SanitaryDesign(pipeResults, mhResults, maxDd, vMin, vAtPeak, cover, wallIn, rc ? "Rapid City IDCM 2012 §3.12" : "Ten States Standards (2014)");
         return new ToolResult(title, summary, tables, msgs)
         {
             Figures = figures,
@@ -720,4 +750,38 @@ public sealed class SanitarySewerTool : IDesignTool
     }
 
     private static double R(double v, int d) => double.IsFinite(v) ? Math.Round(v, d) + 0.0 : double.NaN;
+}
+
+/// <summary>One sewer of a sanitary design: geometry as designed or entered, peak and average flows (gpm, I/I included), peak
+/// normal depth (ft, NaN when surcharged), velocities (ft/s), cover over the top of pipe at each end (ft) and the check flags.</summary>
+public sealed record SanitaryPipeResult(string Name, string From, string To, double Length, double DiameterIn, double N, double UpInvert, double DownInvert,
+    double Slope, double QpeakGpm, double QaveGpm, double PeakDepth, double PeakVelocity, double AverageVelocity, bool Surcharged,
+    double? CoverUp, double? CoverDown, IReadOnlyList<string> Issues, bool DesignException, double? SlopeForMinVelocity)
+{
+    public double DiameterFt => DiameterIn / 12;
+    public double PeakDd => Surcharged ? double.NaN : PeakDepth / DiameterFt;
+}
+
+/// <summary>One manhole of a sanitary design: rim, coordinates, lowest invert, depth, structure type and flags.</summary>
+public sealed record SanitaryManholeResult(string Name, double? Rim, double? Northing, double? Easting, double? LowestInvert, double? Depth,
+    string Structure, string Top, string Note, IReadOnlyList<string> Flags);
+
+/// <summary>A sanitary sewer design as data, with the limits it was checked against.</summary>
+public sealed record SanitaryDesign(IReadOnlyList<SanitaryPipeResult> Pipes, IReadOnlyList<SanitaryManholeResult> Manholes,
+    double MaxDd, double MinVelocity, bool VelocityAtPeak, double MinCover, double WallIn, string Criteria)
+{
+    public SanitaryPipeResult? Outlet(string manhole) => Pipes.FirstOrDefault(p => p.From.Equals(manhole, StringComparison.OrdinalIgnoreCase));
+    public SanitaryManholeResult? Manhole(string name) => Manholes.FirstOrDefault(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Pipes from <paramref name="start"/> down to the outlet, upstream first.</summary>
+    public List<SanitaryPipeResult> PathToOutlet(string start)
+    {
+        var path = new List<SanitaryPipeResult>();
+        string at = start;
+        while (Outlet(at) is { } p && path.Count <= Pipes.Count) { path.Add(p); at = p.To; }
+        return path;
+    }
+
+    /// <summary>Upstream ends: manholes with an outlet pipe and no inlet.</summary>
+    public IEnumerable<string> Heads => Pipes.Where(p => !Pipes.Any(q => q.To.Equals(p.From, StringComparison.OrdinalIgnoreCase))).Select(p => p.From);
 }
