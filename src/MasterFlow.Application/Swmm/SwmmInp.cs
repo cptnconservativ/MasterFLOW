@@ -36,6 +36,25 @@ public sealed record SwmmExportOptions
     public IReadOnlyList<double> RainIntensity { get; init; } = [];
     public double RainStepMin { get; init; } = 5;
     public string RainName { get; init; } = "Design storm";
+    /// <summary>Sanitary sewer flows (dry-weather flow with hourly patterns, constant infiltration, RTK RDII); null for a storm network.</summary>
+    public SwmmSanitary? Sanitary { get; init; }
+}
+
+/// <summary>A node's dry-weather flow: SWMM [DWF] baseline (cfs) and the name of its HOURLY pattern.</summary>
+public sealed record SwmmDwf(string Node, double BaselineCfs, string Pattern);
+
+/// <summary>One RTK triangle of a SWMM unit hydrograph: R (fraction of rain), T (h to peak), K (recession / T).</summary>
+public sealed record SwmmRtk(string Response, double R, double T, double K);
+
+/// <summary>
+/// The sanitary sections of a .inp file: [DWF] with HOURLY [PATTERNS], constant groundwater infiltration as [INFLOWS]
+/// baselines, and RDII from one RTK unit hydrograph ([HYDROGRAPHS]) over each node's sewershed area ([RDII]).
+/// </summary>
+public sealed record SwmmSanitary(
+    IReadOnlyList<SwmmDwf> Dwf, IReadOnlyDictionary<string, double[]> Patterns, IReadOnlyList<(string Node, double Cfs)> Infiltration,
+    IReadOnlyList<SwmmRtk> Rtk, IReadOnlyList<(string Node, double AreaAc)> Rdii)
+{
+    public string UnitHydrograph { get; init; } = "RTK1";
 }
 
 /// <summary>
@@ -88,7 +107,9 @@ public static class SwmmInp
         Opt("VARIABLE_STEP", "0.75"); Opt("MAX_TRIALS", "8"); Opt("HEAD_TOLERANCE", si ? "0.0015" : "0.005");
         sb.AppendLine();
 
-        if (o.RainIntensity.Count > 0 && o.Subcatchments.Count > 0)
+        bool rdii = o.Sanitary is { Rdii.Count: > 0, Rtk.Count: > 0 };
+        bool gage = o.RainIntensity.Count > 0 && (o.Subcatchments.Count > 0 || rdii);
+        if (gage)
         {
             var step = TimeSpan.FromMinutes(o.RainStepMin);
             sb.AppendLine("[RAINGAGES]").AppendLine(";;Name  Format  Interval  SCF  Source")
@@ -172,7 +193,8 @@ public static class SwmmInp
         if (net.Structures.Any(s => s.LossMethod is not (StructureLossMethod.StandardK)) && net.Pipes.Count > 0)
             msgs.Add(CalcMessage.Info("I-SW-003", "IDCM Figure 4-6/4-7 structure losses (hj = V2²/2g − c·V1²/2g) have no SWMM equivalent. SWMM applies the entry and exit K you give to each conduit; standard-K structures carry their K as the entry loss of the pipe leaving them."));
 
-        if (!o.Inflows.Equals("none", StringComparison.OrdinalIgnoreCase))
+        if (o.Sanitary is { } san) WriteSanitary(sb, san, gage);
+        else if (!o.Inflows.Equals("none", StringComparison.OrdinalIgnoreCase))
         {
             bool minor = o.Inflows.Equals("minor", StringComparison.OrdinalIgnoreCase);
             var flows = new List<(string Node, double Q)>();
@@ -203,7 +225,7 @@ public static class SwmmInp
         }
         _ = pipeQ;
 
-        if (o.RainIntensity.Count > 0 && o.Subcatchments.Count > 0)
+        if (gage)
         {
             sb.AppendLine().AppendLine("[TIMESERIES]").AppendLine($";;{o.RainName}: intensity (in/h) at the start of each {F(o.RainStepMin)}-min block");
             for (int i = 0; i < o.RainIntensity.Count; i++) sb.AppendLine($"STORM  {F(i * o.RainStepMin / 60)}  {F(o.RainIntensity[i])}");
@@ -234,6 +256,35 @@ public static class SwmmInp
             }
         }
         return sb.ToString();
+    }
+
+    private static void WriteSanitary(StringBuilder sb, SwmmSanitary san, bool gage)
+    {
+        if (san.Dwf.Count > 0)
+        {
+            sb.AppendLine().AppendLine("[DWF]").AppendLine(";;Node  Constituent  Baseline  Patterns");
+            foreach (var d in san.Dwf) sb.AppendLine($"{d.Node}  FLOW  {F(d.BaselineCfs)}  \"{d.Pattern}\"");
+        }
+        var gwi = san.Infiltration.Where(x => x.Cfs > 1e-9).ToList();
+        if (gwi.Count > 0)
+        {
+            sb.AppendLine().AppendLine("[INFLOWS]").AppendLine(";;Node  Constituent  TimeSeries  Type  Mfactor  Sfactor  Baseline  Pattern");
+            foreach (var (node, q) in gwi) sb.AppendLine($"{node}  FLOW  \"\"  FLOW  1.0  1.0  {F(q)}");
+        }
+        if (gage && san.Rdii.Count > 0 && san.Rtk.Count > 0)
+        {
+            sb.AppendLine().AppendLine("[HYDROGRAPHS]").AppendLine(";;Hydrograph  Month/RG  Response  R  T  K  Dmax  Drecov  Dinit").AppendLine($"{san.UnitHydrograph}  RG1");
+            foreach (var t in san.Rtk) sb.AppendLine($"{san.UnitHydrograph}  All  {t.Response}  {F(t.R)}  {F(t.T)}  {F(t.K)}  0  0  0");
+            sb.AppendLine().AppendLine("[RDII]").AppendLine(";;Node  UnitHydrograph  SewerArea");
+            foreach (var (node, a) in san.Rdii.Where(x => x.AreaAc > 0)) sb.AppendLine($"{node}  {san.UnitHydrograph}  {F(a)}");
+        }
+        if (san.Patterns.Count > 0)
+        {
+            sb.AppendLine().AppendLine("[PATTERNS]").AppendLine(";;Name  Type  Multipliers (hour 0 = midnight to 1 AM)");
+            foreach (var (name, v) in san.Patterns)
+                for (int i = 0; i < 24; i += 6)
+                    sb.AppendLine((i == 0 ? $"{name}  HOURLY  " : $"{name}  ") + string.Join("  ", v.Skip(i).Take(6).Select(x => Math.Round(x, 4).ToString("0.0###", Inv))));
+        }
     }
 
     /// <summary>A parsed .inp file: sections of whitespace-separated tokens, comments removed (quoted "" kept as a token).</summary>
