@@ -324,7 +324,7 @@ public sealed class PlanProfileSheetsTool : IDesignTool
         return us ? F($"{major}+{minor:00.00}") : F($"{major}+{minor:000.00}");
     }
 
-    private static double NiceStep(double raw)
+    internal static double NiceStep(double raw)
     {
         double mag = Math.Pow(10, Math.Floor(Math.Log10(raw)));
         double f = raw / mag;
@@ -332,7 +332,7 @@ public sealed class PlanProfileSheetsTool : IDesignTool
     }
 
     /// <summary>Clips a polyline in (station, value) to stations s0..s1.</summary>
-    private static List<(double, double)> Clip(List<(double S, double Z)> pts, double s0, double s1)
+    internal static List<(double, double)> Clip(List<(double S, double Z)> pts, double s0, double s1)
     {
         var o = new List<(double, double)>();
         var sorted = pts.OrderBy(q => q.S).ToList();
@@ -350,14 +350,14 @@ public sealed class PlanProfileSheetsTool : IDesignTool
         return o.OrderBy(q => q.Item1).ToList();
     }
 
-    private static (double W, double H) Sheet(string? text, bool us)
+    internal static (double W, double H) Sheet(string? text, bool us)
     {
         if (text is null) return us ? (34, 22) : (841, 594);
         var parts = text.ToLowerInvariant().Replace("×", "x").Split('x', StringSplitOptions.TrimEntries);
         return parts.Length == 2 && ToolInput.TryNumber(parts[0], out double w) && ToolInput.TryNumber(parts[1], out double h) ? (w, h) : (double.NaN, double.NaN);
     }
 
-    private static string Safe(string s) => new(s.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '-' : c).ToArray());
+    internal static string Safe(string s) => new(s.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '-' : c).ToArray());
 
     private static string F(FormattableString s) => s.ToString(CultureInfo.InvariantCulture);
 }
