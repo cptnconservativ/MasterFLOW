@@ -160,7 +160,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
-| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), drop structures and vortex drop shafts (`sewer-drop-structures`), sulfide build-up and corrosion (`sewer-sulfide`), gravity vs lift station life-cycle cost (`sewer-life-cycle-cost`), bypass pumping for tie-ins (`sanitary-bypass`) | |
+| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), sewer casings and trenchless crossings (`sewer-casing`), inverted siphons (`inverted-siphon`), sulfide build-up and corrosion (`sewer-sulfide`), drop structures and vortex drop shafts (`sewer-drop-structures`), gravity vs lift station life-cycle cost (`sewer-life-cycle-cost`), bypass pumping for tie-ins (`sanitary-bypass`) | |
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
@@ -561,6 +561,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | 16 Sanitary sewers | Sanitary sewer structural check at designed depths | `sanitary-deep-structural` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer build-out projection and phasing | `sanitary-buildout` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
+| 16 Sanitary sewers | Sewer casing and trenchless crossing | `sewer-casing` | Free |
 | 16 Sanitary sewers | Sanitary bypass pumping plan for tie-ins | `sanitary-bypass` | Free |
 | 16 Sanitary sewers | Gravity sewer vs lift station life-cycle cost | `sewer-life-cycle-cost` | Free |
 | 16 Sanitary sewers | Sanitary wet-weather flows and SWMM export | `sanitary-wet-weather` | ★ Premium |
@@ -2177,6 +2178,28 @@ The tool reports:
 Ten States Standards Ch. 40 supplies the pump and force main limits. Neither it nor the IDCM sets detention times, so
 those come from the utility criteria named above (D-712).
 
+## Sewer casing and trenchless crossing
+
+Free · `sewer-casing` · U.S. units
+
+Sizes the casing for a sewer main bored or jacked under a street, railroad or channel by Rapid City IDCM §3.12.11.
+Input: the carrier barrel OD and ID, its largest bell OD and joint length, the casing length and material (steel or
+RCP), and optionally the carrier invert and slope, the expected bore accuracy, skin friction and soil resistivity.
+
+The tool reports:
+- the casing: the smallest standard steel OD whose ID, at the City's minimum wall for that diameter (35,000 psi
+  steel), clears the bell OD by 6 in., or the next RCP jacking size
+- the chocks: one each side of every joint, one at mid-length, 10 ft maximum, with the count for the whole casing
+- the casing inverts at both ends, with the carrier centered
+- whether the bore can hold the sewer grade: the room the casing leaves around the bells against the expected
+  deviation (1 % of the length by default for unguided auger boring), the longest bore that holds grade, and the
+  casing that would
+- the jacking force against half the casing's yield load
+- the end seal, restrained joint and corrosion items of §3.12.11, and the soil corrosivity class
+
+With `protection = cap` it sizes the §3.12.12 stream crossing pipe cap instead (3 diameters wide, spring line to 6 in.
+above the crown). The IDCM wall table stops at 42 in. and prints 0.500 in. for 28 and 30 in. casings where the water
+main table prints 0.469 in.; the sewer value is used (D-740).
 ## Sanitary bypass pumping plan for tie-ins
 
 Free · `sanitary-bypass` · U.S. units
