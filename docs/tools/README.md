@@ -46,6 +46,12 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | ★ Review comment tracker and response letter | Agency review rounds; network results; IDCM §4.6 plan review | [review-comments.md](review-comments.md) |
 | ★ Sanitary sewer network design: design flows, sizing, inverts, manholes, H2S | Rapid City IDCM 2012 §3.12; Ten States Standards (2014) §11, §33–34; EPA 1974 / ASCE MOP 60 sulfide Z | [sanitary-network.md](sanitary-network.md) |
+| Sewer drop structures: velocity over 10 ft/s, anchors, outside drops, vortex and baffle drop shafts | Rapid City IDCM §3.12.6, §3.12.10; Ten States §33.45, §34.2; Jain (1984), Yu and Lee (2009), Odgaard et al. (2013) | [sewer-drop-structures.md](sewer-drop-structures.md) |
+| ★ Sanitary wet-weather flows: diurnal DWF, RTK RDII, dynamic-wave surcharge, SWMM .inp export | EPA SSOAP (2007); SWMM 5 Hydrology Reference Manual Ch. 10; Rapid City depth–duration table, NRCS Type II | [sanitary-wet-weather.md](sanitary-wet-weather.md) |
+| ★ Sanitary trunk sewer HGL and surcharge: junction and bend losses, rims, services and basements | IDCM 2012 §3.12 flows and d/D; IDCM Figs. 4-6/4-7 losses; standard step energy equation | [sanitary-trunk-hgl.md](sanitary-trunk-hgl.md) |
+| ★ Sanitary sewer plan and profile sheets (DXF): peak water surface, d/D, design exception flags | Rapid City IDCM 2012 §3.12.4, §3.12.6 | [sanitary-plan-profile-dxf.md](sanitary-plan-profile-dxf.md) |
+| ★ Sanitary sewer structural check at designed depths: PVC/HDPE deflection, RCP class | Ten States §33.85; AASHTO LRFD §12; ACPA; Howard (1977) | [sanitary-deep-structural.md](sanitary-deep-structural.md) |
+| ★ Sanitary sewer build-out projection and phasing: year each sewer reaches d/D 0.70, build now or oversize | IDCM 2012 §3.12 flows, PF, RF and d/D; your growth schedule | [sanitary-buildout.md](sanitary-buildout.md) |
 | Manhole and structure size from pipe sizes, angles and inverts | Opening and wall-leg geometry; ASTM C76 wall B; your precaster's sizes | [manhole-sizing.md](manhole-sizing.md) |
 | ★ Plan and profile sheets (DXF) with HGL and EGL | Network solution; IDCM §4.6.7 clearance | [plan-profile-dxf.md](plan-profile-dxf.md) |
 | Quantity takeoff and cost opinion | Network geometry, your unit prices | [quantity-takeoff.md](quantity-takeoff.md) |
@@ -79,6 +85,8 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Dynamic-wave storm sewer routing: unsteady HGL, surcharge, flooding | EPA SWMM 5 dynamic wave (link-node), IDCM §4.6.7 | [dynamic-wave.md](dynamic-wave.md) |
 | Sanitary lift station and force main: system curves, firm capacity, cycling, detention, surge | Rapid City IDCM §3.13.3; Ten States Standards (2014) Ch. 40; Hazen-Williams; Joukowsky | [sanitary-lift-station.md](sanitary-lift-station.md) |
 | Sewer casing and trenchless crossing: casing size and wall, chocks, grade tolerance, jacking, stream pipe cap | Rapid City IDCM §3.12.11–3.12.12 | [sewer-casing.md](sewer-casing.md) |
+| Sanitary bypass pumping for tie-ins: hourly flow at the connection, pump size and duration, lowest-flow window, TDH, NPSH, upstream storage | Diurnal flow at the connection; Hazen-Williams; standard atmosphere; Rapid City IDCM §3.12 design flows | [sanitary-bypass.md](sanitary-bypass.md) |
+| Gravity sewer vs lift station life-cycle cost: present worth, annual cost, break-even, sensitivity | Rapid City IDCM §3.12.1, §3.13.3; NIST Handbook 135 | [sewer-life-cycle-cost.md](sewer-life-cycle-cost.md) |
 | Sewer sulfide build-up and concrete corrosion, reach by reach, with lining recommendation | EPA 625/1-85/018 (1985); ASCE MOP 69; Pomeroy–Parkhurst (1977); IDCM §3.12.1, §3.12.8, §3.12.14 | [sewer-sulfide.md](sewer-sulfide.md) |
 | Stormwater pump stations: system curve, cycling and storage routing | FHWA HEC-24 (2001) | [pump-station.md](pump-station.md) |
 | ★ Climate stress test | Reruns the storm network for future rainfall projections, finds the rainfall increase at which each structure and pipe first fails, and writes a client resilience memo. [climate-stress.md](climate-stress.md) |

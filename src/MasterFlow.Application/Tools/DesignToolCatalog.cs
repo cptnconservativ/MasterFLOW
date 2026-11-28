@@ -56,10 +56,19 @@ public static class DesignToolCatalog
         ["stream-stability"] = "Open channels and structures",
         ["climate-stress"] = "Land development and construction", ["memory-search"] = "Land development and construction",
         ["bridge-debris-forces"] = "Open channels and structures",
-        // Sanitary sewer tools (the lift station id is listed ahead of its PR so both PRs leave this block alike).
-        ["sanitary-network"] = "Sanitary sewers", ["sanitary-lift-station"] = "Sanitary sewers",
-        // Casing and siphon tools are listed in both of their PRs so either can merge first.
-        ["sewer-casing"] = "Sanitary sewers", ["inverted-siphon"] = "Sanitary sewers",
+        // Sanitary sewer tools.
+        ["sanitary-network"] = "Sanitary sewers",
+        ["sanitary-lift-station"] = "Sanitary sewers",
+        ["sewer-casing"] = "Sanitary sewers",
+        ["inverted-siphon"] = "Sanitary sewers",
+        ["sewer-life-cycle-cost"] = "Sanitary sewers",
+        ["sanitary-wet-weather"] = "Sanitary sewers",
+        ["sanitary-trunk-hgl"] = "Sanitary sewers",
+        ["sanitary-buildout"] = "Sanitary sewers",
+        ["sanitary-plan-profile-dxf"] = "Sanitary sewers",
+        ["sanitary-deep-structural"] = "Sanitary sewers",
+        ["sewer-drop-structures"] = "Sanitary sewers",
+        ["sanitary-bypass"] = "Sanitary sewers",
         ["sewer-sulfide"] = "Sanitary sewers",
     };
 
