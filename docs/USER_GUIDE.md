@@ -164,7 +164,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
-| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); trunk sewer HGL and surcharge (`sanitary-trunk-hgl`); plan and profile DXF sheets (`sanitary-plan-profile-dxf`); structural check at designed depths (`sanitary-deep-structural`) |
+| Sanitary sewers | | Sanitary sewer network design (Rapid City IDCM §3.12): design flows, sizing, inverts, manholes, H2S (`sanitary-network`); trunk sewer HGL and surcharge (`sanitary-trunk-hgl`); plan and profile DXF sheets (`sanitary-plan-profile-dxf`); structural check at designed depths (`sanitary-deep-structural`); build-out projection and phasing (`sanitary-buildout`) |
 | Land development | | Site feasibility, grading solver, utility conflicts, permit tracker, field-to-model, construction companion, climate stress test, institutional memory search |
 
 Which tool belongs to which license feature is one list in the program (`PremiumFeatures.All`), so a tool can move
@@ -558,6 +558,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | 16 Sanitary sewers | Sanitary trunk sewer HGL and surcharge | `sanitary-trunk-hgl` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer plan and profile sheets (DXF) | `sanitary-plan-profile-dxf` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer structural check at designed depths | `sanitary-deep-structural` | ★ Premium |
+| 16 Sanitary sewers | Sanitary sewer build-out projection and phasing | `sanitary-buildout` | ★ Premium |
 | 16 Sanitary sewers | Sanitary lift station and force main | `sanitary-lift-station` | Free |
 | 16 Sanitary sewers | Sewer sulfide build-up and corrosion | `sewer-sulfide` | Free |
 
@@ -2016,6 +2017,7 @@ the selected network. The flows, sizes and inverts are worked out the same way, 
 **Note.** The IDCM gives no HGL criterion for sanitary sewers, only d/D ≤ 0.70 at peak flow. The 1 ft freeboards
 are inputs that mirror the storm sewer clearance (D-722). The storm junction losses are conservative for shaped
 sanitary manholes (D-720).
+
 ## Sanitary sewer plan and profile sheets (DXF) ★ Premium
 
 ★ Premium · `sanitary-plan-profile-dxf` · U.S. units
@@ -2054,6 +2056,35 @@ of the pipe. The deep end governs the earth load and the shallow end the HL-93 l
 
 Sewers at 15 ft of cover and deeper are listed in the summary. The governing pipes are also written as input for
 **Pipe structural design** (`pipe-structural input.txt`).
+
+## Sanitary sewer build-out projection and phasing ★ Premium
+
+★ Premium · `sanitary-buildout` · U.S. units
+
+Answers "build it now or oversize it?" for planned sewers. Flows are projected year by year from today's loads to
+build-out, and each sewer gets the year it reaches d/D 0.70 at peak flow and the year it surcharges.
+
+**Input.** Use the same input as **Sanitary sewer network design**, with the planned sizes and inverts given. Add:
+
+- `base year` and `build-out year`.
+- `[Loads]`: today's loads.
+- `[Growth]`: the growth by basin. Each row has the manhole, land use, area, DU/ac, population or flow, the Start
+  year and the End year. The load rises linearly from the Start year to the End year. With no End year, it is all
+  added in the Start year.
+- `decision horizon` (20 years) and `report every` (5 years).
+
+**Results.**
+- A phasing table: each sewer's peak flow and d/D today and at build-out, the year it passes 0.70, the year it
+  surcharges, and the size the build-out flow needs on the same slope. The recommendation is one of:
+  - adequate;
+  - over the limit already;
+  - build the build-out size now (it reaches the limit within the horizon);
+  - build as planned and relieve it by the year it reaches the limit.
+- d/D by year, flow at the outlet by year, the growth schedule, and a chart of d/D against year with the 0.70 line.
+
+**Note.** Peaking and reduction factors are worked out again each year (D-728). The horizon rule is a planning input,
+not a City criterion (D-726). For a trunk near the limit, check the backwater with **Sanitary trunk sewer HGL** using
+that year's loads.
 
 ## Sanitary lift station and force main
 
