@@ -89,6 +89,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | Gravity sewer vs lift station life-cycle cost: present worth, annual cost, break-even, sensitivity | Rapid City IDCM §3.12.1, §3.13.3; NIST Handbook 135 | [sewer-life-cycle-cost.md](sewer-life-cycle-cost.md) |
 | Sewer sulfide build-up and concrete corrosion, reach by reach, with lining recommendation | EPA 625/1-85/018 (1985); ASCE MOP 69; Pomeroy–Parkhurst (1977); IDCM §3.12.1, §3.12.8, §3.12.14 | [sewer-sulfide.md](sewer-sulfide.md) |
 | Stormwater pump stations: system curve, cycling and storage routing | FHWA HEC-24 (2001) | [pump-station.md](pump-station.md) |
+| Inverted siphon: staged barrels, 3 ft/s, head loss, inlet weirs, air jumper | ASCE MOP 60; Ten States Standards | [inverted-siphon.md](inverted-siphon.md) |
 | ★ Climate stress test | Reruns the storm network for future rainfall projections, finds the rainfall increase at which each structure and pipe first fails, and writes a client resilience memo. [climate-stress.md](climate-stress.md) |
 | ★ Construction-phase companion | Checks submittals (pipe, castings, riprap) and RFIs against the design, re-solves the network for each change, and drafts the response letter. [construction-companion.md](construction-companion.md) |
 | ★ Institutional memory search: past projects, calcs and review letters | Your project folders; runs on the computer | [memory-search.md](memory-search.md) |

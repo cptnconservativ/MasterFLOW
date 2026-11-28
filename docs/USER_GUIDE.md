@@ -556,6 +556,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Institutional memory search | `memory-search` | ★ Premium |
 | 16 Sanitary sewers | Sewer drop structures and vortex drop shafts | `sewer-drop-structures` | Free |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
+| 16 Sanitary sewers | Inverted siphon | `inverted-siphon` | Free |
 | 16 Sanitary sewers | Sanitary trunk sewer HGL and surcharge | `sanitary-trunk-hgl` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer plan and profile sheets (DXF) | `sanitary-plan-profile-dxf` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer structural check at designed depths | `sanitary-deep-structural` | ★ Premium |
@@ -1991,6 +1992,25 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
 
+## Inverted siphon
+
+Free · `inverted-siphon` · U.S. units
+
+Designs or checks a sanitary inverted siphon by ASCE MOP 60 and the Ten States Standards (the IDCM has no siphon
+criteria). Input: minimum, average, peak and wet weather flows; the available head (or the upstream and downstream
+water surfaces); the barrel length, n and K values; optionally the barrels to check, the inlet weir length and the
+incoming sewer size for the air jumper.
+
+The tool:
+- sizes barrel 1 to run 3 ft/s at the average flow, barrel 2 to bring the capacity up to the peak, and a wet-weather
+  barrel when needed, all fed by side weirs in the inlet chamber (at least two barrels)
+- gives each barrel's capacity, the flow at which it joins and its weir crest elevation
+- tabulates the flow split, velocities, head and inlet water surface from the minimum to the design flow
+- checks the head against the available head and 3 ft/s in each daily barrel at the peak, and notes the velocity at
+  the minimum flow, barrels that run only in wet weather, and the capacity with the largest barrel out
+- sizes the air jumper between the chambers (half the incoming sewer by default) and its air loss
+
+The air demand, jumper size and loss limit are defaults to set from an odor study (D-748).
 ## Sewer drop structures and vortex drop shafts
 
 Free · `sewer-drop-structures` · U.S. units
