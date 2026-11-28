@@ -160,7 +160,7 @@ it covers (`*` means every premium feature, present and future), an issue date a
 | Detention and quality | Detention routing, pond storage from a TIN, erosion and sediment control | Multi-stage outlet designer, water quality and LID sizing |
 | Channels and structures | Backwater profile, channel profile and lining, culverts (HDS-5), outlet protection (HEC-14), stilling basins, bridge scour | Natural channel profiles (HEC-RAS method) |
 | HEC/HDS manual tools | Riprap (HEC-11), linings (HEC-15), AOP culverts (HEC-26), scour countermeasures (HEC-23), bridge debris and forces (HEC-9, HDS-7), deck drainage (HEC-21), stream stability (HEC-20), sediment transport (HDS-6), flood risk (HEC-17), regional regression (HDS-2), pump stations (HEC-24), spillways and breach (TR-60), snowmelt, pond sediment, groundwater mounding, underdrains | |
-| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), bypass pumping for tie-ins (`sanitary-bypass`), sulfide build-up and corrosion (`sewer-sulfide`), gravity vs lift station life-cycle cost (`sewer-life-cycle-cost`) | |
+| Sanitary sewers | Lift station and force main (`sanitary-lift-station`), drop structures and vortex drop shafts (`sewer-drop-structures`), sulfide build-up and corrosion (`sewer-sulfide`), gravity vs lift station life-cycle cost (`sewer-life-cycle-cost`), bypass pumping for tie-ins (`sanitary-bypass`) | |
 | Structures and storage | Manhole sizing, pipe structural design (RCP class, flexible deflection), structure flotation, roof drains and scuppers, trash racks, weirs and Parshall flumes, water quality flow splitter, slope-area peak discharge, preliminary detention storage, underground detention | |
 | Cost | Quantity takeoff and opinion of probable cost | Cost estimate and bid tabulation |
 | Productivity and deliverables | | Batch scenarios, inverse design, drainage report builder, what-changed diff, plan-review pre-checker, review comment tracker |
@@ -554,6 +554,7 @@ the pre-checker, the redesign diff and inverse design all re-run those saved inp
 | | Construction-phase companion | `construction-companion` | ★ Premium |
 | | Climate stress test | `climate-stress` | ★ Premium |
 | | Institutional memory search | `memory-search` | ★ Premium |
+| 16 Sanitary sewers | Sewer drop structures and vortex drop shafts | `sewer-drop-structures` | Free |
 | 16 Sanitary sewers | Sanitary sewer network design | `sanitary-network` | ★ Premium |
 | 16 Sanitary sewers | Sanitary trunk sewer HGL and surcharge | `sanitary-trunk-hgl` | ★ Premium |
 | 16 Sanitary sewers | Sanitary sewer plan and profile sheets (DXF) | `sanitary-plan-profile-dxf` | ★ Premium |
@@ -1989,6 +1990,33 @@ peak flows back, ready for **LandXML…** export to Civil 3D.
 in ft/ft, which makes almost every small sewer rate "common". MasterFlow uses the formula as printed, as the IDCM
 governs; `h2s formula = Pomeroy` uses the original (D-704).
 
+## Sewer drop structures and vortex drop shafts
+
+Free · `sewer-drop-structures` · U.S. units
+
+Handles reaches over 10 ft/s at half depth and the drops that take the elevation out. IDCM §3.12.6 allows faster
+reaches only with written approval, with vortex-type energy-dissipating manholes and anchors.
+
+Input: reaches (length, size, inverts, peak flow) and manhole drops (inverts, peak flow, inlet and outlet pipes).
+
+The tool reports:
+- the velocity at half depth and at peak, with the slope that meets the limit, the drop to take out, and how many
+  structures it needs
+- anchors on slopes of 20 % or more (Ten States §33.45: 36, 24 or 16 ft centers)
+- each drop's type:
+  - under 2 ft: fillet the invert
+  - 2 ft or more: outside drop connection (Ten States §34.2; Rapid City needs written permission and never allows
+    internal drops, §3.12.10)
+  - 15 ft or more, or an inlet over 10 ft/s: vortex drop shaft
+- for each vortex drop shaft:
+  - the size from D = k·(Q²/g)^0.2 (Jain; Yu and Lee), at least the inlet pipe and 24 in.
+  - the overload margin, the approach Froude number and the intake critical depth
+  - the share of the inlet energy to dissipate
+- a baffle drop shaft alternative (Odgaard et al. 2013): diameter, baffle spacing and count, plunge check
+
+The intake shape, dissipation chamber and air vent are left to a model study or the supplier (D-778). The 15 ft vortex
+height is a default to confirm, because no criterion sets it (D-776).
+
 ## Sanitary wet-weather flows and SWMM export ★ Premium
 
 ★ Premium · `sanitary-wet-weather` · U.S. units
@@ -2312,6 +2340,7 @@ are in its document under `docs/tools/`.
 - US EPA, *Computer Tools for Sanitary Sewer System Capacity Analysis and Planning* (SSOAP), EPA/600/R-07/111, 2007; Rossman, L.A. and Huber, W.C., *SWMM Reference Manual Vol. I: Hydrology*, EPA, 2016, Ch. 10 (RDII).
 - City of Fort Wayne, *SA8 Lift Station and Force Main Design*; Clean Water Services, *Design and Construction Standards* Ch. 9 (pump stations); New Braunfels Utilities, *Lift Station Design Criteria* (2024).
 - 2010 ADA Standards for Accessible Design, §403 and §405.
+- Jain, S.C., "Tangential vortex-inlet," *J. Hydraulic Eng.* 110(12), 1984; Yu, D. and Lee, J.H.W., "Hydraulics of tangential vortex intake for urban drainage," *J. Hydraulic Eng.* 135(3), 2009; Odgaard, A.J., Lyons, T.C. and Craig, A.J., "Baffle-drop structure design relationships," *J. Hydraulic Eng.* 139(9), 2013; Crispino, G. et al., "Energy head dissipation and flow pressures in vortex drop shafts," *Water* 13(2):165, 2021.
 - FHWA HEC-9, *Debris Control Structures Evaluation and Countermeasures*, 3rd ed., 2005; NCHRP Report 653, 2010.
 - FHWA HEC-11, *Design of Riprap Revetment*, 1989.
 - FHWA HEC-17, *Highways in the River Environment: Floodplains, Extreme Events, Risk, and Resilience*, 2nd ed., 2016.

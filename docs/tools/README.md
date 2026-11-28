@@ -46,6 +46,7 @@ tests; every tool's sample input is run by the test suite and must finish withou
 | ★ Storm network plan review | IDCM §4.6 | [plan-review.md](plan-review.md) |
 | ★ Review comment tracker and response letter | Agency review rounds; network results; IDCM §4.6 plan review | [review-comments.md](review-comments.md) |
 | ★ Sanitary sewer network design: design flows, sizing, inverts, manholes, H2S | Rapid City IDCM 2012 §3.12; Ten States Standards (2014) §11, §33–34; EPA 1974 / ASCE MOP 60 sulfide Z | [sanitary-network.md](sanitary-network.md) |
+| Sewer drop structures: velocity over 10 ft/s, anchors, outside drops, vortex and baffle drop shafts | Rapid City IDCM §3.12.6, §3.12.10; Ten States §33.45, §34.2; Jain (1984), Yu and Lee (2009), Odgaard et al. (2013) | [sewer-drop-structures.md](sewer-drop-structures.md) |
 | ★ Sanitary wet-weather flows: diurnal DWF, RTK RDII, dynamic-wave surcharge, SWMM .inp export | EPA SSOAP (2007); SWMM 5 Hydrology Reference Manual Ch. 10; Rapid City depth–duration table, NRCS Type II | [sanitary-wet-weather.md](sanitary-wet-weather.md) |
 | ★ Sanitary trunk sewer HGL and surcharge: junction and bend losses, rims, services and basements | IDCM 2012 §3.12 flows and d/D; IDCM Figs. 4-6/4-7 losses; standard step energy equation | [sanitary-trunk-hgl.md](sanitary-trunk-hgl.md) |
 | ★ Sanitary sewer plan and profile sheets (DXF): peak water surface, d/D, design exception flags | Rapid City IDCM 2012 §3.12.4, §3.12.6 | [sanitary-plan-profile-dxf.md](sanitary-plan-profile-dxf.md) |
