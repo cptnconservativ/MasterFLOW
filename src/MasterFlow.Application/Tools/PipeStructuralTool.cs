@@ -79,6 +79,41 @@ public sealed class PipeStructuralTool : IDesignTool
         return row is null || c < 0 ? double.NaN : row[c];
     }
 
+    /// <summary>Live load on the pipe (pressure psf, line load lb/ft), zero when there is none or when AASHTO LRFD 3.6.1.2.6
+    /// lets it be neglected (cover over 8 ft and over the pipe OD).</summary>
+    public static (double Pressure, double LineLoad) LiveLoadOrNone(double hFt, double bcFt, bool live, double lldf)
+        => !live || (hFt > 8 && hFt > bcFt) ? (0, 0) : LiveLoad(hFt, bcFt, lldf);
+
+    /// <summary>
+    /// Indirect design of reinforced concrete pipe (U.S. units): earth, fluid and live loads (lb/ft), bedding factors and
+    /// the 0.01-in. crack D-load (lb/ft/ft) for ID <paramref name="diIn"/>, wall <paramref name="wallIn"/> and cover
+    /// <paramref name="hFt"/> over the top of pipe on Standard Installation <paramref name="type"/>.
+    /// </summary>
+    public static (double We, double Wf, double Wl, double Bfe, double BfLL, double DLoad) RigidDLoad(double diIn, double wallIn, double hFt, int type, double? bfLL, double gammaPcf, bool live, double lldf)
+    {
+        double doFt = (diIn + 2 * wallIn) / 12, diFt = diIn / 12;
+        double we = Vaf(type) * gammaPcf * (hFt + doFt * (4 - Math.PI) / 8) * doFt;
+        double wf = 62.4 * Math.PI * diFt * diFt / 4;
+        var (_, wl) = LiveLoadOrNone(hFt, doFt, live, lldf);
+        double bfe = Bfe(type, diIn), bfll = Math.Min(bfe, bfLL ?? 1.1);
+        return (we, wf, wl, bfe, bfll, ((we + wf) / bfe + wl / bfll) / diFt);
+    }
+
+    /// <summary>Least ASTM C76 class (U.S. D-load) at or above <paramref name="dLoad"/> lb/ft/ft, or null above Class V.</summary>
+    public static string? C76Class(double dLoad) => Classes.FirstOrDefault(c => c.Us >= dLoad - 1e-9).Class;
+
+    /// <summary>
+    /// Modified Iowa long-term deflection (%) of flexible pipe (U.S. units): prism earth pressure Pe and live-load pressure
+    /// PL at the crown (psi), Δy/D = (DL·K·Pe + K·PL)/(0.149·PS + 0.061·E′) with K = 0.1.
+    /// </summary>
+    public static (double Pe, double Pl, double Deflection) FlexibleDeflection(double hFt, double odIn, double psPsi, double ePrimePsi, double gammaPcf, bool live, double lldf, double dl)
+    {
+        double pe = gammaPcf * hFt / 144;
+        var (w, _) = LiveLoadOrNone(hFt, odIn / 12, live, lldf);
+        double pl = double.IsFinite(w) ? w / 144 : 0;
+        return (pe, pl, 100 * (dl * 0.1 * pe + 0.1 * pl) / (0.149 * psPsi + 0.061 * ePrimePsi));
+    }
+
     public string SampleInput(DesignToolContext context) => context.Units == UnitSystem.SI ? """
         # Pipe structural design. SI: ID in mm, cover in m, unit weight kN/m³, PS and E′ in kPa.
         unit weight = 18.85        # soil over the pipe, kN/m³
