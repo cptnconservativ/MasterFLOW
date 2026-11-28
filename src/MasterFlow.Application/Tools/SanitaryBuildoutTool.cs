@@ -118,7 +118,7 @@ public sealed class SanitaryBuildoutTool : IDesignTool
         var tool = new SanitarySewerTool();
         int y0 = (int)Math.Round(baseYear), y1 = (int)Math.Round(endYear);
         var years = Enumerable.Range(y0, y1 - y0 + 1).ToList();
-        var byYear = new Dictionary<int, SanitarySewerTool.SanitaryDesign>();
+        var byYear = new Dictionary<int, SanitarySewerTool.SewerLayout>();
         ToolResult? first = null;
         foreach (int yr in years)
         {
