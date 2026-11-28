@@ -66,6 +66,7 @@ public static class DesignToolCatalog
         ["sanitary-plan-profile-dxf"] = "Sanitary sewers",
         ["sanitary-deep-structural"] = "Sanitary sewers",
         ["sewer-drop-structures"] = "Sanitary sewers",
+        ["sanitary-bypass"] = "Sanitary sewers",
         ["sewer-sulfide"] = "Sanitary sewers",
     };
 
